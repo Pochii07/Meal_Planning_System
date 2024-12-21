@@ -1,1 +1,2 @@
-"# MealPlanning-System" 
+Meal Planning System for Thesis
+ 
