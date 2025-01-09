@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route} from 'react-router-dom'
 
-import Home from './pages/home'
+import PatientForm from './pages/home'
 import Patients from './pages/patients';
 import Navbar from './components/navbar'
 
@@ -12,7 +12,7 @@ function App() {
       <Navbar/>
         <div className = "pages">
           <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<PatientForm />} />
           <Route path="/patients" element={<Patients />} />
           </Routes>
         </div>
