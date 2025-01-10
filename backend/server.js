@@ -4,6 +4,7 @@ const express = require('express')
 const cors = require('cors');
 const mongoose = require('mongoose')
 const patientRoutes = require('./routes/patient_routes')
+const recipeRoutes = require('./routes/recipe_routes')
 
 
 // Express app
@@ -20,6 +21,7 @@ FoodPlan.use((req, res, next) =>{
 
 // Routes
 FoodPlan.use('/api/patient_routes', patientRoutes)
+FoodPlan.use('/api/recipe_routes', recipeRoutes)
 
 // connect to db
 mongoose.connect(process.env.MONG_URI)

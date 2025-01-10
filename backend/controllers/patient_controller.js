@@ -34,6 +34,31 @@ const calculateBMI = (weight,height) =>{
 const newPatient = async (req, res) => {
     const {age, height, weight, activity_level, preference, restrictions} = req.body
     
+    let emptyFields = []
+    
+    if(!age){
+        emptyFields.push('age')
+    }
+    if(!height){
+        emptyFields.push('height')
+    }
+    if(!weight){
+        emptyFields.push('weight')
+    }
+    if(!activity_level){
+        emptyFields.push('activity level')
+    }
+    if(!preference){
+        emptyFields.push('preference')
+    }
+    if(!restrictions){
+        emptyFields.push('restrictions')
+    }
+    if(emptyFields.length > 0) {
+        return res.status(400).json({error: 'please fill in all the fields', emptyFields})
+    }
+    
+
     // add doc to db
     try{
         const BMI = calculateBMI(weight, height)

@@ -22,7 +22,6 @@ const Patients = () => {
 
     return (
         <div className="home">
-            <p>patients</p>
             <div className="patients">
                 {patients && patients.map((patient) => (
                     <PatientDetails key={patient._id} patient={patient}/>
