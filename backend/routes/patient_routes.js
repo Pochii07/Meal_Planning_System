@@ -4,7 +4,9 @@ const {
     newPatient,
     getPatient,
     deletePatient,
-    updatePatient
+    updatePatient,
+    updateMealProgress,
+    getWeeklyProgress
 
 } = require('../controllers/patient_controller')
 
@@ -24,6 +26,12 @@ router.delete('/:id',deletePatient)
 
 // Update case
 router.patch('/:id',updatePatient)
+
+// Update mealplan progress
+router.patch('/:id/progress', updateMealProgress)
+
+// Get progress
+router.get('/:id/progress', getWeeklyProgress)
 
 module.exports = router
 

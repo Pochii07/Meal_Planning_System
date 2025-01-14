@@ -29,9 +29,25 @@ const UserDetailsSchema = new Schema({
     restrictions: {
         type:String,
         required: true
+    },
+    progress: {
+        type: Map, // Map to track meals for each day
+        of: {
+            breakfast: { type: Boolean, default: false },
+            lunch: { type: Boolean, default: false },
+            dinner: { type: Boolean, default: false }
+        },
+        default: {
+            Sunday: { breakfast: false, lunch: false, dinner: false },
+            Monday: { breakfast: false, lunch: false, dinner: false },
+            Tuesday: { breakfast: false, lunch: false, dinner: false },
+            Wednesday: { breakfast: false, lunch: false, dinner: false },
+            Thursday: { breakfast: false, lunch: false, dinner: false },
+            Friday: { breakfast: false, lunch: false, dinner: false },
+            Saturday: { breakfast: false, lunch: false, dinner: false },
+        } 
     }
-    
-}, { timestamps: true})
+},   {timestamps: true})
 
 module.exports = mongoose.model('PatientDetails',UserDetailsSchema)
 

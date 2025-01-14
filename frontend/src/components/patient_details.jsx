@@ -1,5 +1,7 @@
 import { usePatientContext } from "../hooks/use_patient_context"
 
+import formatDate from 'date-fns/formatDistanceToNow'
+
 const PatientDetails = ({ patient }) => {
   const { dispatch } = usePatientContext()
 
@@ -24,7 +26,7 @@ const PatientDetails = ({ patient }) => {
             <p><strong>activity level: </strong>{patient.activity_level}</p>
             <p><strong>preference: </strong>{patient.preference}</p>
             <p><strong>restrictions: </strong>{patient.restrictions}</p>
-            <p><strong>Date Created: </strong>{patient.createdAt}</p>
+            <p><strong>Date Created: </strong>{formatDate(new Date(patient.createdAt), {addSuffix: true})}</p>
             <span onClick={handleClick}>delete</span>
         </div>
     )

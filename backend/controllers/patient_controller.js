@@ -5,7 +5,12 @@ const mongoose = require('mongoose')
 const getAllPatients = async (req, res) => {
     const allPatients = await Patient.find({}).sort({createdAt: - 1})
 
-    res.status(200).json(allPatients)
+    const formattedPatients = allPatients.map(patient => {
+        const { progress, ...details } = patient._doc // Separate details and progress
+        return { ...details, progress } // Reorder: details first, then progress
+    })
+
+    res.status(200).json(formattedPatients)
 }
 
 // get patient
@@ -13,21 +18,25 @@ const getPatient = async (req, res) => {
     const { id } = req.params
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({error: 'no patient found'})
+        return res.status(404).json({ error: 'No patient found' })
     }
 
-    const findPatient = await Patient.findById(id)
+    try {
+        const patient = await Patient.findById(id)
+        if (!patient) {
+            return res.status(404).json({ error: 'No patient found' })
+        }
 
-    if (!findPatient) {
-        return res.status(404).json({error: 'No patient found'})
+        const { progress, ...details } = patient._doc // Separate details and progress
+        res.status(200).json({ ...details, progress }) // Reorder: details first, then progress
+    } catch (error) {
+        res.status(500).json({ error: error.message })
     }
-
-    res.status(200).json(findPatient)
 }
 
 // for calculation of BMI
 const calculateBMI = (weight,height) =>{
-    return (weight / ((height / 100) ** 2)).toFixed(2);
+    return (weight / ((height / 100) ** 2)).toFixed(2)
 }
 
 // new patient
@@ -102,12 +111,58 @@ const updatePatient = async (req, res) => {
 }
 
 
+// Update meal progress
+const updateMealProgress = async (req, res) => {
+    const { id } = req.params
+    const { day, meal } = req.body
+
+    if (!['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].includes(day)) {
+        return res.status(400).json({ error: 'Invalid day provided' })
+    }
+    if (!['breakfast', 'lunch', 'dinner'].includes(meal)) {
+        return res.status(400).json({ error: 'Invalid meal provided' })
+    }
+
+    try {
+        const patient = await Patient.findById(id)
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' })
+        }
+
+        patient.progress[day][meal] = true // Mark the meal as eaten
+        await patient.save()
+
+        res.status(200).json({ message: `Updated ${meal} progress for ${day}`, progress: patient.progress })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+// Get weekly progress
+const getWeeklyProgress = async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const patient = await Patient.findById(id)
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' })
+        }
+
+        res.status(200).json(patient.progress)
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+
 
 module.exports = {
     getAllPatients,
     getPatient,
     newPatient,
     deletePatient,
-    updatePatient
+    updatePatient,
+    updateMealProgress,
+    getWeeklyProgress,
 
 }
