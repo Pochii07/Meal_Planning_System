@@ -15,6 +15,10 @@ const UserDetailsSchema = new Schema({
         type:Number,
         required: true
     },
+    gender:{
+        type:String,
+        required: true
+    },
     BMI:{
         type:Number,    // automatically calculated
     },
@@ -46,8 +50,10 @@ const UserDetailsSchema = new Schema({
             Friday: { breakfast: false, lunch: false, dinner: false },
             Saturday: { breakfast: false, lunch: false, dinner: false },
         } 
+    },
+    prediction: {
+        type: String, // Add a new field for the prediction result
     }
 },   {timestamps: true})
 
 module.exports = mongoose.model('PatientDetails',UserDetailsSchema)
-

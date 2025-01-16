@@ -1,5 +1,6 @@
 const Patient = require('../models/patient_model')
 const mongoose = require('mongoose')
+const axios = require('axios')
 
 // get all patients
 const getAllPatients = async (req, res) => {
@@ -41,40 +42,51 @@ const calculateBMI = (weight,height) =>{
 
 // new patient
 const newPatient = async (req, res) => {
-    const {age, height, weight, activity_level, preference, restrictions} = req.body
-    
-    let emptyFields = []
-    
-    if(!age){
-        emptyFields.push('age')
-    }
-    if(!height){
-        emptyFields.push('height')
-    }
-    if(!weight){
-        emptyFields.push('weight')
-    }
-    if(!activity_level){
-        emptyFields.push('activity level')
-    }
-    if(!preference){
-        emptyFields.push('preference')
-    }
-    if(!restrictions){
-        emptyFields.push('restrictions')
-    }
-    if(emptyFields.length > 0) {
-        return res.status(400).json({error: 'please fill in all the fields', emptyFields})
-    }
-    
+    const { age, height, weight, gender, activity_level, preference, restrictions } = req.body;
 
-    // add doc to db
-    try{
-        const BMI = calculateBMI(weight, height)
-        const new_patient = await Patient.create({age, height, weight, BMI, activity_level, preference, restrictions})
-        res.status(200).json(new_patient)
-    } catch(error){
-        res.status(400).json({error: error.message})
+    let emptyFields = [];
+
+    if (!age) emptyFields.push('age');
+    if (!height) emptyFields.push('height');
+    if (!weight) emptyFields.push('weight');
+    if (!gender) emptyFields.push('gender');
+    if (!activity_level) emptyFields.push('activity level');
+    if (!preference) emptyFields.push('preference');
+    if (!restrictions) emptyFields.push('restrictions');
+    if (emptyFields.length > 0) {
+        return res.status(400).json({ error: 'please fill in all the fields', emptyFields });
+    }
+
+    try {
+        // Call the Flask API to get the prediction
+        const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
+            age,
+            height,
+            weight,
+            gender,
+            dietary_restrictions: preference, // Map preference to dietary_restrictions
+            allergies: restrictions, // Map restrictions to allergies
+            activity_level
+        });
+
+        const prediction = response.data.predicted_meal_plan;
+
+        // Add doc to db
+        const BMI = calculateBMI(weight, height);
+        const new_patient = await Patient.create({
+            age,
+            height,
+            weight,
+            gender,
+            BMI,
+            activity_level,
+            preference,
+            restrictions,
+            prediction
+        });
+        res.status(200).json(new_patient);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 }
 

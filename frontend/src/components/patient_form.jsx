@@ -1,104 +1,126 @@
-import {useState } from "react"
-import { usePatientContext } from "../hooks/use_patient_context"
+import { useState } from "react";
+import { usePatientContext } from "../hooks/use_patient_context";
 
 const PatientForm = () => {
-    const {dispatch} = usePatientContext()
+  const { dispatch } = usePatientContext();
 
-    const [age, setAge] = useState('')
-    const [weight, setWeight] = useState('')
-    const [height, setHeight] = useState('')
-    const [activity_level, setActivityLevel] = useState('')
-    const [preference, setPreference] = useState('')
-    const [restrictions, setRestrictions] = useState('')
-    const [error, setError] = useState(null)
-    const [emptyFields, setEmptyFields] = useState([])
+  const [age, setAge] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const [gender, setGender] = useState('');
+  const [activityLevel, setActivityLevel] = useState('');
+  const [preference, setPreference] = useState('');
+  const [restrictions, setRestrictions] = useState('');
+  const [error, setError] = useState(null);
+  const [emptyFields, setEmptyFields] = useState([]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        const patient = {age, weight, height, activity_level, preference: preference || null, restrictions: restrictions || null, }
-        
-        const response = await fetch('/api/patient_routes', {
-            method: 'POST',
-            body: JSON.stringify(patient),
-            headers:{
-                'Content-Type': 'application/json'
-            }
-        })
-        const json = await response.json()
+    const patient = {
+      age,
+      weight,
+      height,
+      gender,
+      activity_level: activityLevel,
+      preference: preference || null,
+      restrictions: restrictions || null,
+    };
 
-        if (!response.ok) {
-            setError(json.error)
-            setEmptyFields(json.emptyFields)
-        }
-        if (response.ok) {
-            setAge('')
-            setWeight('')
-            setHeight('')
-            setActivityLevel('')
-            setPreference('')
-            setRestrictions('')
-            setError(null)
-            setEmptyFields([])
-            console.log('new patient added', json)
-            dispatch({type: 'CREATE_PATIENT', payload: json})
-        }
+    const response = await fetch('/api/patient_routes', {
+      method: 'POST',
+      body: JSON.stringify(patient),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const json = await response.json();
+
+    if (!response.ok) {
+      setError(json.error);
+      setEmptyFields(json.emptyFields || []);
+    } else {
+      setError(null);
+      setEmptyFields([]);
+      dispatch({ type: 'CREATE_PATIENT', payload: json });
+      setAge('');
+      setWeight('');
+      setHeight('');
+      setGender('');
+      setActivityLevel('');
+      setPreference('');
+      setRestrictions('');
     }
+  };
 
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>Age:</label>
+      <input
+        type="number"
+        value={age}
+        onChange={(e) => setAge(e.target.value)}
+        className={emptyFields.includes('age') ? 'error' : ''}
+        required
+      />
 
-    return (
-        <form className = "PatientForm" onSubmit={handleSubmit}>
-            <h3> Add New Patient </h3>
+      <label>Weight (kg):</label>
+      <input
+        type="number"
+        value={weight}
+        onChange={(e) => setWeight(e.target.value)}
+        className={emptyFields.includes('weight') ? 'error' : ''}
+        required
+      />
 
-            <label> Age: </label>
-            <input
-                type = "number"
-                onChange = {(e) => setAge(e.target.value)}
-                value={age}
-                className={emptyFields.includes('age') ? 'error' : ''}
-            />
-            <label> Weight: </label>
-            <input
-                type = "number"
-                onChange = {(e) => setWeight(e.target.value)}
-                value={weight}
-                className={emptyFields.includes('weight') ? 'error' : ''}
-            />
-            <label> Height: </label>
-            <input
-                type = "number"
-                onChange = {(e) => setHeight(e.target.value)}
-                value={height}
-                className={emptyFields.includes('height') ? 'error' : ''}
-            />
-            <label> Activity Level: </label>
-            <input
-                type = "number"
-                onChange = {(e) => setActivityLevel(e.target.value)}
-                value={activity_level}
-                className={emptyFields.includes('activity level') ? 'error' : ''}
-            />
-            <label> Preference: </label>
-            <input
-                type = "String"
-                onChange = {(e) => setPreference(e.target.value)}
-                value={preference}
-                className={emptyFields.includes('preference') ? 'error' : ''}
-            />
-            <label> Restrictions: </label>
-            <input
-                type = "String"
-                onChange = {(e) => setRestrictions(e.target.value)}
-                value={restrictions}
-                className={emptyFields.includes('restrictions') ? 'error' : ''}
-            />
+      <label>Height (cm):</label>
+      <input
+        type="number"
+        value={height}
+        onChange={(e) => setHeight(e.target.value)}
+        className={emptyFields.includes('height') ? 'error' : ''}
+        required
+      />
 
-            <button> Submit </button>
-            {error && <div className="error">{error}</div>}
-        </form>
+      <label>Gender:</label>
+      <input
+        type="text"
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+        className={emptyFields.includes('gender') ? 'error' : ''}
+        required
+      />
 
-    )
-}
+      <label>Activity Level:</label>
+      <input
+        type="number"
+        value={activityLevel}
+        onChange={(e) => setActivityLevel(e.target.value)}
+        className={emptyFields.includes('activity level') ? 'error' : ''}
+        required
+      />
 
+      <label>Dietary Preference:</label>
+      <input
+        type="text"
+        value={preference}
+        onChange={(e) => setPreference(e.target.value)}
+        className={emptyFields.includes('preference') ? 'error' : ''}
+      />
 
-export default PatientForm
+      <label>Allergies:</label>
+      <input
+        type="text"
+        value={restrictions}
+        onChange={(e) => setRestrictions(e.target.value)}
+        className={emptyFields.includes('restrictions') ? 'error' : ''}
+      />
+
+      <button type="submit">Add Patient</button>
+      {error && <div className="error">{error}</div>}
+    </form>
+  );
+};
+
+export default PatientForm;
