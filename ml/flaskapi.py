@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 app = Flask(__name__)
 
 # Load the dataset
-df = pd.read_csv('ml/Reduced_Dataset.csv')
+df = pd.read_csv('Reduced_Dataset.csv')
 
 # Update column names to match the code requirements
 df.rename(columns={
