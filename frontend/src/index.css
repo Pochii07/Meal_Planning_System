@@ -1,5 +1,7 @@
 /* google font */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&display=swap');
+@import "tailwindcss";
 
 /* layout */
 :root {
@@ -7,12 +9,12 @@
   --error: #e7195a;
 }
 body {
-  background: #f1f1f1;
+  background: #f5fffa;
   margin: 0;
   font-family: "Poppins";
 }
 header {
-  background: #fff;
+  background: #f5fffa;
   padding: 10px 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -37,25 +39,8 @@ nav {
   display: flex;
 }
 
-.navbar-links {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
 
-.navbar-links li {
-  margin: 0 15px;
-}
-
-.navbar-links a {
-  text-decoration: none;
-  color: #333;
-  font-size: 1rem;
-  transition: color 0.3s ease;
-}
-
-.navbar-links a:hover {
+.customnavbar-links a:hover {
   color: #007bff;
 }
 
@@ -122,3 +107,33 @@ div.error {
 input.error {
   border: 1px solid var(--error);
 }
+
+/*------------------------------------------------------------------------*/
+.shiny-text {
+  color: #b5b5b5a4; /* Adjust this color to change intensity/style */
+  background: linear-gradient(
+    120deg,
+    "linear-gradient(120deg, #272D2D 40%, #248D27 50%, #272D2D",
+
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  display: inline-block;
+  animation: shine 5s linear infinite;
+  }
+  
+  @keyframes shine {
+  0% {
+    background-position: 100%;
+  }
+  100% {
+    background-position: -100%;
+  }
+  }
+  
+  .shiny-text.disabled {
+  animation: none;
+  }
+
+  

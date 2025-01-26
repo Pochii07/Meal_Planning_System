@@ -11,10 +11,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@fontsource/work-sans": "^5.1.1",
+    "@mui/material": "^6.4.1",
+    "@mui/styled-engine-sc": "^6.4.0",
+    "@react-spring/web": "^9.7.5",
     "date-fns": "^4.1.0",
+    "flowbite": "^3.0.0",
+    "flowbite-react": "^0.10.2",
     "react": "^18.3.1",
+    "react-awesome-button": "^7.0.5",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.0.2"
+    "react-router-dom": "^7.0.2",
+    "styled-components": "^6.1.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -26,6 +36,8 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.13.0",
+    "jsrepo": "^1.28.4",
+    "sass-embedded": "^1.83.4",
     "vite": "^6.0.3"
   }
 }
