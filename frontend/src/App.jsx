@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route} from 'react-router-dom'
 import { NavbarCustom } from './components/navbar';
 import LandingPage from './pages/LandingPage';
+import SignUp from './pages/SignUp';
+import LogIn from './pages/LogIn';
 import PatientForm from './pages/home'
 import Patients from './pages/patients';
 import 'flowbite/dist/flowbite.css'; 
@@ -17,6 +19,8 @@ function App() {
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<PatientForm />} />
+          <Route path="/SignUp" element={<SignUp/>}></Route>
+          <Route path="/LogIn" element={<LogIn/>}></Route>
           <Route path="/patients" element={<Patients />} />
           </Routes>
         </div>

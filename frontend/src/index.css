@@ -189,3 +189,9 @@ input.error {
     top: 60px; /* Move down by 20px */
   }
 }
+
+input:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
