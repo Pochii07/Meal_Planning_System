@@ -1,21 +1,11 @@
 import React, { useState } from "react";
-import dayjs from 'dayjs';
 import cooking from '../Images/cooking.png'; 
 import TextField from "@mui/material/TextField";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import Box from '@mui/material/Box';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
 import { IconButton, InputAdornment } from "@mui/material";
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import LogInIMG from '../Images/LogInIMG.jpg'; 
-
 
 const EmailInput = ({ label }) => {
   const [email, setEmail] = useState("");
