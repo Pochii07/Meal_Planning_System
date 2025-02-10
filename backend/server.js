@@ -1,6 +1,3 @@
-import 'flowbite-react/dist/flowbite.css';
-import 'react-awesome-button/dist/styles.css';
-
 require('dotenv').config()
 
 const express = require('express')
