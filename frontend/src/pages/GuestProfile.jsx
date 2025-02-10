@@ -8,12 +8,17 @@ import { spacing } from '@mui/system';
 import defaultFemaleIMG from "../Images/defaultFemaleIMG.jpg";
 import UploadPhotoIMG from "../Images/UploadPhotoIMG.png";
 import EditIMG from "../Images/EditIMG.png";
+import AddIMG from "../Images/AddIMG.png";
 import Button from '@mui/material/Button';
 import { Link } from "react-router-dom";
-import { InputAdornment } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import Box from '@mui/material/Box';
 import cooking from '../Images/cooking.png'; 
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
+import Chip from "@mui/material/Chip";
 
 
 const UploadIcon = styled(Avatar)(({ theme }) => ({
@@ -25,6 +30,23 @@ const UploadIcon = styled(Avatar)(({ theme }) => ({
 
 const GuestProfile = () => {
   const [profilePic, setProfilePic] = useState(defaultFemaleIMG);
+  const [dietRestrictions, setDietRestrictions] = useState([]);
+  const [selectedDiet, setSelectedDiet] = useState("");
+
+  const handleChangeDiet = (event) => {
+    setSelectedDiet(event.target.value);
+  };
+
+  const addDietRestriction = () => {
+    if (selectedDiet && !dietRestrictions.includes(selectedDiet)) {
+      setDietRestrictions([...dietRestrictions, selectedDiet]);
+      setSelectedDiet("");
+    }
+  };
+
+  const removeDietRestriction = (diet) => {
+    setDietRestrictions(dietRestrictions.filter((item) => item !== diet));
+  };
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -34,6 +56,7 @@ const GuestProfile = () => {
     }
   };
 
+  
   return (
         <div
           className="flex flex-col "
@@ -219,10 +242,61 @@ const GuestProfile = () => {
 
                     </div>
             </td>
-            <td>
-                {/*COLUMN 2 */}
+            <td style={{verticalAlign: "top"}}>
+                {/*COLUMN 2 DIETARY RESTRICTIONS*/}
+                <Stack direction={"column"}>
+                  <span style={{ fontSize: "20px", fontWeight: "bold", marginLeft: "5px" }}>DIETARY RESTRICTIONS</span>
+                    <Stack direction={"row"}>
+                    <Box
+                      width="70%"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "& fieldset": { borderColor: "black", borderWidth: "2px" },
+                          "&:hover fieldset": { borderColor: "#008000", borderWidth: "2px" },
+                          "&.Mui-focused fieldset": { borderColor: "#008000 !important"},
+                        },
+                        "& .MuiInputLabel-root": { color: "black", borderWidth: "2px" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important"},
+                      }}
+                    >
+                      <FormControl required fullWidth>
+                        <Select
+                          labelId="demo-simple-select-label"
+                          id="demo-simple-select"
+                          value={selectedDiet}
+                          onChange={handleChangeDiet}
+                        >
+                          {/*DIETARY RESTRICTIONS LIST*/}
+                          <MenuItem value={"Gluten-Free"}>Gluten-Free</MenuItem>
+                          <MenuItem value={"Dairy-Free"}>Dairy-Free</MenuItem>
+                          <MenuItem value={"Nut-Free"}>Nut-Free</MenuItem>
+                          <MenuItem value={"Vegetarian"}>Vegetarian</MenuItem>
+                          <MenuItem value={"Vegan"}>Vegan</MenuItem>
+                          <MenuItem value={"Halal"}>Halal</MenuItem>
+                          <MenuItem value={"Low Sugar"}>Low Sugar</MenuItem>
+                          <MenuItem value={"Low Sodium"}>Low Sodium</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    <IconButton aria-label="Add" style={{marginLeft: 5}} onClick={addDietRestriction}>
+                        <img src={AddIMG} alt="Add" style={{ width: 40, height: 40}} />
+                    </IconButton>
+                  </Stack>
+                  <Stack direction="row" spacing={1} mt={2} rowGap={1} flexWrap="wrap"> 
+                      {dietRestrictions.map((diet) => (
+                        <Chip
+                          key={diet}
+                          label={diet}
+                          color="#3D8C40"
+                          padding="4"
+                          onDelete={() => removeDietRestriction(diet)}
+                          sx={{ backgroundColor: "#3D8C40", color: "white"}}
+                        />
+                      ))}
+                    </Stack>
+                </Stack>
             </td>
-            {/*COLUMN 3 */}
+            {/*COLUMN 3 BUTTONS*/}
             <td className="pt-[200px] pl-[160px]" >
                 <div className="text-right">
                     <Stack direction={"row"} spacing={2} className="text-right">
