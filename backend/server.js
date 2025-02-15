@@ -9,7 +9,6 @@ const mongoose = require('mongoose')
 const patientRoutes = require('./routes/patient_routes')
 const recipeRoutes = require('./routes/recipe_routes')
 
-
 // Express app
 const FoodPlan = express()
 
