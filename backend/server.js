@@ -1,10 +1,7 @@
-import 'flowbite-react/dist/flowbite.css';
-import 'react-awesome-button/dist/styles.css';
-
 require('dotenv').config()
 
 const express = require('express')
-const cors = require('cors');
+const cors = require('cors')
 const mongoose = require('mongoose')
 const patientRoutes = require('./routes/patient_routes')
 const recipeRoutes = require('./routes/recipe_routes')
@@ -13,7 +10,7 @@ const recipeRoutes = require('./routes/recipe_routes')
 const FoodPlan = express()
 
 // Middleware
-FoodPlan.use(cors());
+FoodPlan.use(cors());g
 FoodPlan.use(express.json());
 
 FoodPlan.use((req, res, next) =>{
