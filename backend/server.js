@@ -1,8 +1,10 @@
 const dotenv = require('dotenv')
-dotenv.config()
 const express = require('express')
 const cors = require('cors')
 const mongoose = require('mongoose')
+const cookieParser = require('cookie-parser')
+dotenv.config()
+
 const patientRoutes = require('./routes/patient_routes')
 const recipeRoutes = require('./routes/recipe_routes')
 const authRoutes = require('./routes/auth_routes')
@@ -11,8 +13,11 @@ const authRoutes = require('./routes/auth_routes')
 const FoodPlan = express()
 
 // Middleware
-FoodPlan.use(cors());
+FoodPlan.use(cors({
+    credentials: true
+}));
 FoodPlan.use(express.json());
+FoodPlan.use(cookieParser());
 
 FoodPlan.use((req, res, next) =>{
     console.log(req.path, req.method)
