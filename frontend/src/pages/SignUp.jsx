@@ -15,6 +15,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
+import { Link } from "react-router-dom";
 
 {/* TEXT FIELD for no special characters */}
 const TextFieldNoNum = ({ label, width = "100%" }) => {
@@ -52,7 +53,7 @@ const EmailInput = ({ label }) => {
     setEmail(value);
 
     // Email validation regex
-    const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
+    const regex =/^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$ /gim;
     setError(!regex.test(value) && value.length > 0);
   };
 
@@ -345,7 +346,7 @@ const SignUp = () => {
                     <Button variant="contained" class="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
                     endIcon={<SendIcon />}
                     >
-                  SIGN UP
+                  <Link to="/GuestProfile">SIGN UP</Link>
                   </Button>
 
               </td>

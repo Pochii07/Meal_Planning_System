@@ -4,8 +4,8 @@
 	1-26-2025
 */
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useTransition, a } from "@react-spring/web";
+import { useState, useEffect, useMemo, useRef } from "react"
+import { useTransition, a } from "@react-spring/web"
 
 import "./Masonry.scss";
 
