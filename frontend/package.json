@@ -30,7 +30,8 @@
     "react-dom": "^18.3.1",
     "react-icons-kit": "^2.0.0",
     "react-router-dom": "^7.0.2",
-    "styled-components": "^6.1.14"
+    "styled-components": "^6.1.14",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
