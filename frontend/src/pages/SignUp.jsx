@@ -17,6 +17,12 @@ import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
 import { Link } from "react-router-dom";
 
+/**
+ *  imports for authentication
+*/
+
+import { useAuthStore } from "../store/authStore"; 
+
 {/* TEXT FIELD for no special characters */}
 const TextFieldNoNum = ({ label, width = "100%" }) => {
   return (
@@ -203,8 +209,6 @@ const ConfirmPassword = ({ password, setPassword, label, showConfirmPassword, ha
   );
 };
 
-
-
 const SignUp = () => {
   const [sex, setSex] = useState('');
   const [password, setPassword] = useState('');
@@ -223,6 +227,11 @@ const SignUp = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    console.log("Form submitted");
+  };
+  
   return (
     <div
       className="flex flex-col mt-12"
@@ -234,125 +243,123 @@ const SignUp = () => {
         backgroundSize: "10%",
       }}
     >
-      
       <div className="flex justify-center items-center">
-      <div className="w-1/2">
-        <img src={SignUpIMG} alt="SignUpIMG" style={{ width: "80%", height: "80% " }} />
+        <div className="w-1/2">
+          <img src={SignUpIMG} alt="SignUpIMG" style={{ width: "80%", height: "80% " }} />
         </div>  
-        <table className="border-collapse border border-transparent  w-3/4 md:w-2/5">
-          <tbody>
-            <tr>
-              <td className="border border-transparent p-4" colSpan="2">
-                <p className="text-[15px] text-right">
-                  Already a member?{" "}
-                  <a className="font-semibold hover:text-[#008000]" href="/LogIn">
-                    Log In
-                  </a>
-                </p>
-                <p className="text-[110px] font-semibold text-left tracking-tighter">
-                  Sign Up
-                </p>
-                <p className="text-[15px] text-left text-[#008000] mb-8">
-                  Your healthy journey starts here.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td className="pt-4 px-3 w-1/2">
-                <TextFieldNoNum label="First Name" />
-              </td>
-              <td className="pt-4 px-3 w-1/2">
-                <TextFieldNoNum label="Last Name" />
-              </td>
-            </tr>
-            <tr>
-              <td className="p-4 w-1/2">
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
+        
+        {/* Form starts here */}
+        <form 
+          novalidate
+          onSubmit={handleSubmit} 
+          className="border-collapse border border-transparent w-3/4 md:w-2/5"
+        >
+          <table>
+            <tbody>
+              <tr>
+                <td className="border border-transparent p-4" colSpan="2">
+                  <p className="text-[15px] text-right">
+                    Already a member?{" "}
+                    <a className="font-semibold hover:text-[#008000]" href="/LogIn">
+                      Log In
+                    </a>
+                  </p>
+                  <p className="text-[110px] font-semibold text-left tracking-tighter">
+                    Sign Up
+                  </p>
+                  <p className="text-[15px] text-left text-[#008000] mb-8">
+                    Your healthy journey starts here.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td className="pt-4 px-3 w-1/2">
+                  <TextFieldNoNum label="First Name" />
+                </td>
+                <td className="pt-4 px-3 w-1/2">
+                  <TextFieldNoNum label="Last Name" />
+                </td>
+              </tr>
+              <tr>
+                <td className="p-4 w-1/2">
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      required
+                      label="Birth Date"
+                      width="100%"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "& fieldset": { borderColor: "gray" },
+                          "&:hover fieldset": { borderColor: "#008000" },
+                          "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
+                        },
+                        "& .MuiInputLabel-root": { color: "gray" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </td>
+                <td className="px-3 w-1/2">
+                  <Box width="100%">
+                    <FormControl required fullWidth>
+                      <InputLabel id="demo-simple-select-label">Sex</InputLabel>
+                      <Select
+                        labelId="demo-simple-select-label"
+                        id="demo-simple-select"
+                        value={sex}
+                        label="Sex"
+                        onChange={handleChange}
+                      >
+                        <MenuItem value={"Male"}>Male</MenuItem>
+                        <MenuItem value={"Female"}>Female</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 w-1/2" colSpan={2}>
+                  <EmailInput label="Email Address" />
+                </td>
+              </tr>
+              <tr>
+                <td className="pt-2 px-4 w-1/2">
+                  <Password 
                     required
-                    label="Birth Date"
-                    width="100%"
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "gray" },
-                        "&:hover fieldset": { borderColor: "#008000" },
-                        "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
-                      },
-                      "& .MuiInputLabel-root": { color: "gray" },
-                      "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
-                    }}
+                    label="Password" 
+                    password={password} 
+                    setPassword={setPassword} 
+                    showPassword={showPassword}
+                    handleShowPassword={handleShowPassword}
                   />
-                </LocalizationProvider>
-              </td>
-              <td className="px-3 w-1/2">
-                <Box
-                  width="100%"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "& fieldset": { borderColor: "gray" },
-                      "&:hover fieldset": { borderColor: "#008000" },
-                      "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
-                    },
-                    "& .MuiInputLabel-root": { color: "gray" },
-                    "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
-                  }}
-                >
-                  <FormControl required fullWidth>
-                    <InputLabel id="demo-simple-select-label">Sex</InputLabel>
-                    <Select
-                      labelId="demo-simple-select-label"
-                      id="demo-simple-select"
-                      value={sex}
-                      label="Sex"
-                      onChange={handleChange}
-                    >
-                      <MenuItem value={"Male"}>Male</MenuItem>
-                      <MenuItem value={"Female"}>Female</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </td>
-            </tr>
-            <tr>
-              <td className="px-4 w-1/2" colSpan={2}>
-                <EmailInput label="Email Address" />
-              </td>
-            </tr>
-            <tr>
-              <td className="pt-2 px-4 w-1/2">
-                <Password 
-                  required
-                  label="Password" 
-                  password={password} // Pass the password state
-                  setPassword={setPassword} 
-                  showPassword={showPassword}
-                  handleShowPassword={handleShowPassword}
-                />
-              </td>
-              <td className="pt-2 px-4 w-1/2">
-                <ConfirmPassword 
-                  required
-                  password={password} 
-                  setPassword={setPassword} 
-                  label="Confirm Password" 
-                  showConfirmPassword={showConfirmPassword}
-                  handleShowConfirmPassword={handleShowConfirmPassword}
-                />
-              </td>
-            </tr>
-            <tr>
-              {/*LINK SIGN UP BUTTON*/}
-              <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
-                    <Button variant="contained" class="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
+                </td>
+                <td className="pt-2 px-4 w-1/2">
+                  <ConfirmPassword 
+                    required
+                    password={password} 
+                    setPassword={setPassword} 
+                    label="Confirm Password" 
+                    showConfirmPassword={showConfirmPassword}
+                    handleShowConfirmPassword={handleShowConfirmPassword}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
+                  <Button 
+                    type="submit"
+                    variant="contained"
+                    className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
                     endIcon={<SendIcon />}
-                    >
+                  >
                   <Link to="/GuestProfile">SIGN UP</Link>
                   </Button>
-
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+        {/* Form ends here */}
       </div>
     </div>
   );
