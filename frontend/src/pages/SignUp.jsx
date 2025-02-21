@@ -15,28 +15,32 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 /**
- *  imports for authentication
+ *  import/s for authentication
 */
 
 import { useAuthStore } from "../store/authStore"; 
 
 {/* TEXT FIELD for no special characters */}
-const TextFieldNoNum = ({ label, width = "100%" }) => {
+const TextFieldNoNum = ({ label, value, onChange, width = "100%" }) => {
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    const regex = /^[A-Za-z\s]*$/;
+    
+    if (regex.test(newValue)) {
+      onChange(e); 
+    }
+  };
+
   return (
     <TextField
-      required
       label={label}
       variant="outlined"
       fullWidth
-      onChange={(e) => {
-        const regex = /^[A-Za-z\s]*$/;
-        if (!regex.test(e.target.value)) {
-          e.target.value = e.target.value.slice(0, -1);
-        }
-      }}
+      onChange={handleChange}
+      value={value}
       sx={{
         "& .MuiOutlinedInput-root": {
           "& fieldset": { borderColor: "gray" },
@@ -50,26 +54,25 @@ const TextFieldNoNum = ({ label, width = "100%" }) => {
   );
 };
 
-const EmailInput = ({ label }) => {
-  const [email, setEmail] = useState("");
+const EmailInput = ({ label, value, onChange }) => {
   const [error, setError] = useState(false);
 
   const handleChange = (e) => {
-    const value = e.target.value;
-    setEmail(value);
-
+    const newValue = e.target.value;
+    const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
+    
     // Email validation regex
-    const regex =/^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$ /gim;
-    setError(!regex.test(value) && value.length > 0);
+    setError(!regex.test(newValue) && newValue.length > 0);
+    
+    onChange(e); 
   };
 
   return (
     <TextField
-      required
       label={label}
       variant="outlined"
       fullWidth
-      value={email}
+      value={value}
       onChange={handleChange}
       error={error}
       helperText={error ? "Invalid email format" : " "}
@@ -87,16 +90,13 @@ const EmailInput = ({ label }) => {
 };
 
 {/* PASSWORD VALIDATION */}
-const Password = ({ label, password, setPassword, showPassword, handleShowPassword }) => {
+const Password = ({ label, value, onChange, showPassword, handleShowPassword }) => {
   const [error, setError] = useState(false);
   const [helperText, setHelperText] = useState(<><br /><br /></>);
 
   const handleChange = (e) => {
     const value = e.target.value;
-    setPassword(value);
-
-    // Password validation regex
-    const regex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_])(?!.*\s).{8,50}$/;
+    onChange(e);
 
     if (value.length < 8) {
       setError(true);
@@ -123,7 +123,7 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
     <TextField 
       label={label}
       type={showPassword ? 'text' : 'password'}
-      value={password}
+      value={value}
       onChange={handleChange}
       error={error}
       helperText={helperText || " "}
@@ -174,7 +174,6 @@ const ConfirmPassword = ({ password, setPassword, label, showConfirmPassword, ha
   };
 
   return (
-    
     <TextField
       label={label}
       type={showConfirmPassword ? 'text' : 'password'}
@@ -210,14 +209,18 @@ const ConfirmPassword = ({ password, setPassword, label, showConfirmPassword, ha
 };
 
 const SignUp = () => {
+  const { signup, isLoading } = useAuthStore();
+  const navigate = useNavigate();
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [birthDate, setBirthDate] = useState(null);
   const [sex, setSex] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const handleChange = (event) => {
-    setSex(event.target.value);
-  };
 
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -227,9 +230,10 @@ const SignUp = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log("Form submitted");
+    await signup(firstName, lastName, email, birthDate, sex, password);
+    // navigate('/verify_email');
   };
   
   return (
@@ -275,19 +279,26 @@ const SignUp = () => {
               <tr>
                 <td className="pt-4 px-3 w-1/2">
                   <TextFieldNoNum 
-                    label="First Name" 
+                    label="First Name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}                 
                   />
                 </td>
                 <td className="pt-4 px-3 w-1/2">
-                  <TextFieldNoNum label="Last Name" />
+                  <TextFieldNoNum 
+                    label="Last Name"
+                    value={lastName} 
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </td>
               </tr>
               <tr>
                 <td className="p-4 w-1/2">
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker
-                      required
+                    <DatePicker                      
                       label="Birth Date"
+                      value={birthDate}
+                      onChange={(newValue) => setBirthDate(newValue)}
                       width="100%"
                       sx={{
                         "& .MuiOutlinedInput-root": {
@@ -303,14 +314,14 @@ const SignUp = () => {
                 </td>
                 <td className="px-3 w-1/2">
                   <Box width="100%">
-                    <FormControl required fullWidth>
+                    <FormControl fullWidth>
                       <InputLabel id="demo-simple-select-label">Sex</InputLabel>
                       <Select
                         labelId="demo-simple-select-label"
                         id="demo-simple-select"
-                        value={sex}
                         label="Sex"
-                        onChange={handleChange}
+                        value={sex}
+                        onChange={(event) => setSex(event.target.value)}
                       >
                         <MenuItem value={"Male"}>Male</MenuItem>
                         <MenuItem value={"Female"}>Female</MenuItem>
@@ -321,23 +332,25 @@ const SignUp = () => {
               </tr>
               <tr>
                 <td className="px-4 w-1/2" colSpan={2}>
-                  <EmailInput label="Email Address" />
+                  <EmailInput 
+                    label="Email Address"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)} 
+                  />
                 </td>
               </tr>
               <tr>
                 <td className="pt-2 px-4 w-1/2">
-                  <Password 
-                    required
+                  <Password                 
                     label="Password" 
-                    password={password} 
-                    setPassword={setPassword} 
+                    value={password} 
                     showPassword={showPassword}
                     handleShowPassword={handleShowPassword}
+                    onChange={(event) => setPassword(event.target.value)} 
                   />
                 </td>
                 <td className="pt-2 px-4 w-1/2">
-                  <ConfirmPassword 
-                    required
+                  <ConfirmPassword                    
                     password={password} 
                     setPassword={setPassword} 
                     label="Confirm Password" 
@@ -350,11 +363,13 @@ const SignUp = () => {
                 <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
                   <Button 
                     type="submit"
+                    disabled={isLoading}
                     variant="contained"
                     className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
                     endIcon={<SendIcon />}
                   >
-                  <Link to="/GuestProfile">SIGN UP</Link>
+                    {isLoading ? "Loading..." : "Sign Up"}
+                  {/* <Link to="/GuestProfile">SIGN UP</Link> */}
                   </Button>
                 </td>
               </tr>
