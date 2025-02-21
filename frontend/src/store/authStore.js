@@ -9,7 +9,7 @@ export const useAuthStore = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
 
-    signup: async (email, password, name) => {
+    signup: async (firstName, lastName, email, birthDate, sex, password) => {
         set({
             isLoading: true,
             error: null
@@ -21,12 +21,22 @@ export const useAuthStore = create((set) => ({
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify(email, password, name)
+                body: JSON.stringify({
+                    firstName,
+                    lastName,
+                    email,
+                    birthDate,
+                    sex,
+                    password
+                })
             })
             const data = await response.json()
             console.log(data);
+            set({ isLoading: false, isAuthenticated: true, user: data.user})
         } catch (error) {
+            set({ isLoading: false, error: error.message})
             console.log(error);
+            throw error
         }
-    } 
+    }    
 }))

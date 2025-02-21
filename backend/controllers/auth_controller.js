@@ -5,7 +5,6 @@ const { createJWTToken } = require("../utilities/createJWTToken");
 const { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } = require("../resend/email");
 
 const signup = async (req, res) => {
-
     const generateCustomIdTemplate = () => {
         const randomId = Math.floor(Math.random() * 1000).toString().padStart(4, '0');
         return `MPS000${randomId}`;
@@ -26,6 +25,7 @@ const signup = async (req, res) => {
 
     // creating document / user login entry
     const {firstName, lastName, birthDate, sex, email, password} = req.body;
+    
     try {
         if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
