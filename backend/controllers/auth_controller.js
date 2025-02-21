@@ -5,23 +5,26 @@ const { createJWTToken } = require("../utilities/createJWTToken");
 const { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } = require("../resend/email");
 
 const signup = async (req, res) => {
-    const {name, email, password} = req.body;
+    const {firstName, lastName, birthDate, sex, email, password} = req.body;
     try {
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: 'All fields are required'})
-        };
+        if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }       
         const userAlreadyExists = await User.findOne({ email });
         if (userAlreadyExists) {
            return res.status(400).json({ message: 'User already exists'})
         };
         const hashPassword = await bcrypt.hash(password, 10)
         const verificationToken = createVerificationToken();
-        const user = new User ({
-            name,
+        const user = new User({
+            firstName,
+            lastName,
+            birthDate,
+            sex,
             email,
             password: hashPassword,
-            verificationToken: verificationToken,
-            // token expires at 24 hours
+            verificationToken,
+            // Token expires in 24 hours
             verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000 
         });
 
@@ -116,7 +119,7 @@ const verifyEmail = async (req, res) => {
         user.verificationTokenExpiresAt = undefined;
         await user.save();
         
-        await sendWelcomeEmail(user.email, user.name);
+        await sendWelcomeEmail(user.email);
 
     } catch (error) {
         console.log("Error sending verification email");

@@ -1,9 +1,26 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const UserSchema = new Schema({
-    name: {
+    firstName: {
         type: String,
         required: true
+    },
+    lastName: {
+        type: String,
+        required: true
+    },
+    birthDate: {
+        type: Date,
+        required: true     
+    },
+    sex: {
+        type: String,
+        role: {
+            type: String,
+            enum: ['male', 'female'],
+            required: true 
+        },
+        required: true 
     },
     email: {
         type: String,
@@ -22,6 +39,6 @@ const UserSchema = new Schema({
     resetPasswordTokenExpiresAt: Date,
     verificationToken: String,
     verificationTokenExpiresAt: Date,
-})
+}, {timestamps: true})
 
 module.exports = mongoose.model('User', UserSchema);
