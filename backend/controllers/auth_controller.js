@@ -5,6 +5,26 @@ const { createJWTToken } = require("../utilities/createJWTToken");
 const { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } = require("../resend/email");
 
 const signup = async (req, res) => {
+
+    const generateCustomIdTemplate = () => {
+        const randomId = Math.floor(Math.random() * 1000).toString().padStart(4, '0');
+        return `MPS000${randomId}`;
+    };
+
+    const generateUniqueId = async () => {
+        let newId = generateCustomIdTemplate();
+        let isUnique = await User.exists({ _id: newId });
+
+        while (isUnique) {
+            newId = generateCustomId();
+            isUnique = await User.exists({ _id: newId });
+        }
+        return newId;
+    };
+
+    const newId = await generateUniqueId();
+
+    // creating document / user login entry
     const {firstName, lastName, birthDate, sex, email, password} = req.body;
     try {
         if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
@@ -17,6 +37,7 @@ const signup = async (req, res) => {
         const hashPassword = await bcrypt.hash(password, 10)
         const verificationToken = createVerificationToken();
         const user = new User({
+            _id: newId,
             firstName,
             lastName,
             birthDate,
