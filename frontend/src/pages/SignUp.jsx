@@ -274,7 +274,9 @@ const SignUp = () => {
               </tr>
               <tr>
                 <td className="pt-4 px-3 w-1/2">
-                  <TextFieldNoNum label="First Name" />
+                  <TextFieldNoNum 
+                    label="First Name" 
+                  />
                 </td>
                 <td className="pt-4 px-3 w-1/2">
                   <TextFieldNoNum label="Last Name" />
