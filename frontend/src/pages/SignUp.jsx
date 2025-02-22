@@ -15,15 +15,11 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
+
 import { useNavigate } from "react-router-dom";
-
-/**
- *  import/s for authentication
-*/
-
 import { useAuthStore } from "../store/authStore"; 
 
-{/* TEXT FIELD for no special characters */}
+{/* text field for no special characters */}
 const TextFieldNoNum = ({ label, value, onChange, width = "100%" }) => {
   const handleChange = (e) => {
     const newValue = e.target.value;
@@ -89,7 +85,7 @@ const EmailInput = ({ label, value, onChange }) => {
   );
 };
 
-{/* PASSWORD VALIDATION */}
+{/* password validation */}
 const Password = ({ label, value, onChange, showPassword, handleShowPassword }) => {
   const [error, setError] = useState(false);
   const [helperText, setHelperText] = useState(<><br /><br /></>);
@@ -153,8 +149,8 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
   );
 };
 
-{/*CONFIRM PW*/}
-const ConfirmPassword = ({ password, setPassword, label, showConfirmPassword, handleShowConfirmPassword }) => {
+{/*confirm password*/}
+const ConfirmPassword = ({ password, label, showConfirmPassword, handleShowConfirmPassword }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(false);
   const [helperText, setHelperText] = useState(<><br /><br /></>);
@@ -233,7 +229,7 @@ const SignUp = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     await signup(firstName, lastName, email, birthDate, sex, password);
-    // navigate('/verify_email');
+    navigate('/verify_login');
   };
   
   return (
@@ -368,8 +364,7 @@ const SignUp = () => {
                     className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
                     endIcon={<SendIcon />}
                   >
-                    {isLoading ? "Loading..." : "Sign Up"}
-                  {/* <Link to="/GuestProfile">SIGN UP</Link> */}
+                    {isLoading ? "Loading..." : "Sign Up"}                  
                   </Button>
                 </td>
               </tr>

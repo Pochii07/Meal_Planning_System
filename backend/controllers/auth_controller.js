@@ -49,7 +49,7 @@ const signup = async (req, res) => {
             verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000 
         });
 
-        await user.save();
+        // await user.save();
         
         createJWTToken(res, user._id);
 
@@ -60,7 +60,8 @@ const signup = async (req, res) => {
             message: "User created successfully",
             user: {
                 ...user._doc,
-                password: undefined
+                password: undefined,
+                verificationTokenExpiresAt: undefined,
             }
         });
     } catch (error) {
@@ -134,14 +135,17 @@ const verifyEmail = async (req, res) => {
                 success: false,
                 message: 'Invalid / Expired verification code'
             });
+        } else {
         }
         user.isVerified = true;
         user.verificationToken = undefined;
         user.verificationTokenExpiresAt = undefined;
-        await user.save();
+        // await user.save();
         
         await sendWelcomeEmail(user.email);
-
+        return res.status(200).json({
+            success: true,
+        })
     } catch (error) {
         console.log("Error sending verification email");
         throw new Error("Error sending verification email");
