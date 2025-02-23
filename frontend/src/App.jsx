@@ -23,7 +23,7 @@ const ProtectedRoute = ({children}) => {
 }
 const AuthenticatedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated && !user) {
+  if (isAuthenticated && user) {
     return <Navigate to="/GuestProfile" replace/>
   }
 
@@ -55,9 +55,27 @@ function App() {
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<PatientForm />} />
-          <Route path="/SignUp" element={<SignUp/>}></Route>
-          <Route path="/LogIn" element={<LogIn/>}></Route>
-          {/* <Route path="/GuestProfile" element={<GuestProfile/>}> </Route> */}
+
+          {/* <Route path="/SignUp" element={<SignUp/>}></Route>
+          <Route path="/LogIn" element={<LogIn/>}></Route> */
+          /* <Route path="/GuestProfile" element={<GuestProfile/>}> </Route> */}
+
+          <Route 
+           path="/SignUp" 
+            element={
+              <AuthenticatedRoute>
+                <SignUp/>
+              </AuthenticatedRoute>
+            }>
+          </Route>
+          <Route 
+           path="/LogIn" 
+            element={
+              <AuthenticatedRoute>
+                <LogIn/>
+              </AuthenticatedRoute>
+            }>
+          </Route>
           <Route 
             path="/GuestProfile" 
             element={

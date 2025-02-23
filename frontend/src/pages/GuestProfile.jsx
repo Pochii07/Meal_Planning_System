@@ -19,6 +19,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import Chip from "@mui/material/Chip";
+import { useAuthStore } from "../store/authStore";
 
 
 const UploadIcon = styled(Avatar)(({ theme }) => ({
@@ -29,6 +30,11 @@ const UploadIcon = styled(Avatar)(({ theme }) => ({
 }));
 
 const GuestProfile = () => {
+  const { user, isCheckingAuth } = useAuthStore();
+  if (isCheckingAuth) {
+    return <div>Loading...</div>
+  }
+
   const [profilePic, setProfilePic] = useState(defaultFemaleIMG);
   const [dietRestrictions, setDietRestrictions] = useState([]);
   const [selectedDiet, setSelectedDiet] = useState("");
@@ -97,7 +103,7 @@ const GuestProfile = () => {
               <Stack direction="column" spacing={-3}>
                 <Stack direction="row" spacing={2}>
                     <p className="text-[70px] text-left font-bold inline-block leading-tight pt-7 ">
-                        First Name
+                      {user.firstName}
                     </p>
                     <IconButton aria-label="Edit" style={{marginTop: 30, marginLeft: 5 }}>
                         <img src={EditIMG} alt="Edit" style={{ width: 40, height: 40}} />
@@ -105,7 +111,7 @@ const GuestProfile = () => {
                 </Stack>
                 <Stack direction="row" spacing={2}>
                     <p className="text-[40px] text-left font-semibold inline-block leading-normal">
-                        Last Name
+                      {user.lastName}
                     </p>
                     <IconButton aria-label="Edit" style={{marginTop: 10, marginLeft: 4 }}>
                             <img src={EditIMG} alt="Edit" style={{ width: 25, height: 25}} />
