@@ -281,7 +281,7 @@ const SignUp = () => {
         
         {/* Form starts here */}
         <form 
-          novalidate
+          noValidate
           onSubmit={handleSubmit} 
           className="border-collapse border border-transparent w-3/4 md:w-2/5"
         >

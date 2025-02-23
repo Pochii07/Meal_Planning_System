@@ -56,10 +56,9 @@ const GuestProfile = () => {
     }
   };
 
-  
   return (
-        <div
-          className="flex flex-col "
+    <div
+      className="flex flex-col "
           style={{
             backgroundImage: `url(${cooking})`,
             backgroundPosition: "100% 70%", 
@@ -67,7 +66,7 @@ const GuestProfile = () => {
             backgroundSize: "35%",
           }}
         >
-    <div className="flex flex-col mt-12 justify-center items-center">
+      <div className="flex flex-col mt-12 justify-center items-center">
         <table className="table-fixed border-collapse border-transparent w-[1500px]">
         <tbody>
           <tr>
@@ -122,7 +121,6 @@ const GuestProfile = () => {
                     >
                   <Link to="/MealTracker">VIEW MEAL TRACKER</Link>
             </Button>
-
             </td>
           </tr>
           <tr>
@@ -314,7 +312,7 @@ const GuestProfile = () => {
           </tr>
         </tbody>
       </table>
-    </div>
+      </div>
     </div>
   );
 };

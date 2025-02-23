@@ -7,22 +7,24 @@ import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import LogInIMG from '../Images/LogInIMG.jpg'; 
 
-const EmailInput = ({ label }) => {
+import { useAuthStore } from "../store/authStore";
+import { useNavigate } from "react-router-dom";
+
+const EmailInput = ({ label, onChange }) => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState(false);
 
   const handleChange = (e) => {
     const value = e.target.value;
     setEmail(value);
+    onChange(e)
 
-    // Email validation regex
     const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
     setError(!regex.test(value) && value.length > 0);
   };
 
   return (
     <TextField
-      required
       label={label}
       variant="outlined"
       fullWidth
@@ -43,7 +45,6 @@ const EmailInput = ({ label }) => {
   );
 };
 
-{/* PASSWORD VALIDATION */}
 const Password = ({ label, password, setPassword, showPassword, handleShowPassword }) => {
   const [error, setError] = useState(false);
   const [helperText, setHelperText] = useState(" ");
@@ -52,16 +53,13 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
     const value = e.target.value;
     setPassword(value);
 
-    if (value.length === 0) {
+    if (!value) {
       setError(true);
       setHelperText("Password is required");
-    } else if (value.length < 6) {
-      setError(true);
-      setHelperText("Password must be at least 8 characters");
     } else {
       setError(false);
       setHelperText(" ");
-    }
+    } 
   };
 
   return (
@@ -98,13 +96,37 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
   );
 };
 
-
 const LogIn = () => {
+  const { login, isLoading } = useAuthStore();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!email || !password) {
+      alert("All fields are required!");
+      return;
+    }
+
+    try {
+      const data = await login(email, password);
+      
+      if (data.success === true) {
+        navigate('/GuestProfile')
+      } else {
+        // dialog for try again
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   return (
@@ -118,59 +140,71 @@ const LogIn = () => {
         backgroundSize: "10%",
       }}
     >
-      
       <div className="flex justify-center items-center">
       <div className="w-1/2">
         <img src={LogInIMG} alt="LogInIMG" style={{ width: "80%", height: "80% " }} />
-        </div>  
-        <table className="border-collapse border border-transparent  w-3/4 md:w-2/5">
-          <tbody>
-            <tr>
-              <td className="border border-transparent p-4" colSpan="2">
-                <p className="text-[110px] font-semibold text-left tracking-tighter">
-                  Log In
-                </p>
-                <p className="text-[15px] text-left text-[#008000] mb-8">
-                  Get back on track!
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td className="px-4 w-1/2" colSpan={2}>
-                <EmailInput label="Email Address" />
-              </td>
-            </tr>
-            <tr>
-              <td className="pt-2 px-4 w-1/2">
-                <Password 
-                  required
-                  label="Password" 
-                  password={password} // Pass the password state
-                  setPassword={setPassword} 
-                  showPassword={showPassword}
-                  handleShowPassword={handleShowPassword}
-                />
-              </td>
-            </tr>
-            <tr>
-               {/*LINK TO FORGOT PASSWORD*/}
-                  <a className="mt-9 mx-5 font-medium hover:text-[#008000]" href="/LogIn">
-                    Forgot Password? 
-                  </a>
-            </tr>
-            <tr>
-              {/*LINK LOG IN BUTTON*/}
-              <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
-                    <Button variant="contained" class="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
+        </div> 
+        <form 
+          noValidate
+          onSubmit={handleSubmit}
+          class="w-2/4"
+        >
+          <table className="border-collapse border border-transparent  w-1/4 md:w-4/5">
+            <tbody>
+              <tr>
+                <td className="border border-transparent p-4" colSpan="2">
+                  <p className="text-[110px] font-semibold text-left tracking-tighter">
+                    Log In
+                  </p>
+                  <p className="text-[15px] text-left text-[#008000] mb-8">
+                    Get back on track!
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 w-1/2" colSpan={2}>
+                  <EmailInput 
+                    label="Email Address"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="pt-2 px-4 w-1/2">
+                  <Password 
+                    label="Password" 
+                    password={password}
+                    setPassword={setPassword} 
+                    showPassword={showPassword}
+                    handleShowPassword={handleShowPassword}
+                  />
+                </td>
+              </tr>
+              <tr>
+              {/* link to forgot password */}
+                <a className="mt-9 mx-5 font-medium hover:text-[#008000]" href="/LogIn">
+                  Forgot Password? 
+                </a>
+              </tr>
+              <tr>
+              {/*link to log-in button*/}
+                <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
+                  <Button
+                    type="submit"
+                    disabled={isLoading} 
+                    variant="contained" 
+                    class="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
+                    style={{ minWidth: '160px' }}
                     endIcon={<SendIcon />}
-                    >
-                  LOG IN
+                  >
+                    {isLoading ? "Loading..." : "LOG IN"}      
                   </Button>
-
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
       </div>
     </div>
   );
