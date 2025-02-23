@@ -150,7 +150,7 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
 };
 
 {/*confirm password*/}
-const ConfirmPassword = ({ password, label, showConfirmPassword, handleShowConfirmPassword }) => {
+const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handleShowConfirmPassword }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(false);
   const [helperText, setHelperText] = useState(<><br /><br /></>);
@@ -158,6 +158,7 @@ const ConfirmPassword = ({ password, label, showConfirmPassword, handleShowConfi
   const handleChange = (e) => {
     const value = e.target.value;
     setConfirmPassword(value);
+    onChange(e);
 
     // Check if confirm password matches the password
     if (value !== password) {
@@ -213,7 +214,9 @@ const SignUp = () => {
   const [birthDate, setBirthDate] = useState(null);
   const [sex, setSex] = useState('');
   const [email, setEmail] = useState('');
+  
   const [password, setPassword] = useState('');
+  const [confirmPassword, checkPassword] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -227,9 +230,37 @@ const SignUp = () => {
   };
 
   const handleSubmit = async (event) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    const emailRegex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
+
     event.preventDefault();
-    await signup(firstName, lastName, email, birthDate, sex, password);
-    navigate('/verify_login');
+
+    if (!firstName || !lastName || !birthDate || !sex || !email || !password || !confirmPassword) {
+      alert("All fields are required!");
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      alert("Invalid email format!");
+      return;
+    }
+
+    if (!passwordRegex.test(password)) {
+      alert("Password does not meet security requirements!");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    try {
+      await signup(firstName, lastName, email, birthDate, sex, password);
+      // navigate('/verify_login');
+    } catch (error) {
+      console.error("Signup failed:", error);
+    }
   };
   
   return (
@@ -347,11 +378,12 @@ const SignUp = () => {
                 </td>
                 <td className="pt-2 px-4 w-1/2">
                   <ConfirmPassword                    
-                    password={password} 
-                    setPassword={setPassword} 
                     label="Confirm Password" 
+                    password={password}
+                    setPassword={setPassword} 
                     showConfirmPassword={showConfirmPassword}
                     handleShowConfirmPassword={handleShowConfirmPassword}
+                    onChange={(event) => checkPassword(event.target.value)} 
                   />
                 </td>
               </tr>
