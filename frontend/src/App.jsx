@@ -7,6 +7,8 @@ import GuestProfile from './pages/GuestProfile';
 import PatientForm from './pages/home'
 import Patients from './pages/patients';
 import VerifyLogin from './pages/Verification';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import 'flowbite/dist/flowbite.css'; 
 
 import { useAuthStore } from './store/authStore';
@@ -37,6 +39,13 @@ function App() {
     checkAuth();
   }, [checkAuth]);
   console.log(user);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem("reloaded")) {
+      sessionStorage.setItem("reloaded", "true");
+      window.location.reload();
+    }
+  }, []);
   
   if (isCheckingAuth) {
     return <div>Loading...</div>
@@ -83,6 +92,13 @@ function App() {
                 <GuestProfile/>
               </ProtectedRoute>
             }> 
+          </Route>
+          <Route path="/ForgotPassword" element={<ForgotPassword/>}></Route>
+          <Route 
+            path="/ResetPassword" 
+            element={
+            <ResetPassword/>
+            }>
           </Route>
           <Route path="/patients" element={<Patients />}> </Route>
           <Route path="/verify_login" element={<VerifyLogin />}> </Route>
