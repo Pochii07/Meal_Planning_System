@@ -49,7 +49,7 @@ const signup = async (req, res) => {
             verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000 
         });
 
-        // await user.save();
+        await user.save();
         
         createJWTToken(res, user._id);
 
@@ -140,7 +140,7 @@ const verifyEmail = async (req, res) => {
         user.isVerified = true;
         user.verificationToken = undefined;
         user.verificationTokenExpiresAt = undefined;
-        // await user.save();
+        await user.save();
         
         await sendWelcomeEmail(user.email);
         return res.status(200).json({

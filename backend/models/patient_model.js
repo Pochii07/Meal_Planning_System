@@ -22,6 +22,12 @@ const UserDetailsSchema = new Schema({
     BMI:{
         type:Number,    // automatically calculated
     },
+    BMR:{
+        type:Number,    // automatically calculated
+    },
+    TDEE:{
+        type:Number,    // automatically calculated
+    },
     activity_level: {
         type:Number,
         required: true

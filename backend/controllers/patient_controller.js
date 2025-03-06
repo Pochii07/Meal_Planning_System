@@ -40,6 +40,21 @@ const calculateBMI = (weight,height) =>{
     return (weight / ((height / 100) ** 2)).toFixed(2)
 }
 
+const calculateBMR = (weight,height,age) => {
+    if (gender = ("M")) {
+        return ((10*(weight)+(6.25*(height))-(5*(age)))+5)
+    }
+
+    else if (gender = ("F")){
+        return ((10*(weight)+(6.25*(height))-(5*(age)))+5-161)
+    }
+}
+
+const calculateTDEE = (BMR, activity_level) => {
+    return (BMR * activity_level)
+}
+
+
 // new patient
 const newPatient = async (req, res) => {
     const { age, height, weight, gender, activity_level, preference, restrictions } = req.body;
@@ -67,26 +82,30 @@ const newPatient = async (req, res) => {
             dietary_restrictions: preference, // Map preference to dietary_restrictions
             allergies: restrictions, // Map restrictions to allergies
             activity_level
-        });
+        })
 
         const prediction = response.data.predicted_meal_plan;
 
         // Add doc to db
-        const BMI = calculateBMI(weight, height);
+        const BMI = calculateBMI(weight, height)
+        const BMR = calculateBMR(weight, height, age)
+        const TDEE = calculateTDEE(BMR,activity_level)
         const new_patient = await Patient.create({
             age,
             height,
             weight,
             gender,
             BMI,
+            BMR,
+            TDEE,
             activity_level,
             preference,
             restrictions,
             prediction
-        });
-        res.status(200).json(new_patient);
+        })
+        res.status(200).json(new_patient)
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(400).json({ error: error.message })
     }
 }
 
