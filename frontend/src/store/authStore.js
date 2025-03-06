@@ -188,10 +188,10 @@ export const useAuthStore = create((set) => ({
             })
             const data = await response.json()
             set({ isLoading: false, message: data.message });
-            console.log(message)
+            console.log(message);
         } catch (error) {
             set({ isLoading: false, error: error.message})
-            console.log(message);
+            console.log(error);
             throw error
         }
     }

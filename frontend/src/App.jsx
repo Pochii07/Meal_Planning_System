@@ -94,8 +94,9 @@ function App() {
             }> 
           </Route>
           <Route path="/ForgotPassword" element={<ForgotPassword/>}></Route>
+          {/* Authenticated route  */}
           <Route 
-            path="/ResetPassword" 
+            path="/reset_password/:token" 
             element={
             <ResetPassword/>
             }>

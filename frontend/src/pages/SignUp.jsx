@@ -257,7 +257,7 @@ const SignUp = () => {
 
     try {
       await signup(firstName, lastName, email, birthDate, sex, password);
-      // navigate('/verify_login');
+      navigate('/verify_login');
     } catch (error) {
       console.error("Signup failed:", error);
     }

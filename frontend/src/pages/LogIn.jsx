@@ -183,7 +183,7 @@ const LogIn = () => {
               </tr>
               <tr>
               {/* link to forgot password */}
-                <a className="mt-9 mx-5 font-medium hover:text-[#008000]" href="/LogIn">
+                <a className="mt-9 mx-5 font-medium hover:text-[#008000]" href="/ForgotPassword">
                   Forgot Password? 
                 </a>
               </tr>

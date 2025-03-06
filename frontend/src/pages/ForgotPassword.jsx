@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import cooking from '../Images/cooking.png'; 
+import cooking from "../Images/cooking.png";
 import TextField from "@mui/material/TextField";
-import Button from '@mui/material/Button';
-import SendIcon from '@mui/icons-material/Send';
+import Button from "@mui/material/Button";
+import SendIcon from "@mui/icons-material/Send";
 
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ const EmailInput = ({ label, onChange }) => {
   const handleChange = (e) => {
     const value = e.target.value;
     setEmail(value);
-    onChange(e)
+    onChange(e);
 
     const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
     setError(!regex.test(value) && value.length > 0);
@@ -33,40 +33,52 @@ const EmailInput = ({ label, onChange }) => {
         "& .MuiOutlinedInput-root": {
           "& fieldset": { borderColor: error ? "red" : "gray" },
           "&:hover fieldset": { borderColor: error ? "red" : "#008000" },
-          "&.Mui-focused fieldset": { borderColor: error ? "red" : "#008000 !important" },
+          "&.Mui-focused fieldset": {
+            borderColor: error ? "red" : "#008000 !important",
+          },
         },
         "& .MuiInputLabel-root": { color: "gray" },
-        "& .MuiInputLabel-root.Mui-focused": { color: error ? "red" : "#008000 !important" },
+        "& .MuiInputLabel-root.Mui-focused": {
+          color: error ? "red" : "#008000 !important",
+        },
       }}
     />
   );
 };
 
 const ForgotPassword = () => {
-  const { forgotpassword, isLoading, } = useAuthStore();
+  const { forgotpassword, isLoading } = useAuthStore();
   const navigate = useNavigate();
-  
-  const [email, setEmail] = useState('');
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  
-  const header = "Forgot Password"
-  const subHeader = "Enter your email and we'll send you a link to get back into your account."
-  const successMessage = "Your request has been received for the email address you provided. We've sent a password reset link to your inbox."
+
+  const [email, setEmail] = useState("");
+
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogStatus, setDialogStatus] = useState("");
+
+  const header = "Forgot Password";
+  const subHeader =
+    "Enter your email and we'll send you a link to get back into your account.";
+  const successMessage =
+    "Your request has been received for the email address you provided. We've sent a password reset link to your inbox.";
+  const errorMessage = "Please enter valid email address.";
 
   const handleSubmit = async (event) => {
     const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
     event.preventDefault();
 
     if (!regex.test(email)) {
-      alert("Please enter valid email address.");
-      return;
+      setDialogStatus("error");
+      setShowDialog(true);
+    } else {
+      setDialogStatus("success");
+      setShowDialog(true);
     }
 
     try {
       const data = await forgotpassword(email);
-  
+
       if (data) {
-        setShowSuccessDialog(true);
+        console.log(data);
       } else {
         // dialog for try again
       }
@@ -80,18 +92,14 @@ const ForgotPassword = () => {
       className="flex flex-col mt-12"
       style={{
         backgroundImage: `url(${cooking})`,
-        backgroundPosition: "88% 20%", 
-        backgroundRepeat: "no-repeat", 
-        height: "10%", 
+        backgroundPosition: "88% 20%",
+        backgroundRepeat: "no-repeat",
+        height: "10%",
         backgroundSize: "10%",
       }}
     >
       <div className="flex justify-center items-center">
-        <form 
-          noValidate
-          onSubmit={handleSubmit}
-          className="w-2/4"
-        >
+        <form noValidate onSubmit={handleSubmit} className="w-2/4">
           <table className="border-collapse border border-transparent  w-1/4 md:w-4/5">
             <tbody>
               <tr>
@@ -106,7 +114,7 @@ const ForgotPassword = () => {
               </tr>
               <tr>
                 <td className="px-4 w-1/2" colSpan={2}>
-                  <EmailInput 
+                  <EmailInput
                     label="Email Address"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -114,7 +122,10 @@ const ForgotPassword = () => {
                 </td>
               </tr>
               <tr>
-                <a className="mt-9 mx-5 font-medium hover:text-[#008000]" href="/LogIn">
+                <a
+                  className="mt-9 mx-5 font-medium hover:text-[#008000]"
+                  href="/LogIn"
+                >
                   Back to Log In
                 </a>
               </tr>
@@ -122,13 +133,13 @@ const ForgotPassword = () => {
                 <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
                   <Button
                     type="submit"
-                    disabled={isLoading} 
-                    variant="contained" 
+                    disabled={isLoading}
+                    variant="contained"
                     className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
-                    style={{ minWidth: '160px' }}
+                    style={{ minWidth: "160px" }}
                     endIcon={<SendIcon />}
                   >
-                    {isLoading ? "Loading..." : "Send login link"}      
+                    {isLoading ? "Loading..." : "Continue"}
                   </Button>
                 </td>
               </tr>
@@ -136,8 +147,8 @@ const ForgotPassword = () => {
           </table>
         </form>
       </div>
-      
-      {showSuccessDialog && (
+      {/** dialog box overlay*/}
+      {showDialog && (
         <div
           style={{
             position: "fixed",
@@ -161,9 +172,10 @@ const ForgotPassword = () => {
               minWidth: "300px",
             }}
           >
-            <p>
-              {successMessage}
-            </p>
+            <h3 style={{ color: dialogStatus === "success" ? "green" : "red" }}>
+              {dialogStatus === "success" ? "🎉 Success!" : "❌ Error"}
+            </h3>
+            <p>{dialogStatus === "success" ? successMessage : errorMessage}</p>
             <div
               style={{
                 marginTop: "1rem",
@@ -172,22 +184,41 @@ const ForgotPassword = () => {
                 justifyContent: "center",
               }}
             >
-              <button
-                onClick={() => {
-                  setShowSuccessDialog(false);
-                  // navigate("/");
-                }}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#28a745",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Back to Home
-              </button>
+              {dialogStatus === "error" && (
+                <button
+                  onClick={() => {
+                    setShowDialog(false);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+              )}
+              {dialogStatus === "success" && (
+                <button
+                  onClick={() => {
+                    setShowDialog(false);
+                    // navigate("/");
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back to Home
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -195,6 +226,5 @@ const ForgotPassword = () => {
     </div>
   );
 };
-
 
 export default ForgotPassword;
