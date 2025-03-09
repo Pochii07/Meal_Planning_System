@@ -4,11 +4,12 @@ import LandingPage from './pages/LandingPage';
 import SignUp from './pages/SignUp';
 import LogIn from './pages/LogIn';
 import GuestProfile from './pages/GuestProfile';
-import PatientForm from './pages/home'
+import PatientForm from './pages/form'
 import Patients from './pages/patients';
 import VerifyLogin from './pages/Verification';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import GuestMealTracker from './pages/GuestMealTracker';
 import 'flowbite/dist/flowbite.css'; 
 
 import { useAuthStore } from './store/authStore';
@@ -63,12 +64,9 @@ function App() {
         <div className = "pages">
           <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/home" element={<PatientForm />} />
-
-          {/* <Route path="/SignUp" element={<SignUp/>}></Route>
-          <Route path="/LogIn" element={<LogIn/>}></Route> */
-          /* <Route path="/GuestProfile" element={<GuestProfile/>}> </Route> */}
-
+          <Route path="/form" element={<PatientForm />} />
+          <Route path="/meal-tracker" element={<GuestMealTracker />} />
+          
           <Route 
            path="/SignUp" 
             element={

@@ -30,8 +30,8 @@ export function NavbarCustom() {
           Home
         </NavbarLink>
         <NavbarLink href="/" class="hover:text-[#008000]">Home</NavbarLink>
-        <NavbarLink href="/GuestProfile" class="hover:text-[#008000]">Meal Plan</NavbarLink>
-        <NavbarLink href="#" class="hover:text-[#008000]">Meal Tracker</NavbarLink>
+        <NavbarLink href="/form" class="hover:text-[#008000]">Meal Plan</NavbarLink>
+        <NavbarLink href="/meal-tracker" class="hover:text-[#008000]">Meal Tracker</NavbarLink>
         <NavbarLink href="#" class="hover:text-[#008000]">About Us</NavbarLink>
         <NavbarLink href="#" class="hover:text-[#008000]">Contact Us</NavbarLink>
       </NavbarCollapse>

@@ -117,7 +117,7 @@ const PatientForm = () => {
         className={emptyFields.includes('restrictions') ? 'error' : ''}
       />
 
-      <button type="submit">Add Patient</button>
+      <button type="submit">Generate</button>
       {error && <div className="error">{error}</div>}
     </form>
   );
