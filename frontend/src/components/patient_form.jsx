@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { usePatientContext } from "../hooks/use_patient_context";
+import { useAuthStore } from "../store/authStore";
 
 const PatientForm = () => {
   const { dispatch } = usePatientContext();
+  const { user } = useAuthStore(); // Ensure user is available
 
   const [age, setAge] = useState('');
   const [weight, setWeight] = useState('');
@@ -18,6 +20,12 @@ const PatientForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Check if user exists and has _id
+    if (!user || !user._id) {
+      setError('User not authenticated');
+      return;
+    }
+
     const patient = {
       age,
       weight,
@@ -26,35 +34,41 @@ const PatientForm = () => {
       activity_level: activityLevel,
       preference: preference || "None",
       restrictions: restrictions || "None",
+      userId: user._id // Ensure this is being sent
     };
 
-    console.log('Submitting patient data:', patient); // Add this line
+    try {
+      const response = await fetch('/api/patient_routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`, // Add this line
+        },
+        body: JSON.stringify(patient),
+        credentials: 'include'
+      });
 
-    const response = await fetch('/api/patient_routes', {
-      method: 'POST',
-      body: JSON.stringify(patient),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+      const json = await response.json();
 
-    const json = await response.json();
-
-    if (!response.ok) {
-      setError(json.error);
-      setEmptyFields(json.emptyFields || []);
-    } else {
-      setError(null);
-      setEmptyFields([]);
-      dispatch({ type: 'CREATE_PATIENT', payload: json });
-      setAge('');
-      setWeight('');
-      setHeight('');
-      setGender('');
-      setActivityLevel('');
-      setPreference('');
-      setRestrictions('');
-      setMealPlan(json.prediction); // Set the meal plan
+      if (!response.ok) {
+        setError(json.error);
+        setEmptyFields(json.emptyFields || []);
+      } else {
+        setError(null);
+        setEmptyFields([]);
+        dispatch({ type: 'CREATE_PATIENT', payload: json });
+        // Reset form fields
+        setAge('');
+        setWeight('');
+        setHeight('');
+        setGender('');
+        setActivityLevel('');
+        setPreference('');
+        setRestrictions('');
+        setMealPlan(json.prediction);// Set the meal plan
+      }
+    } catch (error) {
+      setError('Failed to submit form');
     }
   };
 

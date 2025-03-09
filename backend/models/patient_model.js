@@ -58,8 +58,14 @@ const UserDetailsSchema = new Schema({
         } 
     },
     prediction: {
-        type: String, // Add a new field for the prediction result
-    }
+        type: Object, // Change from String to Object to store structured meal plan data
+        default: null
+    },
+    userId: {
+        type: String,  // Change from String to ObjectId
+        ref: 'User', // Add user ID reference to link meal plans to users
+        required: true
+    },
 },   {timestamps: true})
 
 module.exports = mongoose.model('PatientDetails',UserDetailsSchema)

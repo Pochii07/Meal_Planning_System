@@ -58,38 +58,25 @@ const calculateTDEE = (BMR, activity_level) => {
 // new patient
 const newPatient = async (req, res) => {
     const { age, height, weight, gender, activity_level, preference, restrictions } = req.body;
-
-    let emptyFields = [];
-
-    if (!age) emptyFields.push('age');
-    if (!height) emptyFields.push('height');
-    if (!weight) emptyFields.push('weight');
-    if (!gender) emptyFields.push('gender');
-    if (!activity_level) emptyFields.push('activity level');
-    if (!preference) emptyFields.push('preference');
-    if (!restrictions) emptyFields.push('restrictions');
-    if (emptyFields.length > 0) {
-        return res.status(400).json({ error: 'please fill in all the fields', emptyFields });
-    }
+    const userId = req.userId; // Get userId from auth middleware
 
     try {
-        // Call the Flask API to get the prediction
+        // Get prediction from Flask API
         const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
             age,
             height,
             weight,
             gender,
-            dietary_restrictions: preference, // Map preference to dietary_restrictions
-            allergies: restrictions, // Map restrictions to allergies
+            dietary_restrictions: preference,
+            allergies: restrictions,
             activity_level
-        })
+        });
 
         const prediction = response.data.predicted_meal_plan;
+        const BMI = calculateBMI(weight, height);
+        const BMR = calculateBMR(weight, height, age);
+        const TDEE = calculateTDEE(BMR, activity_level);
 
-        // Add doc to db
-        const BMI = calculateBMI(weight, height)
-        const BMR = calculateBMR(weight, height, age)
-        const TDEE = calculateTDEE(BMR,activity_level)
         const new_patient = await Patient.create({
             age,
             height,
@@ -101,13 +88,26 @@ const newPatient = async (req, res) => {
             activity_level,
             preference,
             restrictions,
-            prediction
-        })
-        res.status(200).json(new_patient)
+            prediction,
+            userId
+        });
+
+        res.status(200).json(new_patient);
     } catch (error) {
-        res.status(400).json({ error: error.message })
+        res.status(400).json({ error: error.message });
     }
-}
+};
+
+// get user's meal plans
+const getUserMealPlans = async (req, res) => {
+    const userId = req.userId;
+    try {
+        const mealPlans = await Patient.find({ userId }).sort({ createdAt: -1 });
+        res.status(200).json(mealPlans);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 // delete patient
 const deletePatient = async (req, res) => {
@@ -195,5 +195,6 @@ module.exports = {
     updatePatient,
     updateMealProgress,
     getWeeklyProgress,
+    getUserMealPlans
 
 }
