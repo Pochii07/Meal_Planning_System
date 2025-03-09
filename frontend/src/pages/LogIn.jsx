@@ -96,8 +96,8 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
   );
 };
 
-const LogIn = () => {
-  const { login, isLoading } = useAuthStore();
+export function LogIn() {
+  const { login, checkAuth ,isLoading} = useAuthStore();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -120,9 +120,8 @@ const LogIn = () => {
       const data = await login(email, password);
       
       if (data.success === true) {
-        navigate('/GuestProfile')
-      } else {
-        // dialog for try again
+        await checkAuth(); // Now checkAuth is properly imported and can be called
+        navigate('/');
       }
     } catch (error) {
       console.error("Login failed:", error);

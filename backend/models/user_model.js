@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+
 const UserSchema = new Schema({
     _id: {
         type: String,
@@ -19,11 +20,7 @@ const UserSchema = new Schema({
     },
     sex: {
         type: String,
-        role: {
-            type: String,
-            enum: ['male', 'female'],
-            required: true 
-        },
+        enum: ['Male', 'Female'],
         required: true 
     },
     email: {
@@ -39,6 +36,11 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
+    role: {
+        type: String,
+        enum: ['guest', 'user', 'admin'],
+        default: 'user'
+    },
     resetPasswordToken: String,
     resetPasswordTokenExpiresAt: Date,
     verificationToken: String,
@@ -46,6 +48,6 @@ const UserSchema = new Schema({
 }, {
     timestamps: true,
     auto: false
-})
+});
 
 module.exports = mongoose.model('User', UserSchema);

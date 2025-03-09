@@ -27,7 +27,7 @@ const ProtectedRoute = ({children}) => {
 const AuthenticatedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
   if (isAuthenticated && user) {
-    return <Navigate to="/GuestProfile" replace/>
+    return <Navigate to="/" replace/>
   }
 
   return children
@@ -58,7 +58,6 @@ function App() {
 
   return (
     <div className = "App">
-      {user && <Button onClick={handleLogout}>Logout</Button>}
       <BrowserRouter>
       <NavbarCustom/>
         <div className = "pages">
