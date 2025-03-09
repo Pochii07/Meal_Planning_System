@@ -13,6 +13,7 @@ const PatientForm = () => {
   const [restrictions, setRestrictions] = useState('');
   const [error, setError] = useState(null);
   const [emptyFields, setEmptyFields] = useState([]);
+  const [mealPlan, setMealPlan] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,75 +52,85 @@ const PatientForm = () => {
       setActivityLevel('');
       setPreference('');
       setRestrictions('');
+      setMealPlan(json.prediction); // Set the meal plan
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>Age:</label>
-      <input
-        type="number"
-        value={age}
-        onChange={(e) => setAge(e.target.value)}
-        className={emptyFields.includes('age') ? 'error' : ''}
-        required
-      />
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Age:</label>
+        <input
+          type="number"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          className={emptyFields.includes('age') ? 'error' : ''}
+          required
+        />
 
-      <label>Weight (kg):</label>
-      <input
-        type="number"
-        value={weight}
-        onChange={(e) => setWeight(e.target.value)}
-        className={emptyFields.includes('weight') ? 'error' : ''}
-        required
-      />
+        <label>Weight (kg):</label>
+        <input
+          type="number"
+          value={weight}
+          onChange={(e) => setWeight(e.target.value)}
+          className={emptyFields.includes('weight') ? 'error' : ''}
+          required
+        />
 
-      <label>Height (cm):</label>
-      <input
-        type="number"
-        value={height}
-        onChange={(e) => setHeight(e.target.value)}
-        className={emptyFields.includes('height') ? 'error' : ''}
-        required
-      />
+        <label>Height (cm):</label>
+        <input
+          type="number"
+          value={height}
+          onChange={(e) => setHeight(e.target.value)}
+          className={emptyFields.includes('height') ? 'error' : ''}
+          required
+        />
 
-      <label>Gender:</label>
-      <input
-        type="text"
-        value={gender}
-        onChange={(e) => setGender(e.target.value)}
-        className={emptyFields.includes('gender') ? 'error' : ''}
-        required
-      />
+        <label>Gender:</label>
+        <input
+          type="text"
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+          className={emptyFields.includes('gender') ? 'error' : ''}
+          required
+        />
 
-      <label>Activity Level:</label>
-      <input
-        type="number"
-        value={activityLevel}
-        onChange={(e) => setActivityLevel(e.target.value)}
-        className={emptyFields.includes('activity level') ? 'error' : ''}
-        required
-      />
+        <label>Activity Level:</label>
+        <input
+          type="number"
+          value={activityLevel}
+          onChange={(e) => setActivityLevel(e.target.value)}
+          className={emptyFields.includes('activity level') ? 'error' : ''}
+          required
+        />
 
-      <label>Dietary Preference:</label>
-      <input
-        type="text"
-        value={preference}
-        onChange={(e) => setPreference(e.target.value)}
-        className={emptyFields.includes('preference') ? 'error' : ''}
-      />
+        <label>Dietary Preference:</label>
+        <input
+          type="text"
+          value={preference}
+          onChange={(e) => setPreference(e.target.value)}
+          className={emptyFields.includes('preference') ? 'error' : ''}
+        />
 
-      <label>Allergies:</label>
-      <input
-        type="text"
-        value={restrictions}
-        onChange={(e) => setRestrictions(e.target.value)}
-        className={emptyFields.includes('restrictions') ? 'error' : ''}
-      />
+        <label>Allergies:</label>
+        <input
+          type="text"
+          value={restrictions}
+          onChange={(e) => setRestrictions(e.target.value)}
+          className={emptyFields.includes('restrictions') ? 'error' : ''}
+        />
 
-      <button type="submit">Generate</button>
-      {error && <div className="error">{error}</div>}
-    </form>
+        <button type="submit">Generate</button>
+        {error && <div className="error">{error}</div>}
+      </form>
+
+      {mealPlan && (
+        <div className="meal-plan">
+          <h3>Generated Meal Plan</h3>
+          <pre>{JSON.stringify(mealPlan, null, 2)}</pre>
+        </div>
+      )}
+    </div>
   );
 };
 
