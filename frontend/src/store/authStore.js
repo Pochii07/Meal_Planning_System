@@ -75,45 +75,45 @@ export const useAuthStore = create((set) => ({
     },
     login: async (email, password) => {
         set({
-          isLoading: true,
-          error: null
+            isLoading: true,
+            error: null
         });
         try {
-          const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ email, password })
-          });
-          const data = await response.json();
-          
-          if (data.success === true && data.user) { // Add check for user object
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            
+            if (data.success === true && data.user) {
+                set({ 
+                    isLoading: false, 
+                    isAuthenticated: true, 
+                    user: data.user // This will now include the token
+                });
+                return data;
+            }
             set({ 
-              isLoading: false, 
-              isAuthenticated: true, 
-              user: data.user 
+                isLoading: false, 
+                isAuthenticated: false,
+                user: null,
+                error: data.message 
             });
             return data;
-          }
-          set({ 
-            isLoading: false, 
-            isAuthenticated: false, // Set to false on failure
-            user: null, // Set to null on failure
-            error: data.message 
-          });
-          return data;
         } catch (error) {
-          set({ 
-            isLoading: false, 
-            error: error.message,
-            isAuthenticated: false,
-            user: null
-          });
-          throw error;
+            set({ 
+                isLoading: false, 
+                error: error.message,
+                isAuthenticated: false,
+                user: null
+            });
+            throw error;
         }
-      },
+    },
     checkAuth: async () => {    
         set({
             isCheckingAuth: true,

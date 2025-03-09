@@ -1,71 +1,79 @@
 const mongoose = require('mongoose')
-
 const Schema = mongoose.Schema
+
+const MealSchema = new Schema({
+    breakfast: { type: String, default: '' },
+    lunch: { type: String, default: '' },
+    dinner: { type: String, default: '' }
+});
+
+const ProgressSchema = new Schema({
+    breakfast: { type: Boolean, default: false },
+    lunch: { type: Boolean, default: false },
+    dinner: { type: Boolean, default: false }
+});
 
 const UserDetailsSchema = new Schema({
     age: {
-        type:Number,
+        type: Number,
         required: true
     },
     height: {
-        type:Number,
+        type: Number,
         required: true
     },
     weight: {
-        type:Number,
+        type: Number,
         required: true
     },
-    gender:{
-        type:String,
+    gender: {
+        type: String,
         required: true
     },
-    BMI:{
-        type:Number,    // automatically calculated
+    BMI: {
+        type: Number,
     },
-    BMR:{
-        type:Number,    // automatically calculated
+    BMR: {
+        type: Number,
     },
-    TDEE:{
-        type:Number,    // automatically calculated
+    TDEE: {
+        type: Number,
     },
     activity_level: {
-        type:Number,
+        type: Number,
         required: true
     },
     preference: {
-        type:String,
+        type: String,
         required: true
     },
     restrictions: {
-        type:String,
+        type: String,
         required: true
-    },
-    progress: {
-        type: Map, // Map to track meals for each day
-        of: {
-            breakfast: { type: Boolean, default: false },
-            lunch: { type: Boolean, default: false },
-            dinner: { type: Boolean, default: false }
-        },
-        default: {
-            Sunday: { breakfast: false, lunch: false, dinner: false },
-            Monday: { breakfast: false, lunch: false, dinner: false },
-            Tuesday: { breakfast: false, lunch: false, dinner: false },
-            Wednesday: { breakfast: false, lunch: false, dinner: false },
-            Thursday: { breakfast: false, lunch: false, dinner: false },
-            Friday: { breakfast: false, lunch: false, dinner: false },
-            Saturday: { breakfast: false, lunch: false, dinner: false },
-        } 
     },
     prediction: {
-        type: Object, // Change from String to Object to store structured meal plan data
-        default: null
+        Monday: MealSchema,
+        Tuesday: MealSchema,
+        Wednesday: MealSchema,
+        Thursday: MealSchema,
+        Friday: MealSchema,
+        Saturday: MealSchema,
+        Sunday: MealSchema
+    },
+    progress: {
+        Monday: ProgressSchema,
+        Tuesday: ProgressSchema,
+        Wednesday: ProgressSchema,
+        Thursday: ProgressSchema,
+        Friday: ProgressSchema,
+        Saturday: ProgressSchema,
+        Sunday: ProgressSchema
     },
     userId: {
-        type: String,  // Change from String to ObjectId
-        ref: 'User', // Add user ID reference to link meal plans to users
+        type: String,
+        ref: 'User',
         required: true
-    },
-},   {timestamps: true})
+    }
+}, { timestamps: true })
 
-module.exports = mongoose.model('PatientDetails',UserDetailsSchema)
+module.exports = mongoose.model('PatientDetails', UserDetailsSchema)

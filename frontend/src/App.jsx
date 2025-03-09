@@ -11,6 +11,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GuestMealTracker from './pages/GuestMealTracker';
 import 'flowbite/dist/flowbite.css'; 
+import MealTracker from './components/MealTracker';
 
 import { useAuthStore } from './store/authStore';
 import { useEffect } from 'react';
@@ -64,7 +65,11 @@ function App() {
           <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/form" element={<PatientForm />} />
-          <Route path="/meal-tracker" element={<GuestMealTracker />} />
+          <Route path="/meal-tracker" element={
+            <ProtectedRoute>
+              <MealTracker />
+            </ProtectedRoute>
+          } />
           
           <Route 
            path="/SignUp" 

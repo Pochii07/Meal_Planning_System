@@ -14,6 +14,9 @@ const { verifyToken } = require('../middleware/verifyToken');
 
 const router = express.Router()
 
+// Get user meal plans
+router.get('/user-meal-plans', verifyToken, getUserMealPlans)
+
 // Get all cases
 router.get('/', getAllPatients)
 
@@ -35,8 +38,7 @@ router.patch('/:id/progress', updateMealProgress)
 // Get progress
 router.get('/:id/progress', getWeeklyProgress)
 
-// Add this route
-router.get('/user-meal-plans', verifyToken, getUserMealPlans)
+
 
 module.exports = router
 

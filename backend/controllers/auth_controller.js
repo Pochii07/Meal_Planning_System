@@ -92,18 +92,16 @@ const login = async (req, res) => {
                 message: 'Invalid credentials'
             });
         }
-        const isAccountVerified = user.isVerified;
-        if (!isAccountVerified) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email not verified'
-            });
-        }
 
-        createJWTToken(res, user._id);
-        return res.status(200).json({
+        const token = createJWTToken(res, user._id);
+
+        res.status(200).json({
             success: true,
-            message: 'Login successful'
+            user: {
+                ...user._doc,
+                password: undefined,
+                token // Include token in response
+            }
         });
     } catch (error) {
         console.log("Error logging in");

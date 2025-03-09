@@ -100,11 +100,23 @@ const newPatient = async (req, res) => {
 
 // get user's meal plans
 const getUserMealPlans = async (req, res) => {
-    const userId = req.userId;
     try {
-        const mealPlans = await Patient.find({ userId }).sort({ createdAt: -1 });
-        res.status(200).json(mealPlans);
+        const userId = req.userId;
+        console.log("Finding meal plans for user:", userId);
+
+        const mealPlan = await Patient.findOne({ userId: String(userId) }) // Convert to String explicitly
+            .sort({ createdAt: -1 })
+            .select('prediction progress _id')
+            .lean();
+
+        if (!mealPlan) {
+            return res.status(404).json({ error: 'No meal plan found' });
+        }
+
+        console.log("Found meal plan:", mealPlan);
+        res.status(200).json([mealPlan]);
     } catch (error) {
+        console.error("Error finding meal plans:", error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -144,28 +156,31 @@ const updatePatient = async (req, res) => {
 
 // Update meal progress
 const updateMealProgress = async (req, res) => {
-    const { id } = req.params
-    const { day, meal } = req.body
-
-    if (!['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].includes(day)) {
-        return res.status(400).json({ error: 'Invalid day provided' })
-    }
-    if (!['breakfast', 'lunch', 'dinner'].includes(meal)) {
-        return res.status(400).json({ error: 'Invalid meal provided' })
-    }
-
     try {
-        const patient = await Patient.findById(id)
-        if (!patient) {
-            return res.status(404).json({ error: 'Patient not found' })
+        const { id } = req.params;
+        const { day, meal, value } = req.body;
+
+        // Find the patient and update the specific meal progress
+        const updatedPatient = await Patient.findByIdAndUpdate(
+            id,
+            { 
+                $set: {
+                    [`progress.${day}.${meal}`]: value
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedPatient) {
+            return res.status(404).json({ error: 'Patient not found' });
         }
 
-        patient.progress[day][meal] = true // Mark the meal as eaten
-        await patient.save()
-
-        res.status(200).json({ message: `Updated ${meal} progress for ${day}`, progress: patient.progress })
+        res.status(200).json({
+            success: true,
+            progress: updatedPatient.progress
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message })
+        res.status(400).json({ error: error.message });
     }
 }
 
@@ -196,5 +211,4 @@ module.exports = {
     updateMealProgress,
     getWeeklyProgress,
     getUserMealPlans
-
 }
