@@ -21,6 +21,7 @@
     "@mui/styles": "^6.4.3",
     "@mui/x-date-pickers": "^7.26.0",
     "@react-spring/web": "^9.7.5",
+    "chance": "^1.1.12",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "flowbite": "^3.0.0",
@@ -30,6 +31,7 @@
     "react-dom": "^18.3.1",
     "react-icons-kit": "^2.0.0",
     "react-router-dom": "^7.0.2",
+    "react-virtuoso": "^4.12.5",
     "styled-components": "^6.1.14",
     "zustand": "^5.0.3"
   },

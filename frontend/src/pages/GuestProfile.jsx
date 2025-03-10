@@ -43,6 +43,11 @@ const GuestProfile = () => {
     setSelectedDiet(event.target.value);
   };
 
+  const [selectedActivityLevel, setSelectedActivityLevel] = useState("");
+
+  const handelChangeActivityLevel = (event) => {
+    setSelectedActivityLevel(event.target.value);
+  };
   const addDietRestriction = () => {
     if (selectedDiet && !dietRestrictions.includes(selectedDiet)) {
       setDietRestrictions([...dietRestrictions, selectedDiet]);
@@ -298,6 +303,40 @@ const GuestProfile = () => {
                         />
                       ))}
                     </Stack>
+                      {/*ACTIVITY LEVEL */}
+                    <Stack direction={"column"}>  
+                  <span style={{ fontSize: "20px", fontWeight: "bold", marginLeft: "5px" }}>ACTIVITY LEVEL</span>
+                    <Stack direction={"row"}>
+                    <Box
+                      width="32%"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "& fieldset": { borderColor: "black", borderWidth: "2px" },
+                          "&:hover fieldset": { borderColor: "#008000", borderWidth: "2px" },
+                          "&.Mui-focused fieldset": { borderColor: "#008000 !important"},
+                        },
+                        "& .MuiInputLabel-root": { color: "black", borderWidth: "2px" },
+                        "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important"},
+                      }}
+                    >
+                      <FormControl required fullWidth>
+                        <Select
+                          labelId="demo-simple-select-label"
+                          id="demo-simple-select"
+                          value={selectedActivityLevel}
+                          onChange={handelChangeActivityLevel}
+                        >
+                          {/*ACTIVITY LEVEL LIST*/}
+                          <MenuItem value={"1"}>1</MenuItem>
+                          <MenuItem value={"2"}>2</MenuItem>
+                          <MenuItem value={"3"}>3</MenuItem>
+                          <MenuItem value={"4"}>4</MenuItem>
+                          <MenuItem value={"5"}>5</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    </Stack>
+                  </Stack>
                 </Stack>
             </td>
             {/*COLUMN 3 BUTTONS*/}
