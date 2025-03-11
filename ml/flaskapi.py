@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -6,6 +7,19 @@ from sklearn.model_selection import train_test_split
 
 # Initialize the Flask app
 app = Flask(__name__)
+# Enable CORS for your frontend origin
+CORS(app, resources={
+    r"/*": {  # Allow all routes
+        "origins": [
+            "http://localhost:5173",  # Vite dev server
+            "http://localhost:3000",  # Optional: React dev server
+            "http://127.0.0.1:5173"   # Alternative local URL
+        ],
+        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "supports_credentials": True  # Important for cookies/auth
+    }
+})
 
 # Load the dataset
 df = pd.read_csv('Reduced_Dataset.csv')

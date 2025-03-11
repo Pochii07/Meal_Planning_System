@@ -7,8 +7,8 @@ const {
     updatePatient,
     updateMealProgress,
     getWeeklyProgress,
-    getUserMealPlans
-
+    getUserMealPlans,
+    generateGuestMealPlan // Add this new controller
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -38,7 +38,8 @@ router.patch('/:id/progress', updateMealProgress)
 // Get progress
 router.get('/:id/progress', getWeeklyProgress)
 
-
+// Add this new route for guests
+router.post('/guest-predict', generateGuestMealPlan)
 
 module.exports = router
 

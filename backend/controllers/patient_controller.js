@@ -58,7 +58,7 @@ const calculateTDEE = (BMR, activity_level) => {
 // new patient
 const newPatient = async (req, res) => {
     const { age, height, weight, gender, activity_level, preference, restrictions } = req.body;
-    const userId = req.userId; // Get userId from auth middleware
+    const userId = req.userId;
 
     try {
         // Get prediction from Flask API
@@ -72,7 +72,28 @@ const newPatient = async (req, res) => {
             activity_level
         });
 
-        const prediction = response.data.predicted_meal_plan;
+        // Parse and structure the meal plan data
+        const rawPrediction = response.data.predicted_meal_plan;
+        const prediction = {
+            Monday: { breakfast: '', lunch: '', dinner: '' },
+            Tuesday: { breakfast: '', lunch: '', dinner: '' },
+            Wednesday: { breakfast: '', lunch: '', dinner: '' },
+            Thursday: { breakfast: '', lunch: '', dinner: '' },
+            Friday: { breakfast: '', lunch: '', dinner: '' },
+            Saturday: { breakfast: '', lunch: '', dinner: '' },
+            Sunday: { breakfast: '', lunch: '', dinner: '' }
+        };
+
+        // Parse the raw prediction and assign to structured format
+        try {
+            const parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            Object.keys(parsedPrediction).forEach(day => {
+                prediction[day] = parsedPrediction[day];
+            });
+        } catch (parseError) {
+            console.error('Error parsing prediction:', parseError);
+        }
+
         const BMI = calculateBMI(weight, height);
         const BMR = calculateBMR(weight, height, age);
         const TDEE = calculateTDEE(BMR, activity_level);
@@ -88,7 +109,7 @@ const newPatient = async (req, res) => {
             activity_level,
             preference,
             restrictions,
-            prediction,
+            prediction, // Now properly structured
             userId
         });
 
@@ -200,6 +221,49 @@ const getWeeklyProgress = async (req, res) => {
     }
 }
 
+const generateGuestMealPlan = async (req, res) => {
+    const {age, height, weight, gender, activity_level, preference, restrictions} = req.body;
+
+    try {
+        // Call Flask API for prediction
+        const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
+            age,
+            height, 
+            weight,
+            gender,
+            dietary_restrictions: preference,
+            allergies: restrictions,
+            activity_level
+        });
+
+        // Parse and structure the meal plan data
+        const rawPrediction = response.data.predicted_meal_plan;
+        const prediction = {
+            Monday: { breakfast: '', lunch: '', dinner: '' },
+            Tuesday: { breakfast: '', lunch: '', dinner: '' },
+            Wednesday: { breakfast: '', lunch: '', dinner: '' },
+            Thursday: { breakfast: '', lunch: '', dinner: '' },
+            Friday: { breakfast: '', lunch: '', dinner: '' },
+            Saturday: { breakfast: '', lunch: '', dinner: '' },
+            Sunday: { breakfast: '', lunch: '', dinner: '' }
+        };
+
+        try {
+            const parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            Object.keys(parsedPrediction).forEach(day => {
+                prediction[day] = parsedPrediction[day];
+            });
+        } catch (parseError) {
+            console.error('Error parsing prediction:', parseError);
+        }
+
+        // Only return the prediction without saving to database
+        res.status(200).json({ prediction });
+
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 
 module.exports = {
@@ -210,5 +274,6 @@ module.exports = {
     updatePatient,
     updateMealProgress,
     getWeeklyProgress,
-    getUserMealPlans
+    getUserMealPlans,
+    generateGuestMealPlan
 }
