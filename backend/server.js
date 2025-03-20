@@ -8,6 +8,7 @@ dotenv.config()
 const patientRoutes = require('./routes/patient_routes')
 const recipeRoutes = require('./routes/recipe_routes')
 const authRoutes = require('./routes/auth_routes')
+const nutritionistPatientRoutes = require('./routes/nutritionist_patient_routes')
 
 // Express app
 const FoodPlan = express()
@@ -29,6 +30,7 @@ FoodPlan.use((req, res, next) =>{
 FoodPlan.use('/api/patient_routes', patientRoutes)
 FoodPlan.use('/api/recipe_routes', recipeRoutes)
 FoodPlan.use('/api/auth', authRoutes)
+FoodPlan.use('/api/nutritionist/patients',nutritionistPatientRoutes)
 
 // connect to db
 mongoose.connect(process.env.MONG_URI)
