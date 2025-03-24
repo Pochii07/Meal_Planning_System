@@ -1,4 +1,4 @@
-const { resend } = require('./config');
+const { resend } = require('./config.js');
 
 const sendVerificationEmail = async (email, verificationToken) => {
     try {
@@ -8,8 +8,15 @@ const sendVerificationEmail = async (email, verificationToken) => {
             subject: 'Email Address Verification',
             html: `Verify your email address with this token: ${verificationToken}`,
           });
+
+          if (error) {
+            console.error("API error:", error);
+            throw new Error("Failed to send verification email");
+        }
+
+        console.log("Verification email sent successfully:", data);
     } catch (error) {
-        console.log("error: ". error);
+        console.log("Error:", error);
         throw new Error("Error sending verification email");
     }
 }
@@ -23,7 +30,7 @@ const sendWelcomeEmail = async (email, verificationToken) => {
             html: `Welcome to Meal Planning System!`,
           });
     } catch (error) {
-        console.log("error: ". error);
+        console.log("Error: ", error);
         throw new Error("Error sending verification email");
     }
 }
@@ -37,7 +44,7 @@ const sendPasswordResetEmail = async (email, resetURL) => {
             html: `Click <a href= "${resetURL}">here</a> to reset your password`,
           });
     } catch (error) {
-        console.log("error: ". error);
+        console.log("Error: ", error);
     }
 }
 
@@ -50,7 +57,7 @@ const sendPasswordResetSuccessEmail = async (email, verificationToken) => {
             html: `Password reset`,
           });
     } catch (error) {
-        console.log("error: ". error);
+        console.log("Error: ", error);
     }
 }
 
