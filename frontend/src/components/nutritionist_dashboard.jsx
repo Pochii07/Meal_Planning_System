@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
 import { useAuthStore } from '../store/authStore'
+import { useNavigate } from 'react-router-dom';
 
 const NutritionistDashboard = () => {
   const { patients, dispatch } = useNutritionistPatientContext()
-  const { user } = useAuthStore()
+  const { user, isAuthenticated, isCheckingAuth} = useAuthStore()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [expandedPatientId, setExpandedPatientId] = useState(null)
@@ -44,6 +47,13 @@ const NutritionistDashboard = () => {
 
   // Fetch patients on component mount
   useEffect(() => {
+
+    if (!isCheckingAuth && (!isAuthenticated || !user || user.role !== 'nutritionist')) {
+      navigate('/unauthorized'); // Redirect non-nutritionist users
+    } else {
+      setLoading(false);
+    }
+
     const fetchPatients = async () => {
       const response = await fetch('/api/nutritionist/patients', {
         headers: {
@@ -60,7 +70,7 @@ const NutritionistDashboard = () => {
     if (user) {
       fetchPatients()
     }
-  }, [dispatch, user])
+  }, [dispatch, user, isAuthenticated, isCheckingAuth, navigate])
 
   // Handle form submission
   const handleSubmit = async (e) => {
