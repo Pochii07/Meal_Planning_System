@@ -208,7 +208,6 @@ const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handl
 const SignUp = () => {
   const { signup, isLoading } = useAuthStore();
   const navigate = useNavigate();
-
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthDate, setBirthDate] = useState(null);
