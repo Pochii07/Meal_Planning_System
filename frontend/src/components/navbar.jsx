@@ -2,6 +2,7 @@ import React from "react";
 import { Navbar, NavbarBrand, NavbarCollapse, NavbarLink } from "flowbite-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import ChefItLogo from "../Images/ChefItLogo.png"; 
 
 export function NavbarCustom() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -13,7 +14,7 @@ export function NavbarCustom() {
   return (
     <Navbar fluid rounded style={{ backgroundColor: '#FEFEFA' }} class="flex mt-5">
       <NavbarBrand href="/" className="mr-10">
-        <img src="./src/Images/ChefItLogo.png" className="mr-3 h-6 sm:h-9" alt="ChefIt" />
+        <img src={ChefItLogo} className="mr-3 h-6 sm:h-9" alt="ChefIt" />
         <span className="self-center whitespace-nowrap text-xl font-semibold ">ChefIt</span>
       </NavbarBrand>
 

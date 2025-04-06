@@ -95,7 +95,7 @@ const createNutritionistPatient = async (req, res) => {
             preference,
             restrictions,
             prediction,
-            progress, // Add the initialized progress
+            progress,
             nutritionistId
         });
 
