@@ -50,18 +50,18 @@ const signup = async (req, res) => {
         });
 
         await user.save();
-        
-        createJWTToken(res, user._id);
+        // createJWTToken(res, user._id);
 
         await sendVerificationEmail(user.email, verificationToken);
 
         res.status(201).json({
             success: true,
             message: "User created successfully",
-            user: {
-                ...user._doc,
-                password: undefined,
-                verificationTokenExpiresAt: undefined,
+            verificationData: {
+                email: user.email,
+                expiresAt: user.verificationTokenExpiresAt,
+                tempUserId: user._id,
+                token: user.verificationToken,
             }
         });
     } catch (error) {
@@ -93,6 +93,19 @@ const login = async (req, res) => {
             });
         }
 
+        if (!user.isVerified) {
+            // Generate verification token with short expiry (e.g., 15 minutes)
+            const verificationToken = createJWTToken(res, user._id, '15m');
+            
+            return res.status(200).json({
+                success: true,
+                requiresVerification: true,
+                verificationToken,
+                email: user.email,
+                message: 'Account requires verification'
+            });
+        }
+
         const token = createJWTToken(res, user._id);
 
         res.status(200).json({
@@ -118,7 +131,6 @@ const logout = async (req, res) => {
         message: 'Logged out successfully'
     });
 }
-
 const verifyEmail = async (req, res) => {
     const {code} = req.body
 
@@ -145,7 +157,7 @@ const verifyEmail = async (req, res) => {
             success: true,
         })
     } catch (error) {
-        console.log("Error sending verification email");
+        console.log("Error sending verification email ", error);
         throw new Error("Error sending verification email");
     }
 }

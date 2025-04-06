@@ -9,6 +9,7 @@ export const useAuthStore = create((set) => ({
     isAuthenticated: false,
     isCheckingAuth: true,
     message: null,
+    verificationData: null,
 
     signup: async (firstName, lastName, email, birthDate, sex, password) => {
         set({
@@ -33,40 +34,69 @@ export const useAuthStore = create((set) => ({
                 })
             })
             const data = await response.json()
-            console.log(data);
-            set({ isLoading: false, user: data.user})
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+
+            const verificationData = {
+                email: data.verificationData.email,
+                expiresAt: data.verificationData.expiresAt,
+                userId: data.verificationData.tempUserId,
+                token: data.verificationData.token
+            };
+
+            console.log(verificationData)
+            sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
+
+            set({ isLoading: false, verificationData, user: null});
+            return data;
         } catch (error) {
             set({ isLoading: false, error: error.message})
             console.log(error);
             throw error
         }
     },  
-    /** 
-     *  verification otp login credentials
-     */  
     verify_login: async (code) => {
         set({
             isLoading: true,
             error: null
         })
         try {
+            const storedData = sessionStorage.getItem('pendingVerification');
+            if (!storedData) {
+                throw new Error('No pending verification found');
+            }
+            const verificationData = JSON.parse(storedData);
+            console.log('Registration data:', verificationData);
+
             const response = await fetch(`${API_URL}/verify_login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ code })
+                body: JSON.stringify({ 
+                    code,
+                    email: verificationData.email,
+                    userId: verificationData.userId
+                 })
             })
             const data = await response.json()
+            console.log('Verify_login response:', data); // Debug log
             
-            if (data.isAuthenticated) {
-                set({ isLoading: false, isAuthenticated: true, user: data.user });
-                return data
-            } else {
-                set({ isLoading: false, error: data.message });
-                return data
+            if (!response.ok) {
+                throw new Error(data.message || 'Verification failed');
             }
+            sessionStorage.removeItem('pendingVerification');
+            
+            set({ 
+                isLoading: false,
+                isAuthenticated: true,
+                user: data.user,
+                verificationData: null
+            });
+            return data;
         } catch (error) {
             set({ isLoading: false, error: error.message})
             console.log(error);

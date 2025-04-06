@@ -244,10 +244,10 @@ const SignUp = () => {
       return;
     }
 
-    if (!passwordRegex.test(password)) {
-      alert("Password does not meet security requirements!");
-      return;
-    }
+    // if (!passwordRegex.test(password)) {
+    //   alert("Password does not meet security requirements!");
+    //   return;
+    // }
 
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
@@ -259,6 +259,7 @@ const SignUp = () => {
       navigate('/verify_login');
     } catch (error) {
       console.error("Signup failed:", error);
+      alert(error.response?.data?.message || "Registration failed. Please try again.");
     }
   };
   
