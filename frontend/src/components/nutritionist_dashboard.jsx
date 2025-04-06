@@ -145,6 +145,35 @@ const NutritionistDashboard = () => {
     }
 };
 
+const handleDeletePatient = async (patientId) => {
+  // Optimistically update the UI by filtering out the deleted patient
+  dispatch({ 
+    type: 'SET_PATIENTS', 
+    payload: patients.filter(patient => patient._id !== patientId) 
+  });
+
+  try {
+    const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${user.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      setError(errorData.error || 'Failed to delete patient');
+      // Revert the optimistic update if the API call fails
+      dispatch({ type: 'SET_PATIENTS', payload: patients });
+    }
+  } catch (error) {
+    console.error('Error deleting patient:', error);
+    setError('Failed to delete patient');
+    // Revert the optimistic update if an error occurs
+    dispatch({ type: 'SET_PATIENTS', payload: patients });
+  }
+};
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header with Add Patient Button */}

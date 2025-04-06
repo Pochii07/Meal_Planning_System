@@ -21,6 +21,8 @@ import { useEffect } from 'react';
 import { Button } from 'flowbite-react';
 import { NutritionistPatientContextProvider } from './context/nutritionist_patient_context';
 import NutritionistDashboard from './components/nutritionist_dashboard';
+import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
+
 
 const ProtectedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -105,6 +107,8 @@ function App() {
           <Route path="/NutritionistProfile" element={<NutritionistProfile />}> </Route>
           <Route path="/ViewPatients" element={<ViewPatients />}> </Route>
           <Route path="/GuestMealTracker" element={<GuestMealTracker />} />
+          <Route path="/guest-meal-tracker" element={<GuestMealTracker />} />
+          <Route path="/guest-meal-tracker/:accessCode" element={<GuestMealTrackerDisplay />} />  
             
           <Route path="/ForgotPassword" element={<ForgotPassword/>}></Route>
           {/* Authenticated route  */}
