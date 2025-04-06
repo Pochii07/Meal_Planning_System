@@ -104,6 +104,7 @@ function App() {
           <Route path="/NutritionistMealPlanner" element={<NutritionistMealPlanner />}> </Route>
           <Route path="/NutritionistProfile" element={<NutritionistProfile />}> </Route>
           <Route path="/ViewPatients" element={<ViewPatients />}> </Route>
+          <Route path="/GuestMealTracker" element={<GuestMealTracker />} />
             
           <Route path="/ForgotPassword" element={<ForgotPassword/>}></Route>
           {/* Authenticated route  */}

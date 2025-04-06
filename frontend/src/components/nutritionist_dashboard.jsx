@@ -49,7 +49,7 @@ const NutritionistDashboard = () => {
   useEffect(() => {
 
     if (!isCheckingAuth && (!isAuthenticated || !user || user.role !== 'nutritionist')) {
-      navigate('/unauthorized'); // Redirect non-nutritionist users
+      navigate('/'); // Redirect non-nutritionist users
     } else {
       setLoading(false);
     }
