@@ -15,6 +15,12 @@ const ProgressSchema = new Schema({
 });
 
 const NutritionistPatientSchema = new Schema({
+
+    accessCode: {
+        type: String,
+        default: () => Math.floor(100000 + Math.random() * 900000).toString()
+    },
+
     firstName: {
         type: String,
         required: true

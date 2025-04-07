@@ -49,7 +49,7 @@ const NutritionistDashboard = () => {
   useEffect(() => {
 
     if (!isCheckingAuth && (!isAuthenticated || !user || user.role !== 'nutritionist')) {
-      navigate('/unauthorized'); // Redirect non-nutritionist users
+      navigate('/'); // Redirect non-nutritionist users
     } else {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ const NutritionistDashboard = () => {
       gender,
       activity_level: activityLevel,
       preference: preference || "None",
-      restrictions: restrictions || "None"
+      restrictions: restrictions || "None",
     }
 
     const response = await fetch('/api/nutritionist/patients', {
@@ -143,6 +143,35 @@ const NutritionistDashboard = () => {
     } catch (error) {
         console.error('Error updating progress:', error);
     }
+};
+
+const handleDeletePatient = async (patientId) => {
+  // Optimistically update the UI by filtering out the deleted patient
+  dispatch({ 
+    type: 'SET_PATIENTS', 
+    payload: patients.filter(patient => patient._id !== patientId) 
+  });
+
+  try {
+    const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${user.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      setError(errorData.error || 'Failed to delete patient');
+      // Revert the optimistic update if the API call fails
+      dispatch({ type: 'SET_PATIENTS', payload: patients });
+    }
+  } catch (error) {
+    console.error('Error deleting patient:', error);
+    setError('Failed to delete patient');
+    // Revert the optimistic update if an error occurs
+    dispatch({ type: 'SET_PATIENTS', payload: patients });
+  }
 };
 
   return (
@@ -311,6 +340,7 @@ const NutritionistDashboard = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BMI</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Code</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -341,6 +371,11 @@ const NutritionistDashboard = () => {
                       ) : (
                         <span className="text-gray-500">No progress yet</span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-mono bg-gray-100 p-2 rounded-md text-center">
+                      {patient.accessCode || 'No code'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -394,6 +429,11 @@ const NutritionistDashboard = () => {
                             <p className="text-sm text-gray-600">Height: {patient.height} cm</p>
                             <p className="text-sm text-gray-600">Weight: {patient.weight} kg</p>
                             <p className="text-sm text-gray-600">BMI: {patient.BMI}</p>
+                            <p className="text-sm text-gray-600 font-semibold">Access Code: 
+                              <span className="bg-green-100 text-green-800 ml-2 p-1 rounded font-mono">
+                                {patient.accessCode || 'None'}
+                              </span>
+                            </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-600">Activity Level: {patient.activity_level}</p>

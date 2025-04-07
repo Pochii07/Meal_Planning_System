@@ -1,6 +1,8 @@
-const Patient = require('../models/patient_model')
+const Patient = require('../models/patient_model');
+const NutritionistPatient = require('../models/nutritionist_patient_model');
 const mongoose = require('mongoose')
 const axios = require('axios')
+const { verify } = require('crypto')
 
 // get all patients
 const getAllPatients = async (req, res) => {
@@ -265,6 +267,72 @@ const generateGuestMealPlan = async (req, res) => {
     }
 };
 
+// Verify if an access code is valid
+const verifyAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.body;
+        
+        // Find the patient with this access code
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Invalid access code' });
+        }
+        
+        res.status(200).json({ valid: true });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Get patient data using access code
+const getPatientDataByAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.params;
+        
+        // Find the patient with this access code
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Invalid access code' });
+        }
+        
+        // Return relevant patient data
+        res.status(200).json({
+            _id: patient._id,
+            firstName: patient.firstName,
+            lastName: patient.lastName,
+            prediction: patient.prediction,
+            progress: patient.progress
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Update progress by access code
+const updateProgressByAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.params;
+        const { day, meal, value } = req.body;
+        
+        // Find and update the patient's progress
+        const patient = await NutritionistPatient.findOneAndUpdate(
+            { accessCode },
+            { $set: { [`progress.${day}.${meal}`]: value } },
+            { new: true }
+        );
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Invalid access code' });
+        }
+        
+        res.status(200).json({ progress: patient.progress });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 
 module.exports = {
     getAllPatients,
@@ -275,5 +343,8 @@ module.exports = {
     updateMealProgress,
     getWeeklyProgress,
     getUserMealPlans,
-    generateGuestMealPlan
+    generateGuestMealPlan,
+    verifyAccessCode,
+    getPatientDataByAccessCode,
+    updateProgressByAccessCode
 }
