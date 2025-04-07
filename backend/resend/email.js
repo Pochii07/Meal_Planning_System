@@ -1,4 +1,5 @@
 const { resend } = require('./config.js');
+const { verifyEmailTemplate } = require('./email_template.js');
 
 const sendVerificationEmail = async (email, verificationToken) => {
     try {
@@ -6,7 +7,11 @@ const sendVerificationEmail = async (email, verificationToken) => {
             from: 'Acme <onboarding@resend.dev>',
             to: [email],
             subject: 'Email Address Verification',
-            html: `Verify your email address with this token: ${verificationToken}`,
+            html: 
+                verifyEmailTemplate.replace(
+                    "{verificationToken}",
+                    verificationToken
+                ),
           });
 
           if (error) {
@@ -21,7 +26,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
     }
 }
 
-const sendWelcomeEmail = async (email, verificationToken) => {
+const sendWelcomeEmail = async (email, name) => {
     try {
         const { data, error } = await resend.emails.send({
             from: 'Acme <onboarding@resend.dev>',
@@ -61,4 +66,4 @@ const sendPasswordResetSuccessEmail = async (email, verificationToken) => {
     }
 }
 
-module.exports = { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail };
+module.exports = { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail};
