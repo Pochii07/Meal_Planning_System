@@ -48,10 +48,8 @@ const signup = async (req, res) => {
             // Token expires in 24 hours
             verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000 
         });
-
+        
         await user.save();
-        // createJWTToken(res, user._id);
-
         await sendVerificationEmail(user.email, verificationToken);
 
         res.status(201).json({
@@ -85,6 +83,7 @@ const login = async (req, res) => {
                 message: 'Invalid credentials'
             });
         }
+        // user input password is invalid
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(400).json({
@@ -92,20 +91,18 @@ const login = async (req, res) => {
                 message: 'Invalid credentials'
             });
         }
-
+        // user exists but isn't verified
         if (!user.isVerified) {
-            // Generate verification token with short expiry (e.g., 15 minutes)
-            const verificationToken = createJWTToken(res, user._id, '15m');
-            
             return res.status(200).json({
-                success: true,
-                requiresVerification: true,
-                verificationToken,
                 email: user.email,
-                message: 'Account requires verification'
+                expiresAt: user.verificationTokenExpiresAt,
+                verificationToken: user.verificationToken,
+                message: 'Account requires verification',
+                requiresVerification: true,
+                success: true,
             });
         }
-
+        // session token
         const token = createJWTToken(res, user._id);
 
         res.status(200).json({
@@ -113,7 +110,7 @@ const login = async (req, res) => {
             user: {
                 ...user._doc,
                 password: undefined,
-                token // Include token in response
+                token
             }
         });
     } catch (error) {
@@ -137,9 +134,9 @@ const verifyEmail = async (req, res) => {
     try {
         const user = await User.findOne({
             verificationToken: code,
-            verificationTokenExpiresAt: {$gt: Date.now() }, // gt for greater than
-
+            verificationTokenExpiresAt: {$gt: Date.now() },
         })
+
         if (!user) {
             return res.status(400).json({
                 success: false,

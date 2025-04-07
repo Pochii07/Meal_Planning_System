@@ -1,30 +1,43 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-    const token = req.cookies.token;
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+
     if (!token) {
         return res.status(401).json({
             success: false,
-            message: 'Unauthorized 1'
+            message: 'Authentication required'
         });
     }
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (!decoded) {
-            return res.status(401).json({
+
+        // check if this is a verification token being used for regular access
+        if (decoded.isVerificationToken && req.path !== '/verify-login') {
+            return res.status(403).json({
                 success: false,
-                message: 'Unauthorized 2'
+                message: 'Account not verified',
+                requiresVerification: true
             });
         }
         req.userId = decoded.userId;
+        req.isVerificationToken = decoded.isVerificationToken || false;
         next();
     } catch (error) {
-        console.log(error);
+        console.error('Token verification error:', error);
+        
+        let message = 'Invalid token';
+        if (error.name === 'TokenExpiredError') {
+            message = 'Session expired';
+        } else if (error.name === 'JsonWebTokenError') {
+            message = 'Invalid authentication';
+        }
+
         return res.status(401).json({
             success: false,
-            message: 'Unauthorized 3'
+            message
         });
     }
 }
 
-module.exports = { verifyToken };
+module.exports = { verifyToken};

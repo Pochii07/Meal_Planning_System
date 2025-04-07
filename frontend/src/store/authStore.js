@@ -67,8 +67,7 @@ export const useAuthStore = create((set) => ({
             if (!storedData) {
                 throw new Error('No pending verification found');
             }
-            const verificationData = JSON.parse(storedData);
-            console.log('Registration data:', verificationData);
+            const { email, userId } = JSON.parse(storedData);
 
             const response = await fetch(`${API_URL}/verify_login`, {
                 method: 'POST',
@@ -78,8 +77,8 @@ export const useAuthStore = create((set) => ({
                 credentials: 'include',
                 body: JSON.stringify({ 
                     code,
-                    email: verificationData.email,
-                    userId: verificationData.userId
+                    email,
+                    userId,
                  })
             })
             const data = await response.json()
@@ -88,14 +87,13 @@ export const useAuthStore = create((set) => ({
             if (!response.ok) {
                 throw new Error(data.message || 'Verification failed');
             }
-            sessionStorage.removeItem('pendingVerification');
-            
             set({ 
                 isLoading: false,
-                isAuthenticated: true,
-                user: data.user,
+                isAuthenticated: false,
+                user: null,
                 verificationData: null
             });
+            sessionStorage.removeItem('pendingVerification');
             return data;
         } catch (error) {
             set({ isLoading: false, error: error.message})
@@ -118,18 +116,35 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ email, password })
             });
             const data = await response.json();
-            
-            if (data.success === true && data.user) {
+            if (data.success) {
+                // for unverified users
+                if (data.requiresVerification){
+                    const verificationData = {
+                        email: data.email,
+                        verificationToken: data.verificationToken,
+                        expiresAt: data.expiresAt,
+                    };
+                    sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
+
+                    set({ 
+                        isLoading: false,
+                        requiresVerification: true,
+                        verificationEmail: data.email
+                    });
+                    return { ...data, shouldVerify: true };
+                }
                 set({ 
                     isLoading: false, 
                     isAuthenticated: true, 
-                    user: data.user // This will now include the token
+                    requiresVerification: false,
+                    user: data.user
                 });
                 return data;
             }
             set({ 
                 isLoading: false, 
                 isAuthenticated: false,
+                requiresVerification: false,
                 user: null,
                 error: data.message 
             });
@@ -137,9 +152,10 @@ export const useAuthStore = create((set) => ({
         } catch (error) {
             set({ 
                 isLoading: false, 
-                error: error.message,
                 isAuthenticated: false,
-                user: null
+                requiresVerification: false,
+                user: null,
+                error: error.message || 'Login failed',
             });
             throw error;
         }

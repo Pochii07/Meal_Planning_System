@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Button } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
@@ -12,13 +12,13 @@ const verifyLogin = () => {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [showDialog, setShowDialog] = useState(false);
   const [dialogStatus, setDialogStatus] = useState("");
+  const [error, setError] = useState("");
+  const [timeLeft, setTimeLeft] = useState(0);
   const inputRefs = useRef([]);
 
   // Load verification data from sessionStorage on mount
   useEffect(() => {
-    console.log('Checking sessionStorage on mount...');
     const storedData = sessionStorage.getItem('pendingVerification');
-    console.log('Raw stored data:', storedData);
     
     if (!storedData) {
       navigate('/signup'); // Redirect if no verification data exists
@@ -27,7 +27,6 @@ const verifyLogin = () => {
     
     try {
       const parsedData = JSON.parse(storedData);
-      console.log('Parsed verification data:', parsedData);
       setVerificationData(parsedData);
     } catch (e) {
       console.error('Failed to parse stored data:', e);
@@ -98,7 +97,32 @@ const verifyLogin = () => {
   const handleNavigateToLogin = () => {
     sessionStorage.removeItem('pendingVerification');
     setShowDialog(false);
-    navigate('/login.jsx');
+    navigate('/LogIn', { state: { verified: true } });
+  };
+
+  const handleResendCode = async () => {
+    // try {
+    //   // Implement your resend API call here
+    //   const response = await resendVerificationCode(verificationData.email);
+      
+    //   if (response.success) {
+    //     const newExpiresAt = Date.now() + 15 * 60 * 1000;
+    //     const newData = {
+    //       ...verificationData,
+    //       expiresAt: newExpiresAt
+    //     };
+    //     sessionStorage.setItem('pendingVerification', JSON.stringify(newData));
+    //     setVerificationData(newData);
+    //     setTimeLeft(15 * 60);
+    //     setOtp(Array(6).fill(""));
+    //     setError("");
+    //     inputRefs.current[0]?.focus();
+    //   } else {
+    //     setError(response.message || "Failed to resend code");
+    //   }
+    // } catch (err) {
+    //   setError("Failed to resend verification code");
+    // }
   };
 
   const handleSubmit = async (event) => {
@@ -112,10 +136,13 @@ const verifyLogin = () => {
       setDialogStatus(isValid ? "success" : "error");
       
       if (isValid) {
-        sessionStorage.removeItem('pendingVerification'); // Clear on success
+        sessionStorage.removeItem('pendingVerification');
+      } else {
+        setError(response.message || "Invalid verification code");
       }
     } catch (e) {
       setDialogStatus("error");
+      setError(e.response?.data?.message || "Verification failed");
     }
     setShowDialog(true);
   };
@@ -130,86 +157,189 @@ const verifyLogin = () => {
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      position: "relative"
+      minHeight: "100vh",
+      padding: "20px",
     }}>
       <div style={{
         backgroundColor: "#fff",
         padding: "30px",
-        borderRadius: "8px",
-        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        maxWidth: "400px",
+        borderRadius: "12px", // Slightly larger radius
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)", // Softer shadow
+        maxWidth: "450px", // Slightly wider
         width: "100%",
       }}>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <h1 style={{ color: "#333", marginBottom: "10px" }}>Account Verification</h1>
-          <h1 style={{ color: "#ED2939", marginBottom: "10px", textAlign: 'center' }}>Do not leave the page!</h1>
-          
-          <h2 style={{ color: "#333"}}>Email Setup</h2>
-          <p style={{ color: "#555", fontSize: "14px" }}>
-            We have sent a verification code to <br/>{verificationData.email} 
-          </p>
-          
-          <h2 style={{ color: "#333"}}>1. Go to your inbox</h2>
-          <p style={{ color: "#555", fontSize: "14px" }}>
-            Can't find the verification code? Check your spam folder.
-          </p>
-          
-          <h2 style={{ color: "#333"}}>2. Enter the verification code</h2>
-          <p style={{ color: "#555", fontSize: "14px" }}>
-            The code will be valid until <br/>
-            {new Date(verificationData.expiresAt).toLocaleString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}
-          </p>
-          
-          {/* OTP Input Fields (keep your existing implementation) */}
-          <div style={{ display: "flex", gap: "10px" }}>
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleChange(index, e)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={handlePaste}
-                ref={(el) => (inputRefs.current[index] = el)}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  textAlign: "center",
-                  fontSize: "20px",
-                  borderRadius: "4px",
-                  border: "1px solid #ccc",
-                }}
-              />
-            ))}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Header Section */}
+          <div style={{ textAlign: "center" }}>
+            <h1 style={{ color: "#333", marginBottom: "8px", fontSize: "24px" }}>Account Verification</h1>
+            <div style={{ 
+              color: "#ED2939", 
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 8V12M12 16H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="#ED2939" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Do not leave the page!</span>
+            </div>
           </div>
-          
+  
+          {/* Email Info Section */}
+          <div style={{ 
+            backgroundColor: "#f8f9fa",
+            padding: "16px",
+            borderRadius: "8px",
+            borderLeft: "4px solid #007bff"
+          }}>
+            <h2 style={{ color: "#333", marginBottom: "8px", fontSize: "16px" }}>Verification Code Sent</h2>
+            <p style={{ color: "#555", fontSize: "14px", lineHeight: "1.5" }}>
+              We've sent a 6-digit code to <strong>{verificationData.email}</strong>. 
+              Please check your inbox and spam folder.
+            </p>
+            <p style={{ 
+              color: "#666", 
+              fontSize: "13px", 
+              marginTop: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#666" strokeWidth="2"/>
+                <path d="M12 6V12L16 14" stroke="#666" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Expires: {new Date(verificationData.expiresAt).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </p>
+          </div>
+  
+          {/* OTP Input Section */}
+          <div>
+            <label style={{
+              display: "block",
+              color: "#555",
+              fontSize: "14px",
+              marginBottom: "8px"
+            }}>
+              Enter 6-digit verification code
+            </label>
+            <div style={{ 
+              display: "flex", 
+              gap: "10px",
+              justifyContent: "center",
+              marginBottom: "8px"
+            }}>
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(index, e)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={handlePaste}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  style={{
+                    width: "44px",
+                    height: "44px",
+                    textAlign: "center",
+                    fontSize: "20px",
+                    borderRadius: "6px",
+                    border: error ? "1px solid #dc3545" : "1px solid #ddd",
+                    outline: "none",
+                    transition: "all 0.2s",
+                    backgroundColor: error ? "#fff5f5" : "#fff"
+                  }}
+                />
+              ))}
+            </div>
+            {error && (
+              <p style={{ 
+                color: "#dc3545",
+                fontSize: "13px",
+                textAlign: "center",
+                marginTop: "8px"
+              }}>
+                {error}
+              </p>
+            )}
+          </div>
+  
+          {/* Resend Code Section */}
+          <div style={{ 
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <button
+              type="button"
+              onClick={handleResendCode}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#007bff",
+                cursor: "pointer",
+                fontSize: "14px",
+                textDecoration: "underline",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M23 4V10H17" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M1 20V14H7" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3.51 9C4.01717 7.56678 4.87913 6.2854 6.01547 5.27542C7.1518 4.26543 8.52547 3.55976 10 3.22301C11.4745 2.88625 13.0046 2.93199 14.4556 3.35477C15.9066 3.77754 17.2276 4.56259 18.29 5.63L23 10M1 14L5.71 18.37C6.77238 19.4374 8.09342 20.2225 9.54444 20.6452C10.9954 21.068 12.5255 21.1137 14 20.777C15.4745 20.4402 16.8482 19.7346 17.9845 18.7246C19.1209 17.7146 19.9828 16.4332 20.49 15" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Resend Code
+            </button>
+            <span style={{ color: "#666", fontSize: "13px" }}>
+              (Available in 2:00)
+            </span>
+          </div>
+  
+          {/* Submit Button */}
           <Button
             type="submit"
             disabled={isLoading || otp.some((digit) => digit === "")}
             variant="contained"
             color={otp.every((digit) => digit !== "") ? "primary" : "inherit"}
             sx={{
-              padding: "10px 20px",
-              borderRadius: "4px",
-              backgroundColor: otp.every((digit) => digit !== "") ? "#007bff" : "#ccc",
-              color: "white",
+              padding: "12px",
+              borderRadius: "6px",
+              fontSize: "16px",
+              fontWeight: "500",
+              textTransform: "none",
+              boxShadow: "none",
+              "&:hover": {
+                boxShadow: "none",
+                backgroundColor: otp.every((digit) => digit !== "") ? "#0069d9" : "#ccc"
+              }
             }}
           >
-            {isLoading ? "Loading..." : "Submit"}
+            {isLoading ? (
+              <>
+                <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                Verifying...
+              </>
+            ) : (
+              "Verify Account"
+            )}
           </Button>
         </form>
       </div>
       
-      {/* Dialog Box (keep your existing implementation) */}
+      {/* Success/Error Dialog - Enhanced */}
       {showDialog && (
         <div
           style={{
@@ -229,57 +359,61 @@ const verifyLogin = () => {
             style={{
               backgroundColor: "white",
               padding: "2rem",
-              borderRadius: "8px",
+              borderRadius: "12px",
               textAlign: "center",
-              minWidth: "300px",
+              minWidth: "320px",
+              maxWidth: "90%",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)"
             }}
           >
-            <h3 style={{ color: dialogStatus === "success" ? "green" : "red" }}>
-              {dialogStatus === "success" ? "🎉 Success!" : "❌ Error"}
+            <div style={{
+              fontSize: "48px",
+              marginBottom: "16px",
+              color: dialogStatus === "success" ? "#28a745" : "#dc3545"
+            }}>
+              {dialogStatus === "success" ? "✓" : "✗"}
+            </div>
+            <h3 style={{ 
+              color: dialogStatus === "success" ? "#28a745" : "#dc3545",
+              marginBottom: "8px"
+            }}>
+              {dialogStatus === "success" ? "Verification Complete!" : "Verification Failed"}
             </h3>
-            <p>
-              {dialogStatus === "success"
-                ? "OTP verification successful!"
-                : "Invalid OTP. Please try again."}
+            <p style={{ 
+              color: "#555",
+              marginBottom: "24px",
+              fontSize: "15px"
+            }}>
+              {dialogStatus === "success" 
+                ? "Your account has been successfully verified." 
+                : "The verification code was incorrect. Please try again."}
             </p>
             <div
               style={{
-                marginTop: "1rem",
                 display: "flex",
-                gap: "10px",
+                gap: "12px",
                 justifyContent: "center",
               }}
             >
-              {dialogStatus === "error" && (
-                <button
-                  onClick={handleCloseDialog}
-                  style={{
-                    padding: "8px 16px",
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Try Again
-                </button>
-              )}
-              {dialogStatus === "success" && (
-                <button
-                  onClick={handleNavigateToLogin}
-                  style={{
-                    padding: "8px 16px",
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Go to Login
-                </button>
-              )}
+              <button
+                onClick={dialogStatus === "success" ? handleNavigateToLogin : handleCloseDialog}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "6px",
+                  backgroundColor: dialogStatus === "success" ? "#28a745" : "#dc3545",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "15px",
+                  minWidth: "120px",
+                  transition: "all 0.2s",
+                  "&:hover": {
+                    opacity: 0.9
+                  }
+                }}
+              >
+                {dialogStatus === "success" ? "Continue" : "Try Again"}
+              </button>
             </div>
           </div>
         </div>

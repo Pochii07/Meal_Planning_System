@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import cooking from '../Images/cooking.png'; 
 import TextField from "@mui/material/TextField";
 import { IconButton, InputAdornment } from "@mui/material";
@@ -8,7 +8,7 @@ import SendIcon from '@mui/icons-material/Send';
 import LogInIMG from '../Images/LogInIMG.jpg'; 
 
 import { useAuthStore } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const EmailInput = ({ label, onChange }) => {
   const [email, setEmail] = useState("");
@@ -97,7 +97,7 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
 };
 
 export function LogIn() {
-  const { login, checkAuth ,isLoading} = useAuthStore();
+  const { login, checkAuth , isLoading } = useAuthStore();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -117,14 +117,38 @@ export function LogIn() {
     }
 
     try {
-      const data = await login(email, password);
+      const { 
+        success, 
+        requiresVerification, 
+        verificationToken, 
+        email: userEmail,
+        expiresAt
+      } = await login(email, password);
       
-      if (data.success === true) {
-        await checkAuth(); // Now checkAuth is properly imported and can be called
-        navigate('/');
+      if (requiresVerification) {
+        sessionStorage.setItem('pendingVerification', JSON.stringify({
+            email: userEmail,
+            token: verificationToken,
+            expiresAt: expiresAt
+        }));
+        
+        navigate('/verify_login', { 
+            state: { 
+                email: userEmail,
+                fromLogin: true 
+            } 
+        });
+        return;
+      }
+
+      if (success) {
+          await checkAuth(); // verify auth state is synchronized
+          navigate('/', { replace: true }); // replace history entry
       }
     } catch (error) {
-      console.error("Login failed:", error);
+        console.error("Login failed:", error);
+        setError(error.message || "Login failed. Please try again.");
+        sessionStorage.removeItem('pendingVerification');
     }
   };
 
