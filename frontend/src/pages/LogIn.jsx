@@ -3,12 +3,20 @@ import cooking from '../Images/cooking.png';
 import TextField from "@mui/material/TextField";
 import { IconButton, InputAdornment } from "@mui/material";
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import LogInIMG from '../Images/LogInIMG.jpg'; 
 
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, useLocation } from "react-router-dom";
+
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from '@mui/material';
 
 const EmailInput = ({ label, onChange }) => {
   const [email, setEmail] = useState("");
@@ -79,19 +87,7 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
         },
         "& .MuiInputLabel-root": { color: "gray" },
         "& .MuiInputLabel-root.Mui-focused": { color: error ? "red" : "#008000 !important" },
-      }}
-      InputProps={{
-        endAdornment: (
-          <InputAdornment position="end">
-            <IconButton
-              aria-label="toggle password visibility"
-              onClick={handleShowPassword}
-            >
-              {showPassword ? <Visibility /> : <VisibilityOff />}
-            </IconButton>
-          </InputAdornment>
-        ),
-      }}
+      }}  
     />
   );
 };
@@ -104,15 +100,40 @@ export function LogIn() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const [dialog, setDialog] = useState({
+      open: false,
+      title: '',
+      message: '',
+      
+  });
+
+  useEffect(() => {
+    console.log("Dialog state changed:", dialog);
+  }, [dialog]);
+  
+    // Function to show dialog
+  const showDialog = (title, message, action) => {
+    setDialog({
+      open: true,
+      title,
+      message,
+      action
+    });
+  };
+  
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, open: false }));
+  };
+
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event) => { 
     event.preventDefault();
 
     if (!email || !password) {
-      alert("All fields are required!");
+      showDialog('Missing Information', 'All fields are required!');
       return;
     }
 
@@ -146,9 +167,22 @@ export function LogIn() {
           navigate('/', { replace: true }); // replace history entry
       }
     } catch (error) {
-        console.error("Login failed:", error);
-        setError(error.message || "Login failed. Please try again.");
-        sessionStorage.removeItem('pendingVerification');
+      const errorMessage = error.response?.data?.message || error.message;
+
+      if (errorMessage.includes('Incorrect password')) {
+        showDialog(
+          'Incorrect Password',
+          'Wrong password. Would you like to recover your account?',
+          {
+            text: 'Recover Account',
+            handler: () => navigate('/forgot-password')
+          }
+        );
+      } else {
+        showDialog('Login Failed', errorMessage);
+      }
+  
+      sessionStorage.removeItem('pendingVerification');
     }
   };
 
@@ -229,6 +263,33 @@ export function LogIn() {
           </table>
         </form>
       </div>
+      <Dialog open={dialog.open} onClose={closeDialog}>
+        <DialogTitle>{dialog.title}</DialogTitle>
+          <DialogContent>
+                <DialogContentText>
+                  {dialog.message}
+                </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            {dialog.action && (
+              <Button 
+                onClick={() => {
+                  dialog.action.handler();
+                  closeDialog();
+                }}
+                style={{ color: '#008000' }}
+              >
+                {dialog.action.text}
+              </Button>
+            )}
+          <Button 
+            onClick={closeDialog} 
+            style={{ color: '#008000' }}
+          >
+            Close
+          </Button>
+        </DialogActions>    
+      </Dialog>
     </div>
   );
 };

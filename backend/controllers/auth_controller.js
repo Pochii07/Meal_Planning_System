@@ -29,7 +29,20 @@ const signup = async (req, res) => {
     try {
         if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
-        }       
+        } 
+        
+        const birthDateObj = new Date(birthDate);
+        const today = new Date();
+        
+        let age = today.getFullYear() - birthDateObj.getFullYear();
+        const monthDiff = today.getMonth() - birthDateObj.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+            age--;
+        }
+        if (age < 20) {
+            return res.status(400).json({ message: 'You must be at least 20 years old to sign up.' });
+        }
+
         const userAlreadyExists = await User.findOne({ email });
         if (userAlreadyExists) {
            return res.status(400).json({ message: 'User already exists'})
@@ -77,18 +90,27 @@ const login = async (req, res) => {
     const {email, password} = req.body;
     try {
         const user = await User.findOne({ email });
-        if (!user) {
+        if (!user || !user.password) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid credentials'
             });
         }
-        // user input password is invalid
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        let isPasswordValid;
+        try {
+            isPasswordValid = await bcrypt.compare(password, user.password);
+        } catch (bcryptError) {
+            console.error("Bcrypt error:", bcryptError.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid password format', 
+            });
+        }
+
         if (!isPasswordValid) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: 'Incorrect password', // Wrong password
             });
         }
         // user exists but isn't verified
@@ -114,10 +136,10 @@ const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.log("Error logging in");
+        console.error("Login error:", error);
         res.status(400).json({
             success: false,
-            message: error.message
+            message: 'An error occurred during login' // Avoid exposing error.message
         });
     }
 }

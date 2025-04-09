@@ -116,37 +116,29 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({ email, password })
             });
             const data = await response.json();
-            if (data.success) {
-                // for unverified users
-                if (data.requiresVerification){
-                    const verificationData = {
-                        email: data.email,
-                        verificationToken: data.verificationToken,
-                        expiresAt: data.expiresAt,
-                    };
-                    sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
+            if (!data.success) {
+                throw new Error(data.message || 'Login failed');
+            }
+            if (data.requiresVerification){
+                const verificationData = {
+                    email: data.email,
+                    verificationToken: data.verificationToken,
+                    expiresAt: data.expiresAt,
+                };
+                sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
 
-                    set({ 
-                        isLoading: false,
-                        requiresVerification: true,
-                        verificationEmail: data.email
-                    });
-                    return { ...data, shouldVerify: true };
-                }
                 set({ 
-                    isLoading: false, 
-                    isAuthenticated: true, 
-                    requiresVerification: false,
-                    user: data.user
+                    isLoading: false,
+                    requiresVerification: true,
+                    verificationEmail: data.email
                 });
-                return data;
+                return { ...data, shouldVerify: true };
             }
             set({ 
                 isLoading: false, 
-                isAuthenticated: false,
+                isAuthenticated: true, 
                 requiresVerification: false,
-                user: null,
-                error: data.message 
+                user: data.user
             });
             return data;
         } catch (error) {
@@ -155,7 +147,7 @@ export const useAuthStore = create((set) => ({
                 isAuthenticated: false,
                 requiresVerification: false,
                 user: null,
-                error: error.message || 'Login failed',
+                error: error.message,
             });
             throw error;
         }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dayjs from 'dayjs';
 import cooking from '../Images/cooking.png'; 
 import TextField from "@mui/material/TextField";
@@ -12,12 +12,20 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import { IconButton, InputAdornment } from "@mui/material";
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
 
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore"; 
+
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from '@mui/material';
 
 {/* text field for no special characters */}
 const TextFieldNoNum = ({ label, value, onChange, width = "100%" }) => {
@@ -220,6 +228,27 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [dialog, setDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+    
+  });
+
+  // Function to show dialog
+  const showDialog = (title, message, action) => {
+    setDialog({
+      open: true,
+      title,
+      message,
+      action
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, open: false }));
+  };
+
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -235,23 +264,39 @@ const SignUp = () => {
     event.preventDefault();
 
     if (!firstName || !lastName || !birthDate || !sex || !email || !password || !confirmPassword) {
-      alert("All fields are required!");
+      showDialog('Missing Information', 'All fields are required!');
       return;
     }
 
     if (!emailRegex.test(email)) {
-      alert("Invalid email format!");
+      showDialog('Invalid Email', 'Please enter a valid email address!');
       return;
     }
 
     // if (!passwordRegex.test(password)) {
-    //   alert("Password does not meet security requirements!");
-    //   return;
+    // showDialog('Password Requirements', 'Password does not meet the security requirements!');
+    // return;
     // }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      showDialog('Password Mismatch', 'Passwords do not match!');
       return;
+    }
+
+    if (birthDate) {
+      const today = new Date();
+      const birthDateJS = birthDate.toDate(); // Convert Dayjs to JS Date
+      let age = today.getFullYear() - birthDateJS.getFullYear();
+      const monthDiff = today.getMonth() - birthDateJS.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateJS.getDate())) {
+        age--;
+      }
+      
+      if (age < 20) {
+        showDialog('Age Restriction', 'You must be at least 20 years old to sign up.');
+        return;
+      }
     }
 
     try {
@@ -259,7 +304,19 @@ const SignUp = () => {
       navigate('/verify_login');
     } catch (error) {
       console.error("Signup failed:", error);
-      alert(error.response?.data?.message || "Registration failed. Please try again.");
+      const errorMessage = error.response?.data?.message || error.message;
+      if (errorMessage === "User already exists") {
+        showDialog(
+          'Account Exists',
+          'This email is already registered. Would you like to recover your account?',
+          {
+            text: 'Recover Account',
+            handler: () => navigate('/ForgotPassword') // Or your recovery page
+          }
+        );
+      } else {
+        showDialog('Registration Failed', errorMessage);
+      }
     }
   };
   
@@ -405,6 +462,33 @@ const SignUp = () => {
         </form>
         {/* Form ends here */}
       </div>
+      <Dialog open={dialog.open} onClose={closeDialog}>
+        <DialogTitle>{dialog.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {dialog.message}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          {dialog.action && (
+            <Button 
+              onClick={() => {
+                dialog.action.handler();
+                closeDialog();
+              }}
+              style={{ color: '#008000' }}
+            >
+              {dialog.action.text}
+            </Button>
+          )}
+          <Button 
+            onClick={closeDialog} 
+            style={{ color: '#008000' }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

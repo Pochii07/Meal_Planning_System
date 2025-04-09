@@ -53,7 +53,7 @@ const PatientForm = () => {
     if (user) {
       const userAge = calculateAge(user.birthDate);
       setAge(userAge);
-      
+        
       const userGender = user.sex === 'Male' ? 'M' : 'F';
       setGender(userGender);
     } else {
