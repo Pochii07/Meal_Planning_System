@@ -109,11 +109,12 @@ input {
   padding: 10px;
   margin-top: 10px;
   margin-bottom: 20px;
-  width: 100%;
+  max-width: 100%;
   border: 1px solid #ddd;
   border-radius: 4px;
   box-sizing: border-box;
 }
+
 form button {
   background: var(--primary);
   border: 0;
@@ -284,7 +285,20 @@ input.error {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Force styles on number inputs */
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+
+/* Ensure border colors work */
+input[type="number"].border-red-500,
+input[type="number"]:focus.border-red-500 {
+  border-color: rgb(239 68 68) !important;
 }
