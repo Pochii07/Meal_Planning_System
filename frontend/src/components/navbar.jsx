@@ -21,9 +21,12 @@ export function NavbarCustom() {
       <div class="flex md:order-2 items-center rounded-md shadow-xs vertical-align: middle -space-x-1 ml-10 ms-8" role="group">
         {isAuthenticated ? (
           <>
-            <span class="px-4 py-2 text-sm font-medium text-[#008000]">
-              {user.firstName}
-            </span>
+            <Link 
+              to="/profile" 
+              className="px-4 py-2 text-sm font-medium text-[#008000] hover:text-green-700 cursor-pointer transition-colors"
+            >
+              {user.firstName + ' ' + user.lastName}
+            </Link>
             <button 
               onClick={handleLogout}
               class="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-r-md rounded-l-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]"

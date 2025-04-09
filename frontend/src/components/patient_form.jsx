@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePatientContext } from "../hooks/use_patient_context";
 import { useAuthStore } from "../store/authStore";
 
@@ -37,6 +37,30 @@ const PatientForm = () => {
   const [isFormVisible, setIsFormVisible] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
+
+  const calculateAge = (birthDate) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age.toString();
+  };
+
+  useEffect(() => {
+    if (user) {
+      const userAge = calculateAge(user.birthDate);
+      setAge(userAge);
+      
+      const userGender = user.sex === 'Male' ? 'M' : 'F';
+      setGender(userGender);
+    } else {
+      setAge('');
+      setGender('');
+    }
+  }, [user]);
 
   const handlePreferenceChange = (value) => {
     setSelectedPreferences(prev =>
@@ -233,6 +257,7 @@ const PatientForm = () => {
                 <input
                   type="number"
                   value={age}
+                  disabled={!!user}
                   onChange={(e) => setAge(e.target.value)}
                   className={`w-30 p-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm ${
                     emptyFields.includes("age")
@@ -284,6 +309,7 @@ const PatientForm = () => {
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
+                  disabled={!!user}
                   className={`w-50 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-sm ${
                     emptyFields.includes("gender")
                       ? "border-red-500"
