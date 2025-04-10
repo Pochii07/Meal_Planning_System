@@ -1,30 +1,12 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple, List
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
-import json
-
-# Initialize the Flask app
-app = Flask(__name__)
-# Enable CORS for your frontend origin
-CORS(app, resources={
-    r"/*": {  # Allow all routes
-        "origins": [
-            "http://localhost:5173",  # Vite dev server
-            "http://localhost:3000",  # Optional: React dev server
-            "http://127.0.0.1:5173"   # Alternative local URL
-        ],
-        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
-        "supports_credentials": True  # Important for cookies/auth
-    }
-})
+from typing import Dict, List, Tuple, Optional
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+from sklearn.model_selection import train_test_split
 
 @dataclass
 class DietaryPreferences:
@@ -37,19 +19,13 @@ class DietaryPreferences:
     shellfish_allergy: bool = False
     fish_allergy: bool = False
     halal_or_kosher: bool = False
-    
+
     def to_array(self) -> np.ndarray:
         return np.array([[
-            int(self.vegetarian),
-            int(self.low_purine),
-            int(self.low_fat),
-            int(self.low_sodium),
-            int(self.lactose_free),
-            int(self.peanut_allergy),
-            int(self.shellfish_allergy),
-            int(self.fish_allergy),
-            int(self.halal_or_kosher)
-        ]])
+            self.vegetarian, self.low_purine, self.low_fat,
+            self.low_sodium, self.lactose_free, self.peanut_allergy,
+            self.shellfish_allergy, self.fish_allergy, self.halal_or_kosher
+        ]], dtype=float)
 
 class MealPlanner:
     def __init__(self, breakfast_path: str, lunch_path: str):
@@ -149,64 +125,88 @@ class MealPlanner:
             if breakfast_options.empty or lunch_dinner_options.empty:
                 raise ValueError("Not enough meal options available for your preferences")
 
-        # Important: Set random state to ensure consistent results with test17.py
-        breakfast = breakfast_options.sample(n=1, random_state=42).iloc[0]
-        lunch = lunch_dinner_options.sample(n=1, random_state=42).iloc[0]
-        dinner = lunch_dinner_options.sample(n=1, random_state=42).iloc[0]
+        # Sample meals from appropriate datasets
+        breakfast = breakfast_options.sample(n=1).iloc[0]
+        lunch = lunch_dinner_options.sample(n=1).iloc[0]
+        dinner = lunch_dinner_options.sample(n=1).iloc[0]
 
         return {
-            'breakfast': {
-                'title': breakfast['title'],
-                'calories': int(breakfast['calories'])
-            },
-            'lunch': {
-                'title': lunch['title'],
-                'calories': int(lunch['calories'])
-            },
-            'dinner': {
-                'title': dinner['title'],
-                'calories': int(dinner['calories'])
-            }
+            'Breakfast': {'title': breakfast['title'], 'calories': breakfast['calories']},
+            'Lunch': {'title': lunch['title'], 'calories': lunch['calories']},
+            'Dinner': {'title': dinner['title'], 'calories': dinner['calories']}
         }
-
-    def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:
-        """Verify if a meal matches the dietary preferences"""
-        meal_data = self.data[self.data['title'] == meal_title].iloc[0]
-        pref_array = preferences.to_array()[0]
-        
-        for i, column in enumerate(self.dietary_columns):
-            if pref_array[i] and not meal_data[column]:
-                return False
-        return True
 
     def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 100) -> Dict[str, float]:
         """
         Evaluate the meal planning system with more balanced success criteria.
         """
+        total_trials = 0
+        successful_trials = 0
+        calorie_matches = 0
+        variety_matches = 0
+        preference_matches = 0
+        
+        # Adjusted calorie tolerances
+        base_calories = tdee - 600  # Account for rice
+        min_acceptable = base_calories * 0.8 
+        max_acceptable = base_calories * 1.1  
+
         try:
-            tp, tn, fp, fn = 0, 0, 0, 0
-            
             for _ in range(n_trials):
                 try:
                     weekly_plan = self.generate_weekly_plan(tdee, preferences)
+                    total_trials += 1
+                    
+                    # Track success metrics for this week
+                    week_calorie_matches = 0
+                    week_variety_matches = 0
+                    week_pref_matches = 0
                     
                     for day, meals in weekly_plan.items():
-                        for meal_type, meal_title in meals.items():
-                            meets_preferences = self._verify_meal_preferences(meal_title, preferences)
+                        daily_calories = sum(meal['calories'] for meal in meals.values())
+                        meal_titles = [meal['title'] for meal in meals.values()]
+                        
+                        # Check each criterion independently
+                        if min_acceptable <= daily_calories <= max_acceptable:
+                            calorie_matches += 1
+                            week_calorie_matches += 1
                             
-                            if meets_preferences:
-                                tp += 1  # Meal matches preferences
-                            else:
-                                fp += 1  # Meal doesn't match preferences
-                except Exception:
-                    fn += 1  # Failed to generate a plan that should have been possible
-            
+                        if len(set(meal_titles)) == len(meal_titles):
+                            variety_matches += 1
+                            week_variety_matches += 1
+                            
+                        if all(self._verify_meal_preferences(meal['title'], preferences) 
+                              for meal in meals.values()):
+                            preference_matches += 1
+                            week_pref_matches += 1
+                    
+                    # A week is successful if it meets minimum thresholds
+                    if (week_calorie_matches >= 5 and  # Allow 2 days of deviation
+                        week_variety_matches >= 5 and  # Allow 2 days of repetition
+                        week_pref_matches == 7):       # Strict on preferences
+                        successful_trials += 1
+                        
+                except Exception as e:
+                    print(f"Trial failed: {str(e)}")
+                    continue
+
             # Calculate metrics
-            accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            total_days = total_trials * 7
+            accuracy = successful_trials / total_trials if total_trials > 0 else 0
+            precision = calorie_matches / total_days if total_days > 0 else 0
+            recall = preference_matches / total_days if total_days > 0 else 0
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-            
+
+            print("\nDetailed Evaluation Metrics:")
+            print("=" * 40)
+            print(f"Total weekly plans generated: {total_trials}")
+            print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
+            print(f"Days with correct calories: {calorie_matches}/{total_days}")
+            print(f"Days with meal variety: {variety_matches}/{total_days}")
+            print(f"Days meeting preferences: {preference_matches}/{total_days}")
+            print(f"Successful weekly plans: {successful_trials}/{total_trials}")
+            print("-" * 40)
+
             return {
                 'accuracy': accuracy,
                 'precision': precision,
@@ -223,71 +223,67 @@ class MealPlanner:
                 'f1_score': 0
             }
 
-# Initialize the meal planner
-planner = MealPlanner(
-    breakfast_path='combined_bf_recipes.csv',
-    lunch_path='combined_lunch_recipes.csv'
-)
+    def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:
+        """Verify if a meal matches the dietary preferences"""
+        meal_data = self.data[self.data['title'] == meal_title].iloc[0]
+        pref_array = preferences.to_array()[0]
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and not meal_data[column]:
+                return False
+        return True
 
-# Define a route to predict meal plans
-@app.route('/predict_meal_plan', methods=['POST'])
-def predict_meal_plan():
+def main():
+    planner = MealPlanner(
+        breakfast_path='new model/combined_bf_recipes.csv',
+        lunch_path='new model/combined_lunch_recipes.csv'
+    )
+    
+    preferences = DietaryPreferences(
+        vegetarian=True,
+        # low_purine =True,
+        # low_fat = True,
+        # low_sodium= True,
+        # lactose_free= True,
+        # peanut_allergy= True,
+        # shellfish_allergy= True,
+        # fish_allergy= True,
+        # halal_or_kosher= True
+
+    )
+    
     try:
-        # Parse the JSON request data
-        data = request.json
+        weekly_plan = planner.generate_weekly_plan(tdee=2000, preferences=preferences)
         
-        # Extract necessary inputs for the meal planner
-        age = float(data.get('age', 30))
-        height = float(data.get('height', 170))
-        weight = float(data.get('weight', 70))
-        gender = data.get('gender', 'Male')
-        activity_level = data.get('activity_level', 'Moderate')
+        print("\nWeekly Meal Plan:")
+        print("=" * 80)
         
-        # Calculate TDEE (Total Daily Energy Expenditure) based on inputs
-        bmr = 0
-        if gender.lower() == 'male':
-            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
-        else:
-            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+        for day, meals in weekly_plan.items():
+            print(f"\n{day}:")
+            print("-" * 40)
+            daily_total = 0
             
-        # Activity multiplier
-        activity_multipliers = {
-            'sedentary': 1.2,
-            'light': 1.375,
-            'moderate': 1.55,
-            'active': 1.725,
-            'very active': 1.9
-        }
-        multiplier = activity_multipliers.get(activity_level.lower(), 1.55)
-        tdee = int(bmr * multiplier)
-        
-        # Parse dietary preferences
-        dietary_restrictions = data.get('dietary_restrictions', '').lower()
-        allergies = data.get('allergies', '').lower()
-        
-        # Create dietary preferences object
-        preferences = DietaryPreferences(
-            vegetarian='vegetarian' in dietary_restrictions,
-            low_purine='low purine' in dietary_restrictions,
-            low_fat='low fat' in dietary_restrictions or 'heart healthy' in dietary_restrictions,
-            low_sodium='low sodium' in dietary_restrictions,
-            lactose_free='lactose free' in dietary_restrictions or 'lactose intolerant' in dietary_restrictions,
-            peanut_allergy='peanut' in allergies,
-            shellfish_allergy='shellfish' in allergies,
-            fish_allergy='fish' in allergies,
-            halal_or_kosher='halal' in dietary_restrictions or 'kosher' in dietary_restrictions
-        )
-        
-        # Generate weekly meal plan
-        weekly_plan = planner.generate_weekly_plan(tdee, preferences)
-        
-        # Return the result directly as JSON (no double encoding)
-        return jsonify({'predicted_meal_plan': weekly_plan})
-    except Exception as e:
-        # Debugging: Print the error
-        print(f"Error: {str(e)}")
-        print(f"Request data: {request.json}")
-        return jsonify({'error': str(e)})
+            for meal_type, meal_info in meals.items():
+                print(f"{meal_type}:")
+                print(f"  - {meal_info['title']}")
+                print(f"  - Calories: {meal_info['calories']:.0f}")
+                daily_total += meal_info['calories']
+                
+            print(f"Daily Total Calories: {daily_total:.0f}")
+            
+    except ValueError as e:
+        print(f"Error: {e}")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Evaluate the entire system
+    print("\nEvaluating Meal Planning System...")
+    metrics = planner.evaluate_meal_plan_recommendations(tdee=2000, preferences=preferences)
+    
+    print("\nOverall System Performance:")
+    print("-" * 40)
+    print(f"Accuracy:  {metrics['accuracy']:.4f}")
+    print(f"Precision: {metrics['precision']:.4f}")
+    print(f"Recall:    {metrics['recall']:.4f}")
+    print(f"F1 Score:  {metrics['f1_score']:.4f}")
+
+if __name__ == "__main__":
+    main()
