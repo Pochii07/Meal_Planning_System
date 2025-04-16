@@ -10,7 +10,7 @@ import VerifyLogin from './pages/Verification';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GuestMealTracker from './pages/GuestMealTracker';
-import 'flowbite/dist/flowbite.css'; 
+
 import MealTracker from './components/MealTracker';
 import GuestMealPlanner from './pages/GuestMealPlanner'
 import NutritionistMealPlanner from './pages/NutritionistMealPlanner'

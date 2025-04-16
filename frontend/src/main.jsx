@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { PatientContextProvider } from './context/patient_context'
 
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <PatientContextProvider>
