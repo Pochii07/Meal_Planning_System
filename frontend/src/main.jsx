@@ -1,14 +1,11 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import './index.css'  // Put this first so Tailwind directives are processed first
+import 'flowbite'  // Then Flowbite JS
 import App from './App.jsx'
-import { PatientContextProvider } from './context/patient_context'
 
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <PatientContextProvider>
-      <App />
-    </PatientContextProvider>
-  </StrictMode>,
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
 )

@@ -10,7 +10,7 @@ import VerifyLogin from './pages/Verification';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GuestMealTracker from './pages/GuestMealTracker';
-
+import { PatientContextProvider } from './context/patient_context';
 import MealTracker from './components/MealTracker';
 import GuestMealPlanner from './pages/GuestMealPlanner'
 import NutritionistMealPlanner from './pages/NutritionistMealPlanner'
@@ -67,12 +67,16 @@ function App() {
   };
 
   return (
-    <div className = "App">
+    <div className="App">
       {!shouldHideNavbar && <NavbarCustom />}
-        <div className = "pages">
-          <Routes>
+      <div className="pages">
+        <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/form" element={<PatientForm />} />
+          <Route path="/form" element={
+            <PatientContextProvider>
+              <PatientForm />
+            </PatientContextProvider>
+          } />
           <Route path="/meal-tracker" element={
             <ProtectedRoute>
               <MealTracker />
@@ -119,7 +123,11 @@ function App() {
             <ResetPassword/>
             }>
           </Route>
-          <Route path="/patients" element={<Patients />}> </Route>
+          <Route path="/patients" element={
+            <PatientContextProvider>
+              <Patients />
+            </PatientContextProvider>
+          }> </Route>
           <Route path="/verify_login" element={<VerifyLogin />}> </Route>
 
           <Route 
@@ -155,8 +163,8 @@ function App() {
             }
           />
 
-          </Routes>
-        </div>
+        </Routes>
+      </div>
     </div>
   );
 }
