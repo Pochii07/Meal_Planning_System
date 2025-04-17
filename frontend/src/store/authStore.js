@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-const API_URL = 'http://localhost:4000/api/auth';
+const API_URL = 'https://chefit-backend.azurewebsites.net/api/auth';
 
 export const useAuthStore = create((set) => ({
     user: null,

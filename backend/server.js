@@ -15,7 +15,11 @@ const FoodPlan = express()
 
 // Middleware
 FoodPlan.use(cors({
-    origin: 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'https://chefit-frontend.azurewebsites.net',
+        'https://chefit-backend.azurewebsites.net'
+    ],
     credentials: true
 }));
 FoodPlan.use(express.json());

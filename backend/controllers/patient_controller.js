@@ -228,7 +228,7 @@ const generateGuestMealPlan = async (req, res) => {
 
     try {
         // Call Flask API for prediction
-        const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
+        const response = await axios.post('https://chefit-ml.azurewebsites.net/predict_meal_plan', {
             age,
             height, 
             weight,
