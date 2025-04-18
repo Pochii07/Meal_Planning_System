@@ -1,4 +1,3 @@
-// backend/controllers/nutritionist_patient_controller.js
 const NutritionistPatient = require('../models/nutritionist_patient_model')
 const mongoose = require('mongoose')
 const axios = require('axios')

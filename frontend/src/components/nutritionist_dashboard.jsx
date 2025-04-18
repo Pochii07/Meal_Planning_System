@@ -55,15 +55,24 @@ const NutritionistDashboard = () => {
     }
 
     const fetchPatients = async () => {
-      const response = await fetch('/api/nutritionist/patients', {
-        headers: {
-          'Authorization': `Bearer ${user.token}`
+      try {
+        const response = await fetch('https://chefit-backend.azurewebsites.net/api/nutritionist/patients', {
+          headers: {
+            'Authorization': `Bearer ${user.token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Error response:', text);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-      })
-      const json = await response.json()
-
-      if (response.ok) {
-        dispatch({ type: 'SET_PATIENTS', payload: json })
+        
+        const json = await response.json();
+        dispatch({ type: 'SET_PATIENTS', payload: json });
+      } catch (error) {
+        console.error('Failed to fetch patients:', error);
+        setError('Failed to load patients data');
       }
     }
 
