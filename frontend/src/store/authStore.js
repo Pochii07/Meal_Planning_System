@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 const API_URL = 'https://chefit-backend.azurewebsites.net/api/auth';
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
     user: null,
     isLoading: false,
     error: null,
@@ -158,10 +158,15 @@ export const useAuthStore = create((set) => ({
             error: null
         })
         try {
+            // Get current user data
+            const currentUser = get().user;
+            const token = currentUser?.token;
+    
             const response = await fetch(`${API_URL}/check_auth`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }) // Add token if available
                 },
                 credentials: 'include',
             })
@@ -177,6 +182,7 @@ export const useAuthStore = create((set) => ({
             throw error
         }
     },
+    
     logout: async () => {
         set({ isLoading: true, error: null });
         try {

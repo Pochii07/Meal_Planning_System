@@ -16,9 +16,9 @@ const createJWTToken = (res, userId, options = {}) => {
     if (!isVerificationToken){
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: expiresIn === "7d" ? 7 * 24 * 60 * 60 * 1000 : undefined
+            secure: true, // Required for SameSite=None
+            sameSite: 'None', // Allow cross-site cookie
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
     }
  

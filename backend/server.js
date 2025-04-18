@@ -16,7 +16,7 @@ const FoodPlan = express()
 // Middleware
 FoodPlan.use(cors({
     origin: [
-        'http://localhost:5173',
+        'http://localhost:8080',
         'https://chefit-frontend.azurewebsites.net',
         'https://chefit-backend.azurewebsites.net'
     ],
@@ -25,7 +25,17 @@ FoodPlan.use(cors({
 FoodPlan.use(express.json());
 FoodPlan.use(cookieParser());
 
-FoodPlan.use((req, res, next) =>{
+FoodPlan.use((req, res, next) => {
+    // Check for auth token in header and synchronize with cookie
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ') && !req.cookies.token) {
+        const token = authHeader.split(' ')[1];
+        req.cookies.token = token;
+    }
+    next();
+});
+
+FoodPlan.use((req, res, next) => {
     console.log(req.path, req.method)
     next()
 }) 
