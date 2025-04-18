@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
+import React from 'react'; // Make sure React is imported
 
 const NutritionistDashboard = () => {
   const { patients, dispatch } = useNutritionistPatientContext()
@@ -346,8 +347,8 @@ const handleDeletePatient = async (patientId) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {patients && patients.map((patient) => (
-              <>
-                <tr key={patient._id}>
+              <React.Fragment key={patient._id}>
+                <tr>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {patient.firstName} {patient.lastName}
@@ -396,7 +397,7 @@ const handleDeletePatient = async (patientId) => {
                   </td>
                 </tr>
                 {expandedPatientId === patient._id && (
-                  <tr>
+                  <tr key={`expanded-${patient._id}`}>
                     <td colSpan="5" className="px-6 py-4 bg-gray-50">
                       <div className="grid grid-cols-7 gap-4">
                         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
@@ -414,7 +415,7 @@ const handleDeletePatient = async (patientId) => {
                                     }`}
                                   />
                                   <span className="text-sm capitalize">
-                                    {meal}: {patient.prediction[day]?.[meal] || 'No meal planned'}
+                                    {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
                                   </span>
                                 </div>
                               ))}
@@ -445,7 +446,7 @@ const handleDeletePatient = async (patientId) => {
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>

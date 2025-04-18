@@ -155,18 +155,9 @@ class MealPlanner:
         dinner = lunch_dinner_options.sample(n=1, random_state=42).iloc[0]
 
         return {
-            'breakfast': {
-                'title': breakfast['title'],
-                'calories': int(breakfast['calories'])
-            },
-            'lunch': {
-                'title': lunch['title'],
-                'calories': int(lunch['calories'])
-            },
-            'dinner': {
-                'title': dinner['title'],
-                'calories': int(dinner['calories'])
-            }
+            'breakfast': breakfast['title'],
+            'lunch': lunch['title'],
+            'dinner': dinner['title']
         }
 
     def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:

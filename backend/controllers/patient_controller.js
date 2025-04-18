@@ -88,7 +88,16 @@ const newPatient = async (req, res) => {
 
         // Parse the raw prediction and assign to structured format
         try {
-            const parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            let parsedPrediction;
+            if (typeof rawPrediction === 'string') {
+                parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            } else if (typeof rawPrediction === 'object') {
+                parsedPrediction = rawPrediction;
+            } else {
+                console.error('Unexpected prediction format:', typeof rawPrediction);
+                parsedPrediction = {};
+            }
+            
             Object.keys(parsedPrediction).forEach(day => {
                 prediction[day] = parsedPrediction[day];
             });
@@ -251,7 +260,16 @@ const generateGuestMealPlan = async (req, res) => {
         };
 
         try {
-            const parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            let parsedPrediction;
+            if (typeof rawPrediction === 'string') {
+                parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            } else if (typeof rawPrediction === 'object') {
+                parsedPrediction = rawPrediction;
+            } else {
+                console.error('Unexpected prediction format:', typeof rawPrediction);
+                parsedPrediction = {};
+            }
+            
             Object.keys(parsedPrediction).forEach(day => {
                 prediction[day] = parsedPrediction[day];
             });
