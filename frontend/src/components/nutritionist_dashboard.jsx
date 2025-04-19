@@ -123,34 +123,6 @@ const NutritionistDashboard = () => {
     }
   }
 
-  const handleProgressToggle = async (patientId, day, meal) => {
-    try {
-        const response = await fetch(`/api/nutritionist/patients/${patientId}/progress`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.token}`
-            },
-            body: JSON.stringify({
-                day,
-                meal,
-                value: !patient.progress?.[day]?.[meal]
-            })
-        });
-
-        if (response.ok) {
-            const updatedPatient = await response.json();
-            // Update the patients list with the new progress
-            dispatch({ 
-                type: 'UPDATE_PATIENT_PROGRESS', 
-                payload: { id: patientId, progress: updatedPatient.progress }
-            });
-        }
-    } catch (error) {
-        console.error('Error updating progress:', error);
-    }
-};
-
 const handleDeletePatient = async (patientId) => {
   // Optimistically update the UI by filtering out the deleted patient
   dispatch({ 

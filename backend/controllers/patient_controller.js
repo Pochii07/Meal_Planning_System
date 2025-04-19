@@ -9,8 +9,8 @@ const getAllPatients = async (req, res) => {
     const allPatients = await Patient.find({}).sort({createdAt: - 1})
 
     const formattedPatients = allPatients.map(patient => {
-        const { progress, ...details } = patient._doc // Separate details and progress
-        return { ...details, progress } // Reorder: details first, then progress
+        const { progress, ...details } = patient._doc 
+        return { ...details, progress } 
     })
 
     res.status(200).json(formattedPatients)
