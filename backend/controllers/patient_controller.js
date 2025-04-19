@@ -136,9 +136,9 @@ const getUserMealPlans = async (req, res) => {
         const userId = req.userId;
         console.log("Finding meal plans for user:", userId);
 
-        const mealPlan = await Patient.findOne({ userId: String(userId) }) // Convert to String explicitly
+        const mealPlan = await Patient.findOne({ userId: String(userId) })
             .sort({ createdAt: -1 })
-            .select('prediction progress _id')
+            .select('prediction progress skippedMeals mealNotes _id')
             .lean();
 
         if (!mealPlan) {
@@ -214,7 +214,39 @@ const updateMealProgress = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
+
+// Update meal notes and skipped status
+const updateMealNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { day, meal, note, skipped } = req.body;
+        
+        // Update both the note and the skipped status
+        const updatedPatient = await Patient.findByIdAndUpdate(
+            id,
+            { 
+                $set: {
+                    [`mealNotes.${day}.${meal}`]: note,
+                    [`skippedMeals.${day}.${meal}`]: skipped
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedPatient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            mealNotes: updatedPatient.mealNotes,
+            skippedMeals: updatedPatient.skippedMeals
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 // Get weekly progress
 const getWeeklyProgress = async (req, res) => {
@@ -306,27 +338,38 @@ const verifyAccessCode = async (req, res) => {
 // Get patient data using access code
 const getPatientDataByAccessCode = async (req, res) => {
     try {
-        const { accessCode } = req.params;
-        
-        // Find the patient with this access code
-        const patient = await NutritionistPatient.findOne({ accessCode });
-        
-        if (!patient) {
-            return res.status(404).json({ error: 'Invalid access code' });
+      const { accessCode } = req.params;
+      
+      const patient = await NutritionistPatient.findOne({ accessCode });
+      
+      if (!patient) {
+        return res.status(404).json({ error: 'Invalid access code' });
+      }
+      
+      // Make sure prediction data is included and properly formatted
+      let predictionData = patient.prediction;
+      if (typeof predictionData === 'string') {
+        try {
+          predictionData = JSON.parse(predictionData.replace(/'/g, '"'));
+        } catch (parseError) {
+          console.error('Error parsing prediction data:', parseError);
         }
-        
-        // Return relevant patient data
-        res.status(200).json({
-            _id: patient._id,
-            firstName: patient.firstName,
-            lastName: patient.lastName,
-            prediction: patient.prediction,
-            progress: patient.progress
-        });
+      }
+      
+      // Return relevant patient data
+      res.status(200).json({
+        _id: patient._id,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        prediction: predictionData,
+        progress: patient.progress || {},
+        skippedMeals: patient.skippedMeals || {},
+        mealNotes: patient.mealNotes || {}
+      });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message });
     }
-};
+  };
 
 // Update progress by access code
 const updateProgressByAccessCode = async (req, res) => {
@@ -351,6 +394,53 @@ const updateProgressByAccessCode = async (req, res) => {
     }
 };
 
+// Update meal notes by access code
+const updateMealNotesByAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.params;
+        const { day, meal, note, skipped } = req.body;
+        
+        console.log(`Updating meal note for accessCode ${accessCode}: day=${day}, meal=${meal}, skipped=${skipped}, note=${note}`);
+        
+        // Make sure you're using the correct model here - should match where accessCode is stored
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            console.log(`No patient found with accessCode ${accessCode}`);
+            return res.status(404).json({ error: 'Invalid access code' });
+        }
+        
+        console.log("Before update - skippedMeals:", patient.skippedMeals);
+        console.log("Before update - mealNotes:", patient.mealNotes);
+        
+        // First, initialize objects if they don't exist
+        if (!patient.skippedMeals) patient.skippedMeals = {};
+        if (!patient.skippedMeals[day]) patient.skippedMeals[day] = {};
+        
+        if (!patient.mealNotes) patient.mealNotes = {};
+        if (!patient.mealNotes[day]) patient.mealNotes[day] = {};
+        
+        // Update directly on the found document
+        patient.skippedMeals[day][meal] = skipped;
+        patient.mealNotes[day][meal] = note;
+        
+        // Save the document
+        await patient.save();
+        
+        console.log("After update - skippedMeals:", patient.skippedMeals);
+        console.log("After update - mealNotes:", patient.mealNotes);
+        
+        // Return the FULL objects, not just success flag
+        res.status(200).json({
+            success: true,
+            skippedMeals: patient.skippedMeals,
+            mealNotes: patient.mealNotes
+        });
+    } catch (error) {
+        console.error("Error updating meal notes by access code:", error);
+        res.status(400).json({ error: error.message });
+    }
+};
 
 module.exports = {
     getAllPatients,
@@ -359,10 +449,16 @@ module.exports = {
     deletePatient,
     updatePatient,
     updateMealProgress,
+    updateMealNotes,
     getWeeklyProgress,
     getUserMealPlans,
     generateGuestMealPlan,
     verifyAccessCode,
     getPatientDataByAccessCode,
-    updateProgressByAccessCode
+    updateProgressByAccessCode,
+    getUserMealPlans,
+    updateMealProgress,
+    updateMealNotes,
+    updateMealNotesByAccessCode
 }
+

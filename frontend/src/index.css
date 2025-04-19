@@ -202,12 +202,25 @@ input.error {
 
 .meal-item {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   padding: 1rem;
   margin: 0.5rem 0;
   background: #f7fafc;
   border-radius: 8px;
   transition: all 0.2s ease;
+}
+
+.meal-controls {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.meal-desc {
+  margin: 8px 0;
+  color: #718096;
+  font-size: 0.95rem;
+  width: 100%;
 }
 
 .meal-item:hover {
@@ -224,10 +237,10 @@ input.error {
 }
 
 .meal-desc {
-  margin: 0;
+  margin: 8px 0;
   color: #718096;
   font-size: 0.95rem;
-  flex: 1;
+  width: 100%;
 }
 
 .meal-item input[type="checkbox"] {
@@ -237,6 +250,27 @@ input.error {
   cursor: pointer;
 }
 
+.skip-button {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background-color: #f2f2f2;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.skip-button:hover {
+  background-color: #e0e0e0;
+}
+
+.skip-button.skipped {
+  background-color: #ffe0e0;
+  border-color: #ffb0b0;
+}
+
 .error {
   color: #e53e3e;
   text-align: center;
@@ -244,6 +278,40 @@ input.error {
   margin: 1rem 0;
   background: #fff5f5;
   border-radius: 8px;
+}
+
+/* Meal notes text area styling */
+.meal-notes {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.meal-notes-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.9rem;
+  color: #4a5568;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.meal-notes-input:hover {
+  border-color: #b8b8b8;
+}
+
+.meal-notes-input:focus {
+  border-color: #008000;
+  box-shadow: 0 0 0 1px rgba(0, 128, 0, 0.1);
+  outline: none;
+}
+
+.meal-notes-input::placeholder {
+  color: #a0aec0;
+  font-style: italic;
 }
 
 /* Responsive adjustments */
