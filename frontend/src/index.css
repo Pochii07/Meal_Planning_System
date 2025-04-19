@@ -250,6 +250,11 @@ input.error {
   cursor: pointer;
 }
 
+.meal-item input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .skip-button {
   align-self: flex-start;
   margin-top: 8px;
@@ -269,6 +274,16 @@ input.error {
 .skip-button.skipped {
   background-color: #ffe0e0;
   border-color: #ffb0b0;
+}
+
+.skip-button.pending {
+  background-color: #ffe8a0;
+  border-color: #ffd050;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .error {
@@ -312,6 +327,43 @@ input.error {
 .meal-notes-input::placeholder {
   color: #a0aec0;
   font-style: italic;
+}
+
+/* Note buttons styling */
+.note-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.note-button {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+}
+
+.note-button.cancel {
+  background-color: #f8f8f8;
+  border-color: #ccc;
+  color: #666;
+}
+
+.note-button.cancel:hover {
+  background-color: #f0f0f0;
+}
+
+.note-button.confirm {
+  background-color: #4a5568;
+  border-color: #4a5568;
+  color: white;
+}
+
+.note-button.confirm:hover {
+  background-color: #2d3748;
 }
 
 /* Responsive adjustments */

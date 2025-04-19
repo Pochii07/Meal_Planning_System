@@ -25,7 +25,7 @@ const NutritionistDashboard = () => {
   const [restrictions, setRestrictions] = useState('')
 
   // Add this function near the top of your component
-  const calculateProgress = (progress) => {
+  const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
     
     let completed = 0;
@@ -36,14 +36,19 @@ const NutritionistDashboard = () => {
     
     days.forEach(day => {
       meals.forEach(meal => {
-        if (progress[day]?.[meal]) {
-          completed++;
+        // Don't count skipped meals toward total
+        if (skippedMeals?.[day]?.[meal]) {
+          // Skip this meal in calculations
+        } else {
+          if (progress[day]?.[meal]) {
+            completed++;
+          }
+          total++;
         }
-        total++;
       });
     });
     
-    return Math.round((completed / total) * 100);
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
   // Fetch patients on component mount
@@ -366,7 +371,7 @@ const handleDeletePatient = async (patientId) => {
                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                           <div 
                             className="bg-green-600 h-2.5 rounded-full" 
-                            style={{ width: `${calculateProgress(patient.progress)}%` }}
+                            style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
                           ></div>
                         </div>
                       ) : (
@@ -398,25 +403,36 @@ const handleDeletePatient = async (patientId) => {
                 </tr>
                 {expandedPatientId === patient._id && (
                   <tr key={`expanded-${patient._id}`}>
-                    <td colSpan="5" className="px-6 py-4 bg-gray-50">
+                    <td colSpan="7" className="px-6 py-4 bg-gray-50">
                       <div className="grid grid-cols-7 gap-4">
                         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                           <div key={day} className="bg-white p-4 rounded-lg shadow">
                             <h4 className="font-semibold text-gray-700 mb-2">{day}</h4>
                             <div className="space-y-2">
                               {['breakfast', 'lunch', 'dinner'].map(meal => (
-                                <div key={meal} className="flex items-center">
-                                  <button
-                                    onClick={() => handleProgressToggle(patient._id, day, meal)}
-                                    className={`w-4 h-4 rounded-full mr-2 transition-colors ${
-                                        patient.progress?.[day]?.[meal] 
+                                <div key={meal} className="space-y-1">
+                                  <div className="flex items-center">
+                                    <button
+                                      className={`w-4 h-4 rounded-full mr-2 transition-colors ${
+                                        patient.skippedMeals?.[day]?.[meal]
+                                          ? 'bg-red-500' 
+                                          : patient.progress?.[day]?.[meal] 
                                             ? 'bg-green-500' 
                                             : 'bg-gray-300'
-                                    }`}
-                                  />
-                                  <span className="text-sm capitalize">
-                                    {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
-                                  </span>
+                                      }`}
+                                    />
+                                    <span className={`text-sm capitalize ${
+                                      patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
+                                    }`}>
+                                      {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
+                                    </span>
+                                  </div>
+                                  
+                                  {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                    <div className="ml-6 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
+                                      Note: {patient.mealNotes[day][meal]}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
