@@ -28,7 +28,7 @@ FoodPlan.use((req, res, next) =>{
 
 // Routes
 FoodPlan.use('/api/patient_routes', patientRoutes)
-FoodPlan.use('/api/recipe_routes', recipeRoutes)
+FoodPlan.use('/api/recipes', recipeRoutes)
 FoodPlan.use('/api/auth', authRoutes)
 FoodPlan.use('/api/nutritionist/patients',nutritionistPatientRoutes)
 

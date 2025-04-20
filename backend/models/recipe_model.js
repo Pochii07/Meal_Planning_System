@@ -2,27 +2,27 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
-const RecipeSchema = new Schema({
-    title: {
-        type: String,
-        required: true,
-    },
-    ingredients: {
-        type: [String],
-        required: true,
-    },
-    procedure: {
-        type: String,
-        required: true,
-    },
-    preference: {
-        type: String,
-        required: false,
-    },
-    restrictions: {
-        type: String,
-        required: false,
-    }
-}, { timestamps: true });
+const recipeSchema = new Schema({
+  title: String,
+  summary: String,
+  prep_time: String,
+  cook_time: String,
+  servings: String,
+  ingredients: String,
+  instructions: String,
+  calories: Number,
+  carbohydrates: Number,
+  protein: Number,
+  fat: Number,
+  vegetarian: Boolean,
+  low_purine: Boolean,
+  low_fat: Boolean,
+  low_sodium: Boolean,
+  lactose_free: Boolean,
+  peanut_allergy_safe: Boolean,
+  shellfish_allergy_safe: Boolean,
+  fish_allergy_safe: Boolean,
+  halal_kosher: Boolean,
+});
 
-module.exports = mongoose.model('Recipe', RecipeSchema);
+module.exports = mongoose.model('Recipe', recipeSchema);
