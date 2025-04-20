@@ -221,6 +221,16 @@ input.error {
   color: #718096;
   font-size: 0.95rem;
   width: 100%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.meal-desc:hover {
+  background-color: rgba(0, 128, 0, 0.05);
 }
 
 .meal-item:hover {
