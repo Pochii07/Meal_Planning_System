@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
 import React from 'react'; // Make sure React is imported
 import { NUTRITIONIST_API, RECIPES_API } from '../config/api';
+import { getAuthHeaders } from '../utils/authHeaders';
 
 // Add these constants at the top of your file, with the other state declarations
 const DIETARY_PREFERENCES = [
@@ -142,10 +143,10 @@ const NutritionistDashboard = () => {
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     try {
-      // Create patient data as you already have
+      // Create patient data object
       const patientData = {
         firstName,
         lastName,
@@ -158,40 +159,38 @@ const NutritionistDashboard = () => {
         restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
       }
 
-      console.log("Submitting patient data:", patientData); // Log what's being sent
+      console.log("Submitting patient data:", patientData);
 
+      // Use the utility function to get headers
       const response = await fetch(`${NUTRITIONIST_API}`, {
         method: 'POST',
         body: JSON.stringify(patientData),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        }
-      })
+        headers: getAuthHeaders()
+      });
       
-      const json = await response.json()
-      console.log("API response:", json); // Log the full response
+      const json = await response.json();
+      console.log("API response:", json);
 
       if (!response.ok) {
         setError(json.error || "Failed to create patient")
       } else {
-        // Reset form (as you have already)
-        setFirstName('')
-        setLastName('')
-        setAge('')
-        setHeight('')
-        setWeight('')
-        setGender('')
-        setActivityLevel('')
-        setSelectedPreferences([])
-        setSelectedRestrictions([])
-        setError(null)
-        dispatch({ type: 'CREATE_PATIENT', payload: json })
-        setIsFormOpen(false)
+        // Reset form fields
+        setFirstName('');
+        setLastName('');
+        setAge('');
+        setHeight('');
+        setWeight('');
+        setGender('');
+        setActivityLevel('');
+        setSelectedPreferences([]);
+        setSelectedRestrictions([]);
+        setError(null);
+        dispatch({ type: 'CREATE_PATIENT', payload: json });
+        setIsFormOpen(false);
       }
     } catch (error) {
       console.error("Error creating patient:", error);
-      setError("An unexpected error occurred. Please try again.")
+      setError("An unexpected error occurred. Please try again.");
     }
   }
 
