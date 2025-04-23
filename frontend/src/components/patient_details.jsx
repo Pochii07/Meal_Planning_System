@@ -1,11 +1,12 @@
 import { usePatientContext } from "../hooks/use_patient_context"
 import formatDate from 'date-fns/formatDistanceToNow'
+import { PATIENT_API } from '../config/api';
 
 const PatientDetails = ({ patient }) => {
   const { dispatch } = usePatientContext()
 
   const handleClick = async () => {
-    const response = await fetch('/api/patient_routes/' + patient._id, {
+    const response = await fetch(`${PATIENT_API}/${patient._id}`, {
       method: 'DELETE'
     })
     const json = await response.json()

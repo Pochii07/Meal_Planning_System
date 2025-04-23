@@ -16,7 +16,9 @@ const FoodPlan = express()
 // Middleware
 FoodPlan.use(cors({
     origin: ['https://chefit-livid.vercel.app', 'http://localhost:5173'],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 FoodPlan.use(express.json());
 FoodPlan.use(cookieParser());

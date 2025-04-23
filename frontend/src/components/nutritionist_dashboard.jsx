@@ -3,6 +3,7 @@ import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
 import React from 'react'; // Make sure React is imported
+import { NUTRITIONIST_API, RECIPES_API } from '../config/api';
 
 // Add these constants at the top of your file, with the other state declarations
 const DIETARY_PREFERENCES = [
@@ -95,7 +96,7 @@ const NutritionistDashboard = () => {
     
     setLoadingRecipe(true);
     try {
-      const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`);
+      const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
       if (response.ok) {
         const recipeData = await response.json();
         setSelectedRecipe(recipeData);
@@ -120,7 +121,7 @@ const NutritionistDashboard = () => {
     }
 
     const fetchPatients = async () => {
-      const response = await fetch('/api/nutritionist/patients', {
+      const response = await fetch(`${NUTRITIONIST_API}`, {
         headers: {
           'Authorization': `Bearer ${user.token}`
         }
@@ -157,7 +158,7 @@ const NutritionistDashboard = () => {
 
       console.log("Submitting patient data:", patientData); // Log what's being sent
 
-      const response = await fetch('/api/nutritionist/patients', {
+      const response = await fetch(`${NUTRITIONIST_API}`, {
         method: 'POST',
         body: JSON.stringify(patientData),
         headers: {
@@ -200,7 +201,7 @@ const handleDeletePatient = async (patientId) => {
   });
 
   try {
-    const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
+    const response = await fetch(`${NUTRITIONIST_API}/${patientId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${user.token}`,
