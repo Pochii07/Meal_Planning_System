@@ -4,6 +4,22 @@ import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
 import React from 'react'; // Make sure React is imported
 
+// Add these constants at the top of your file, with the other state declarations
+const DIETARY_PREFERENCES = [
+  "Vegetarian",
+  "Low-Purine",
+  "Low-Fat/Heart-Healthy",
+  "Low-Sodium"
+];
+
+const DIETARY_RESTRICTIONS = [
+  "Lactose Free",
+  "Peanut Allergy",
+  "Shellfish Allergy",
+  "Fish Allergy",
+  "Halal or Kosher"
+];
+
 const NutritionistDashboard = () => {
   const { patients, dispatch } = useNutritionistPatientContext()
   const { user, isAuthenticated, isCheckingAuth} = useAuthStore()
@@ -24,8 +40,27 @@ const NutritionistDashboard = () => {
   const [weight, setWeight] = useState('')
   const [gender, setGender] = useState('')
   const [activityLevel, setActivityLevel] = useState('')
-  const [preference, setPreference] = useState('')
-  const [restrictions, setRestrictions] = useState('')
+
+  // Replace single string state with arrays
+  const [selectedPreferences, setSelectedPreferences] = useState([]);
+  const [selectedRestrictions, setSelectedRestrictions] = useState([]);
+
+  // Add these handler functions
+  const handlePreferenceChange = (value) => {
+    setSelectedPreferences(prev =>
+      prev.includes(value)
+        ? prev.filter(p => p !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handleRestrictionChange = (value) => {
+    setSelectedRestrictions(prev =>
+      prev.includes(value)
+        ? prev.filter(r => r !== value)
+        : [...prev, value]
+    );
+  };
 
   // Add this function near the top of your component
   const calculateProgress = (progress, skippedMeals) => {
@@ -106,44 +141,54 @@ const NutritionistDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const patientData = {
-      firstName,
-      lastName,
-      age,
-      height,
-      weight,
-      gender,
-      activity_level: activityLevel,
-      preference: preference || "None",
-      restrictions: restrictions || "None",
-    }
-
-    const response = await fetch('/api/nutritionist/patients', {
-      method: 'POST',
-      body: JSON.stringify(patientData),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.token}`
+    try {
+      // Create patient data as you already have
+      const patientData = {
+        firstName,
+        lastName,
+        age,
+        height,
+        weight,
+        gender,
+        activity_level: activityLevel,
+        preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
+        restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
       }
-    })
-    const json = await response.json()
 
-    if (!response.ok) {
-      setError(json.error)
-    } else {
-      // Reset form
-      setFirstName('')
-      setLastName('')
-      setAge('')
-      setHeight('')
-      setWeight('')
-      setGender('')
-      setActivityLevel('')
-      setPreference('')
-      setRestrictions('')
-      setError(null)
-      dispatch({ type: 'CREATE_PATIENT', payload: json })
-      setIsFormOpen(false)
+      console.log("Submitting patient data:", patientData); // Log what's being sent
+
+      const response = await fetch('/api/nutritionist/patients', {
+        method: 'POST',
+        body: JSON.stringify(patientData),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        }
+      })
+      
+      const json = await response.json()
+      console.log("API response:", json); // Log the full response
+
+      if (!response.ok) {
+        setError(json.error || "Failed to create patient")
+      } else {
+        // Reset form (as you have already)
+        setFirstName('')
+        setLastName('')
+        setAge('')
+        setHeight('')
+        setWeight('')
+        setGender('')
+        setActivityLevel('')
+        setSelectedPreferences([])
+        setSelectedRestrictions([])
+        setError(null)
+        dispatch({ type: 'CREATE_PATIENT', payload: json })
+        setIsFormOpen(false)
+      }
+    } catch (error) {
+      console.error("Error creating patient:", error);
+      setError("An unexpected error occurred. Please try again.")
     }
   }
 
@@ -286,36 +331,56 @@ const handleDeletePatient = async (patientId) => {
                 </select>
               </div>
 
-              {/* Dietary Preference Select */}
+              {/* Dietary Preference Checkboxes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Preference</label>
-                <select
-                  value={preference}
-                  onChange={(e) => setPreference(e.target.value)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">None</option>
-                  <option value="Vegetarian">Vegetarian</option>
-                  <option value="Low-Purine">Low-Purine</option>
-                  <option value="Low-Fat/Heart-Healthy">Low-Fat/Heart-Healthy</option>
-                  <option value="Low-Sodium">Low-Sodium</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Preferences</label>
+                <p className="text-sm text-gray-500 mt-2">
+                  Select preferred dietary options.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4">
+                  {DIETARY_PREFERENCES.map((preference) => (
+                    <label
+                      key={preference}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPreferences.includes(preference)}
+                        onChange={() => handlePreferenceChange(preference)}
+                        className="h-5 w-5 text-green-600 border-gray-300 rounded cursor-pointer focus:ring-green-500 transition-all"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {preference}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
-              {/* Restrictions Select */}
+              {/* Restrictions Checkboxes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Restrictions</label>
-                <select
-                  value={restrictions}
-                  onChange={(e) => setRestrictions(e.target.value)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="None">None</option>
-                  <option value="Lactose Free">Lactose Free</option>
-                  <option value="Peanut Allergy">Peanut Allergy</option>
-                  <option value="Shellfish Allergy">Shellfish Allergy</option>
-                  <option value="Halal">Halal</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Restrictions</label>
+                <p className="text-sm text-gray-500 mt-2">
+                  Select any dietary restrictions.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4">
+                  {DIETARY_RESTRICTIONS.map((restriction) => (
+                    <label
+                      key={restriction}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRestrictions.includes(restriction)}
+                        onChange={() => handleRestrictionChange(restriction)}
+                        className="h-5 w-5 text-green-600 border-gray-300 cursor-pointer rounded focus:ring-green-500 transition-all"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {restriction}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             
@@ -408,15 +473,16 @@ const handleDeletePatient = async (patientId) => {
                               {['breakfast', 'lunch', 'dinner'].map(meal => (
                                 <div key={meal} className="space-y-1">
                                   <div className="flex items-center">
-                                    <button
-                                      className={`w-4 h-4 rounded-full mr-2 transition-colors ${
+                                    <span
+                                      className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
                                         patient.skippedMeals?.[day]?.[meal]
                                           ? 'bg-red-500' 
                                           : patient.progress?.[day]?.[meal] 
                                             ? 'bg-green-500' 
                                             : 'bg-gray-300'
                                       }`}
-                                    />
+                                      aria-label={`${meal} status indicator`}
+                                    ></span>
                                     <span 
                                       className={`text-sm capitalize ${
                                         patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
@@ -479,9 +545,7 @@ const handleDeletePatient = async (patientId) => {
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
               onClick={() => setRecipeModalOpen(false)}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+
             </button>
             
             <h2 className="text-2xl font-bold text-gray-800 mb-2 pr-8">{selectedRecipe.title}</h2>

@@ -12,7 +12,7 @@ export function NavbarCustom() {
   };
 
   return (
-    <Navbar fluid rounded className="bg-[#FEFEFA] mt-5 !bg-[#FEFEFA]">
+    <Navbar fluid rounded className="mt-5 !bg-[#f5fffa]">
       <NavbarBrand href="/" className="mr-10">
         <img src={ChefItLogo} className="mr-3 h-6 sm:h-9" alt="ChefIt" />
         <span className="self-center whitespace-nowrap text-xl font-semibold">ChefIt</span>
@@ -62,8 +62,8 @@ export function NavbarCustom() {
             // Nutritionist links
             <>
               <Link to="/nutritionist/dashboard" className="text-sm font-medium hover:text-[#008000]">Patients</Link>
-              <Link to="/nutritionist/meal-planner" className="text-sm font-medium hover:text-[#008000]">Meal Planner</Link>
-              <Link to="/ViewPatients" className="text-sm font-medium hover:text-[#008000]">View Patients</Link>
+              {/* <Link to="/nutritionist/meal-planner" className="text-sm font-medium hover:text-[#008000]">Meal Planner</Link>
+              <Link to="/ViewPatients" className="text-sm font-medium hover:text-[#008000]">View Patients</Link> */}
             </>
           ) : (
             // Regular user links
