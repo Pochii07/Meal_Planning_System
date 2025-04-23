@@ -13,6 +13,7 @@ const DIETARY_RESTRICTIONS = [
   "Lactose Free",
   "Peanut Allergy",
   "Shellfish Allergy",
+  "Fish Allergy",
   "Halal"
 ];
 
