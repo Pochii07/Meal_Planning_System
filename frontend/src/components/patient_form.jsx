@@ -315,7 +315,7 @@ const PatientForm = () => {
                       ? "border-red-500"
                       : "border-gray-300"
                   } ${
-                    gender === '' ? 'text-gray-500' : ''
+                    gender === '' ? 'text-gray-400' : ''
                   }`}
                 >
                   <option value="" className="hidden">Select Gender</option>
