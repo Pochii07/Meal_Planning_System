@@ -52,7 +52,8 @@ const createNutritionistPatient = async (req, res) => {
 
     try {
         // Get prediction from Flask API
-        const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
+        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
+        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
             age,
             height,
             weight,
