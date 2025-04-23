@@ -20,13 +20,30 @@ const DIETARY_RESTRICTIONS = [
   "Halal or Kosher"
 ];
 
+import CopyButton from './clipboard';
+import PatientSearchBar from './nutritionist_searchbar';
+
+import useCopyToClipboard from '../hooks/use_clipboard';
+
+import { BMI_CATEGORIES } from './nutritionist_searchbar';
+
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from '@mui/material';
+
 const NutritionistDashboard = () => {
-  const { patients, dispatch } = useNutritionistPatientContext()
+  const { patients = [], dispatch } = useNutritionistPatientContext()
   const { user, isAuthenticated, isCheckingAuth} = useAuthStore()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [filteredPatients, setFilteredPatients] = useState([]);
   const [expandedPatientId, setExpandedPatientId] = useState(null)
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
@@ -62,7 +79,13 @@ const NutritionistDashboard = () => {
     );
   };
 
-  // Add this function near the top of your component
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { copiedCode, copyToClipboard } = useCopyToClipboard();
+
+  const [removingPatientId, setRemovingPatientId] = useState(null);
+  const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
+
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
     
@@ -112,7 +135,6 @@ const NutritionistDashboard = () => {
 
   // Fetch patients on component mount
   useEffect(() => {
-
     if (!isCheckingAuth && (!isAuthenticated || !user || user.role !== 'nutritionist')) {
       navigate('/'); // Redirect non-nutritionist users
     } else {
@@ -129,6 +151,7 @@ const NutritionistDashboard = () => {
 
       if (response.ok) {
         dispatch({ type: 'SET_PATIENTS', payload: json })
+        setFilteredPatients(json);
       }
     }
 
@@ -139,10 +162,9 @@ const NutritionistDashboard = () => {
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault()
-
+    e.preventDefault();
+  
     try {
-      // Create patient data as you already have
       const patientData = {
         firstName,
         lastName,
@@ -153,10 +175,10 @@ const NutritionistDashboard = () => {
         activity_level: activityLevel,
         preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
         restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
-      }
-
-      console.log("Submitting patient data:", patientData); // Log what's being sent
-
+      };
+  
+      console.log("Submitting patient data:", patientData);
+  
       const response = await fetch('/api/nutritionist/patients', {
         method: 'POST',
         body: JSON.stringify(patientData),
@@ -164,62 +186,123 @@ const NutritionistDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.token}`
         }
-      })
-      
-      const json = await response.json()
-      console.log("API response:", json); // Log the full response
-
+      });
+  
+      const json = await response.json();
+      console.log("API response:", json);
+  
       if (!response.ok) {
-        setError(json.error || "Failed to create patient")
+        setError(json.error);
       } else {
-        // Reset form (as you have already)
-        setFirstName('')
-        setLastName('')
-        setAge('')
-        setHeight('')
-        setWeight('')
-        setGender('')
-        setActivityLevel('')
-        setSelectedPreferences([])
-        setSelectedRestrictions([])
-        setError(null)
-        dispatch({ type: 'CREATE_PATIENT', payload: json })
-        setIsFormOpen(false)
+        // Reset form
+        setFirstName('');
+        setLastName('');
+        setAge('');
+        setHeight('');
+        setWeight('');
+        setGender('');
+        setActivityLevel('');
+        setSelectedPreferences([]);
+        setSelectedRestrictions([]);
+        setError(null);
+        dispatch({ type: 'CREATE_PATIENT', payload: json });
+        setIsFormOpen(false);
       }
     } catch (error) {
       console.error("Error creating patient:", error);
-      setError("An unexpected error occurred. Please try again.")
+      setError("An unexpected error occurred. Please try again.");
     }
-  }
+  };
+  
+  /**
+   * Toggles the progress of a patient's meal.
+   */
+  const handleProgressToggle = async (patientId, day, meal) => {
+    try {
+      const response = await fetch(`/api/nutritionist/patients/${patientId}/progress`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          day,
+          meal,
+          value: !patient.progress?.[day]?.[meal]
+        })
+      });
+  
+      if (response.ok) {
+        const updatedPatient = await response.json();
+        dispatch({
+          type: 'UPDATE_PATIENT_PROGRESS',
+          payload: {
+            id: patientId,
+            progress: updatedPatient.progress
+          }
+        });
+      } else {
+        const json = await response.json();
+        setError(json.error || "Failed to update progress");
+      }
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      setError("An unexpected error occurred. Please try again.");
+    }
+  };
 
-const handleDeletePatient = async (patientId) => {
-  // Optimistically update the UI by filtering out the deleted patient
-  dispatch({ 
-    type: 'SET_PATIENTS', 
-    payload: patients.filter(patient => patient._id !== patientId) 
-  });
-
-  try {
-    const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${user.token}`,
-      },
+  const handleRemovePatient = async (patientId) => {
+    dispatch({ 
+      type: 'SET_PATIENTS', 
+      payload: patients.filter(patient => patient._id !== patientId) 
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      setError(errorData.error || 'Failed to delete patient');
-      // Revert the optimistic update if the API call fails
+  
+    try {
+      const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
+        method: 'DELETE', // Note: This should remain DELETE unless your API endpoint changes
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to remove patient');
+        dispatch({ type: 'SET_PATIENTS', payload: patients });
+      }
+    } catch (error) {
+      console.error('Error removing patient:', error);
+      setError('Failed to remove patient');
       dispatch({ type: 'SET_PATIENTS', payload: patients });
     }
-  } catch (error) {
-    console.error('Error deleting patient:', error);
-    setError('Failed to delete patient');
-    // Revert the optimistic update if an error occurs
-    dispatch({ type: 'SET_PATIENTS', payload: patients });
-  }
-};
+  };
+
+  const handleSearch = (searchText, filterType) => {
+    if (!searchText) {
+      setFilteredPatients(patients);
+      return;
+    }
+  
+    const filtered = patients.filter(patient => {
+      switch (filterType) {
+        case 'name':
+          return `${patient.firstName} ${patient.lastName}`
+            .toLowerCase()
+            .includes(searchText.toLowerCase());
+        case 'age':
+          return patient.age.toString() === searchText;
+        case 'bmi':
+          const category = BMI_CATEGORIES.find(c => c.label === searchText);
+          if (!category) return false;
+          return patient.BMI >= category.range[0] && patient.BMI <= category.range[1];
+        default:
+          return true;
+      }
+    });
+  
+    console.log('Filtered Patients:', filtered); // Debugging
+    setFilteredPatients(filtered);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -233,7 +316,9 @@ const handleDeletePatient = async (patientId) => {
           {isFormOpen ? 'Close Form' : 'Add New Patient'}
         </button>
       </div>
-
+      <PatientSearchBar 
+        onSearchChange={handleSearch}
+      />
       {/* Patient Form */}
       {isFormOpen && (
         <div className="mb-8 p-6 bg-white rounded-lg shadow-lg">
@@ -273,7 +358,6 @@ const handleDeletePatient = async (patientId) => {
                   required
                 />
               </div>
-
               {/* Weight Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
@@ -397,82 +481,159 @@ const handleDeletePatient = async (patientId) => {
           </form>
         </div>
       )}
-
       {/* Patients Table */}
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BMI</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Code</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {patients && patients.map((patient) => (
-              <React.Fragment key={patient._id}>
+      <div className="patient-table-container bg-white">
+        <div className="patient-table-header">
+            <table>
+              <thead>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {patient.firstName} {patient.lastName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{patient.age}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{patient.BMI}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {patient.progress ? (
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                          <div 
-                            className="bg-green-600 h-2.5 rounded-full" 
-                            style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
-                          ></div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">No progress yet</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-mono bg-gray-100 p-2 rounded-md text-center">
-                      {patient.accessCode || 'No code'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      className="text-green-600 hover:text-green-900 mr-4"
-                      onClick={() => setExpandedPatientId(
-                        expandedPatientId === patient._id ? null : patient._id
-                      )}
-                    >
-                      {expandedPatientId === patient._id ? 'Hide Progress' : 'View Progress'}
-                    </button>
-                    <button 
-                      className="text-red-600 hover:text-red-900"
-                      onClick={() => handleDeletePatient(patient._id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  <th className="th-name">Name</th>
+                  <th>Age</th>
+                  <th>BMI</th>
+                  <th>Progress</th>
+                  <th>Access Code</th>
+                  <th>Actions</th>
                 </tr>
-                {expandedPatientId === patient._id && (
-                  <tr key={`expanded-${patient._id}`}>
-                    <td colSpan="7" className="px-6 py-4 bg-gray-50">
-                      <div className="grid grid-cols-7 gap-4">
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                          <div key={day} className="bg-white p-4 rounded-lg shadow">
-                            <h4 className="font-semibold text-gray-700 mb-2">{day}</h4>
-                            <div className="space-y-2">
-                              {['breakfast', 'lunch', 'dinner'].map(meal => (
-                                <div key={meal} className="space-y-1">
-                                  <div className="flex items-center">
+              </thead>
+            </table>
+        </div>   
+        <div className="patient-table-body">
+          {(filteredPatients && filteredPatients.length) === 0 ? (
+            <div className='text-center text-gray-500 py-4'>
+              No Patients found.
+            </div>
+          ) : (
+            <table>
+              {filteredPatients && filteredPatients.map((patient) => (
+                <tbody key={patient._id}>
+                  <tr className="hover:bg-gray-50 transition-colors inherit">
+                    <td className="td-name whitespace-normal break-words max-w-[200px]">
+                      <div className="text-sm font-medium text-gray-900">
+                        {`${patient.lastName}, ${patient.firstName}`}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{patient.age}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{patient.BMI}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {patient.progress ? (
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div
+                              className="bg-green-600 h-2.5 rounded-full"
+                              style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No progress yet</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className='flex items-center gap-2'>
+                        <div className="text-sm font-mono bg-gray-100 p-1 rounded-md text-center">
+                          {patient.accessCode || "No code"}
+                        </div>
+                        {patient.accessCode && (
+                          <CopyButton 
+                            code={patient.accessCode} 
+                            copiedCode={copiedCode} 
+                            onCopy={copyToClipboard} 
+                          />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        className="text-green-600 hover:text-green-900 mr-4 cursor-pointer" title="View patient's meal progress"
+                        onClick={() =>
+                          setExpandedPatientId(
+                            expandedPatientId === patient._id ? null : patient._id
+                          )
+                        }
+                      >
+                        {expandedPatientId === patient._id
+                          ? "Hide Progress"
+                          : "View Progress"}
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-900 cursor-pointer"
+                        onClick={() => {
+                          handleRemovePatient(patient._id);
+                          setOpenRemoveDialog(true);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedPatientId === patient._id && (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                        <div className="mt-4 p-4 bg-white rounded-lg shadow">
+                          <h4 className="font-semibold text-gray-700 mb-2">
+                            Patient Details
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-600">
+                                Height: {patient.height} cm
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Weight: {patient.weight} kg
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                BMI: {patient.BMI}
+                              </p>
+                              <p className="text-sm text-gray-600 font-semibold">
+                                Access Code:
+                                <div className="inline-flex gap-2">
+                                <span className="bg-green-100 text-green-800 ml-2 p-1 rounded font-mono">
+                                  {patient.accessCode || "None"}
+                                </span>
+                                {patient.accessCode && (
+                                  <CopyButton 
+                                    code={patient.accessCode} 
+                                    copiedCode={copiedCode} 
+                                    onCopy={copyToClipboard} 
+                                  />
+                                )}
+                                </div>
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">
+                                Activity Level: {patient.activity_level}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Dietary Preference: {patient.preference}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Restrictions: {patient.restrictions}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-4 py-8">
+                          {[
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                            "Sunday",
+                          ].map((day) => (
+                            <div key={day} className="bg-white p-4 rounded-lg shadow">
+                              <h4 className="font-semibold text-gray-700 mb-2">
+                                {day}
+                              </h4>
+                              <div className="space-y-2">
+                                {["breakfast", "lunch", "dinner"].map((meal) => (
+                                  <div key={meal} className="flex items-start">
                                     <span
                                       className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
                                         patient.skippedMeals?.[day]?.[meal]
@@ -483,59 +644,73 @@ const handleDeletePatient = async (patientId) => {
                                       }`}
                                       aria-label={`${meal} status indicator`}
                                     ></span>
-                                    <span 
-                                      className={`text-sm capitalize ${
-                                        patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
-                                      } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
-                                      onClick={() => {
-                                        if (patient.prediction?.[day]?.[meal]) {
-                                          fetchRecipeDetails(patient.prediction[day][meal]);
-                                        }
-                                      }}
-                                    >
-                                      {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
-                                    </span>
-                                  </div>
-                                  
-                                  {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
-                                    <div className="ml-6 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
-                                      Note: {patient.mealNotes[day][meal]}
+                                    <div className="flex flex-col flex-1">  {/* Added column layout container */}
+                                      <span 
+                                        className={`text-sm capitalize ${
+                                          patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
+                                        } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
+                                        onClick={() => {
+                                          if (patient.prediction?.[day]?.[meal]) {
+                                            fetchRecipeDetails(patient.prediction[day][meal]);
+                                          }
+                                        }}
+                                      >
+                                        {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
+                                      </span>
+                                      
+                                      {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                        <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
+                                          Note: {patient.mealNotes[day][meal]}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              ))}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 p-4 bg-white rounded-lg shadow">
-                        <h4 className="font-semibold text-gray-700 mb-2">Patient Details</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-gray-600">Height: {patient.height} cm</p>
-                            <p className="text-sm text-gray-600">Weight: {patient.weight} kg</p>
-                            <p className="text-sm text-gray-600">BMI: {patient.BMI}</p>
-                            <p className="text-sm text-gray-600 font-semibold">Access Code: 
-                              <span className="bg-green-100 text-green-800 ml-2 p-1 rounded font-mono">
-                                {patient.accessCode || 'None'}
-                              </span>
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Activity Level: {patient.activity_level}</p>
-                            <p className="text-sm text-gray-600">Dietary Preference: {patient.preference}</p>
-                            <p className="text-sm text-gray-600">Restrictions: {patient.restrictions}</p>
-                          </div>
+                          ))}
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              ))}  
+            </table>
+          )}
+        </div>            
       </div>
+      <Dialog
+        open={openRemoveDialog}
+        onClose={() => setOpenRemoveDialog(false)}
+        aria-labelledby="remove-patient-dialog-title"
+      >
+        <DialogTitle id="remove-patient-dialog-title">
+          Confirm Patient Removal
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to remove this patient? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenRemoveDialog(false)}
+            color="primary"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => {
+              handleRemovePatient(removingPatientId);
+              setOpenRemoveDialog(false);
+            }}
+            color="error"
+            autoFocus
+          >
+            Remove Patient
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Recipe Modal */}
       {recipeModalOpen && selectedRecipe && (
@@ -617,7 +792,7 @@ const handleDeletePatient = async (patientId) => {
               <button
                 className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition duration-200"
                 onClick={() => setRecipeModalOpen(false)}
-              >
+              >	
                 Close
               </button>
             </div>
