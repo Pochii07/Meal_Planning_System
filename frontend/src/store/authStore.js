@@ -136,7 +136,7 @@ export const useAuthStore = create((set) => ({
                 return { ...data, shouldVerify: true };
             }
             if (data.user && data.user.token) {
-                // Store token in localStorage
+                // Store token as is without any modifications
                 localStorage.setItem('authToken', data.user.token);
                 
                 set({ 

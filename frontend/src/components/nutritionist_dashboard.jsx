@@ -121,9 +121,11 @@ const NutritionistDashboard = () => {
     }
 
     const fetchPatients = async () => {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${NUTRITIONIST_API}`, {
         headers: {
-          'Authorization': `Bearer ${user.token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       })
       const json = await response.json()
@@ -201,10 +203,12 @@ const handleDeletePatient = async (patientId) => {
   });
 
   try {
+    const token = localStorage.getItem('authToken');
     const response = await fetch(`${NUTRITIONIST_API}/${patientId}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${user.token}`,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
     });
 
