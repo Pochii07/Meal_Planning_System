@@ -33,12 +33,13 @@ FoodPlan.use('/api/auth', authRoutes)
 FoodPlan.use('/api/nutritionist/patients',nutritionistPatientRoutes)
 
 // connect to db
+const port = process.env.PORT || 4000;
 mongoose.connect(process.env.MONG_URI)
     .then(() => {
         // Request listener
-        FoodPlan.listen(process.env.PORT, () => {
+        FoodPlan.listen(port, () => {
             console.log('connected to db: ', mongoose.connection.host)
-            console.log('listening on port: ', process.env.PORT)
+            console.log('listening on port: ', port)
         })
     })
     .catch((error) => {
