@@ -67,7 +67,15 @@ const createNutritionistPatient = async (req, res) => {
         let prediction = {};
 
         try {
-            prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            // Check if rawPrediction is already an object
+            if (typeof rawPrediction === 'string') {
+                prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            } else if (typeof rawPrediction === 'object') {
+                // If it's already an object, use it directly
+                prediction = rawPrediction;
+            } else {
+                console.error('Unexpected prediction format:', typeof rawPrediction);
+            }
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }

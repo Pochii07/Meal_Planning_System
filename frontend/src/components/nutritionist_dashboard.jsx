@@ -2,6 +2,23 @@ import { useState, useEffect } from 'react'
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
+import React from 'react'; // Make sure React is imported
+
+// Add these constants at the top of your file, with the other state declarations
+const DIETARY_PREFERENCES = [
+  "Vegetarian",
+  "Low-Purine",
+  "Low-Fat/Heart-Healthy",
+  "Low-Sodium"
+];
+
+const DIETARY_RESTRICTIONS = [
+  "Lactose Free",
+  "Peanut Allergy",
+  "Shellfish Allergy",
+  "Fish Allergy",
+  "Halal or Kosher"
+];
 
 const NutritionistDashboard = () => {
   const { patients, dispatch } = useNutritionistPatientContext()
@@ -11,6 +28,9 @@ const NutritionistDashboard = () => {
   const [error, setError] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [expandedPatientId, setExpandedPatientId] = useState(null)
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
   
   // Form states
   const [firstName, setFirstName] = useState('')
@@ -20,11 +40,30 @@ const NutritionistDashboard = () => {
   const [weight, setWeight] = useState('')
   const [gender, setGender] = useState('')
   const [activityLevel, setActivityLevel] = useState('')
-  const [preference, setPreference] = useState('')
-  const [restrictions, setRestrictions] = useState('')
+
+  // Replace single string state with arrays
+  const [selectedPreferences, setSelectedPreferences] = useState([]);
+  const [selectedRestrictions, setSelectedRestrictions] = useState([]);
+
+  // Add these handler functions
+  const handlePreferenceChange = (value) => {
+    setSelectedPreferences(prev =>
+      prev.includes(value)
+        ? prev.filter(p => p !== value)
+        : [...prev, value]
+    );
+  };
+
+  const handleRestrictionChange = (value) => {
+    setSelectedRestrictions(prev =>
+      prev.includes(value)
+        ? prev.filter(r => r !== value)
+        : [...prev, value]
+    );
+  };
 
   // Add this function near the top of your component
-  const calculateProgress = (progress) => {
+  const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
     
     let completed = 0;
@@ -35,14 +74,40 @@ const NutritionistDashboard = () => {
     
     days.forEach(day => {
       meals.forEach(meal => {
-        if (progress[day]?.[meal]) {
-          completed++;
+        // Don't count skipped meals toward total
+        if (skippedMeals?.[day]?.[meal]) {
+          // Skip this meal in calculations
+        } else {
+          if (progress[day]?.[meal]) {
+            completed++;
+          }
+          total++;
         }
-        total++;
       });
     });
     
-    return Math.round((completed / total) * 100);
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  };
+
+  // Add this function to fetch recipe details
+  const fetchRecipeDetails = async (mealName) => {
+    if (!mealName) return;
+    
+    setLoadingRecipe(true);
+    try {
+      const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`);
+      if (response.ok) {
+        const recipeData = await response.json();
+        setSelectedRecipe(recipeData);
+        setRecipeModalOpen(true);
+      } else {
+        console.error('Recipe not found');
+      }
+    } catch (error) {
+      console.error('Error fetching recipe:', error);
+    } finally {
+      setLoadingRecipe(false);
+    }
   };
 
   // Fetch patients on component mount
@@ -76,74 +141,56 @@ const NutritionistDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const patientData = {
-      firstName,
-      lastName,
-      age,
-      height,
-      weight,
-      gender,
-      activity_level: activityLevel,
-      preference: preference || "None",
-      restrictions: restrictions || "None",
-    }
-
-    const response = await fetch('/api/nutritionist/patients', {
-      method: 'POST',
-      body: JSON.stringify(patientData),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.token}`
+    try {
+      // Create patient data as you already have
+      const patientData = {
+        firstName,
+        lastName,
+        age,
+        height,
+        weight,
+        gender,
+        activity_level: activityLevel,
+        preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
+        restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
       }
-    })
-    const json = await response.json()
 
-    if (!response.ok) {
-      setError(json.error)
-    } else {
-      // Reset form
-      setFirstName('')
-      setLastName('')
-      setAge('')
-      setHeight('')
-      setWeight('')
-      setGender('')
-      setActivityLevel('')
-      setPreference('')
-      setRestrictions('')
-      setError(null)
-      dispatch({ type: 'CREATE_PATIENT', payload: json })
-      setIsFormOpen(false)
+      console.log("Submitting patient data:", patientData); // Log what's being sent
+
+      const response = await fetch('/api/nutritionist/patients', {
+        method: 'POST',
+        body: JSON.stringify(patientData),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        }
+      })
+      
+      const json = await response.json()
+      console.log("API response:", json); // Log the full response
+
+      if (!response.ok) {
+        setError(json.error || "Failed to create patient")
+      } else {
+        // Reset form (as you have already)
+        setFirstName('')
+        setLastName('')
+        setAge('')
+        setHeight('')
+        setWeight('')
+        setGender('')
+        setActivityLevel('')
+        setSelectedPreferences([])
+        setSelectedRestrictions([])
+        setError(null)
+        dispatch({ type: 'CREATE_PATIENT', payload: json })
+        setIsFormOpen(false)
+      }
+    } catch (error) {
+      console.error("Error creating patient:", error);
+      setError("An unexpected error occurred. Please try again.")
     }
   }
-
-  const handleProgressToggle = async (patientId, day, meal) => {
-    try {
-        const response = await fetch(`/api/nutritionist/patients/${patientId}/progress`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.token}`
-            },
-            body: JSON.stringify({
-                day,
-                meal,
-                value: !patient.progress?.[day]?.[meal]
-            })
-        });
-
-        if (response.ok) {
-            const updatedPatient = await response.json();
-            // Update the patients list with the new progress
-            dispatch({ 
-                type: 'UPDATE_PATIENT_PROGRESS', 
-                payload: { id: patientId, progress: updatedPatient.progress }
-            });
-        }
-    } catch (error) {
-        console.error('Error updating progress:', error);
-    }
-};
 
 const handleDeletePatient = async (patientId) => {
   // Optimistically update the UI by filtering out the deleted patient
@@ -284,36 +331,56 @@ const handleDeletePatient = async (patientId) => {
                 </select>
               </div>
 
-              {/* Dietary Preference Select */}
+              {/* Dietary Preference Checkboxes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Preference</label>
-                <select
-                  value={preference}
-                  onChange={(e) => setPreference(e.target.value)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">None</option>
-                  <option value="Vegetarian">Vegetarian</option>
-                  <option value="Low-Purine">Low-Purine</option>
-                  <option value="Low-Fat/Heart-Healthy">Low-Fat/Heart-Healthy</option>
-                  <option value="Low-Sodium">Low-Sodium</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Preferences</label>
+                <p className="text-sm text-gray-500 mt-2">
+                  Select preferred dietary options.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4">
+                  {DIETARY_PREFERENCES.map((preference) => (
+                    <label
+                      key={preference}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPreferences.includes(preference)}
+                        onChange={() => handlePreferenceChange(preference)}
+                        className="h-5 w-5 text-green-600 border-gray-300 rounded cursor-pointer focus:ring-green-500 transition-all"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {preference}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
-              {/* Restrictions Select */}
+              {/* Restrictions Checkboxes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Restrictions</label>
-                <select
-                  value={restrictions}
-                  onChange={(e) => setRestrictions(e.target.value)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="None">None</option>
-                  <option value="Lactose Free">Lactose Free</option>
-                  <option value="Peanut Allergy">Peanut Allergy</option>
-                  <option value="Shellfish Allergy">Shellfish Allergy</option>
-                  <option value="Halal">Halal</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Restrictions</label>
+                <p className="text-sm text-gray-500 mt-2">
+                  Select any dietary restrictions.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4">
+                  {DIETARY_RESTRICTIONS.map((restriction) => (
+                    <label
+                      key={restriction}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRestrictions.includes(restriction)}
+                        onChange={() => handleRestrictionChange(restriction)}
+                        className="h-5 w-5 text-green-600 border-gray-300 cursor-pointer rounded focus:ring-green-500 transition-all"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {restriction}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             
@@ -346,8 +413,8 @@ const handleDeletePatient = async (patientId) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {patients && patients.map((patient) => (
-              <>
-                <tr key={patient._id}>
+              <React.Fragment key={patient._id}>
+                <tr>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {patient.firstName} {patient.lastName}
@@ -365,7 +432,7 @@ const handleDeletePatient = async (patientId) => {
                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                           <div 
                             className="bg-green-600 h-2.5 rounded-full" 
-                            style={{ width: `${calculateProgress(patient.progress)}%` }}
+                            style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
                           ></div>
                         </div>
                       ) : (
@@ -396,26 +463,45 @@ const handleDeletePatient = async (patientId) => {
                   </td>
                 </tr>
                 {expandedPatientId === patient._id && (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-4 bg-gray-50">
+                  <tr key={`expanded-${patient._id}`}>
+                    <td colSpan="7" className="px-6 py-4 bg-gray-50">
                       <div className="grid grid-cols-7 gap-4">
                         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                           <div key={day} className="bg-white p-4 rounded-lg shadow">
                             <h4 className="font-semibold text-gray-700 mb-2">{day}</h4>
                             <div className="space-y-2">
                               {['breakfast', 'lunch', 'dinner'].map(meal => (
-                                <div key={meal} className="flex items-center">
-                                  <button
-                                    onClick={() => handleProgressToggle(patient._id, day, meal)}
-                                    className={`w-4 h-4 rounded-full mr-2 transition-colors ${
-                                        patient.progress?.[day]?.[meal] 
+                                <div key={meal} className="space-y-1">
+                                  <div className="flex items-center">
+                                    <span
+                                      className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
+                                        patient.skippedMeals?.[day]?.[meal]
+                                          ? 'bg-red-500' 
+                                          : patient.progress?.[day]?.[meal] 
                                             ? 'bg-green-500' 
                                             : 'bg-gray-300'
-                                    }`}
-                                  />
-                                  <span className="text-sm capitalize">
-                                    {meal}: {patient.prediction[day]?.[meal] || 'No meal planned'}
-                                  </span>
+                                      }`}
+                                      aria-label={`${meal} status indicator`}
+                                    ></span>
+                                    <span 
+                                      className={`text-sm capitalize ${
+                                        patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
+                                      } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
+                                      onClick={() => {
+                                        if (patient.prediction?.[day]?.[meal]) {
+                                          fetchRecipeDetails(patient.prediction[day][meal]);
+                                        }
+                                      }}
+                                    >
+                                      {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
+                                    </span>
+                                  </div>
+                                  
+                                  {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                    <div className="ml-6 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
+                                      Note: {patient.mealNotes[day][meal]}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -445,11 +531,99 @@ const handleDeletePatient = async (patientId) => {
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Recipe Modal */}
+      {recipeModalOpen && selectedRecipe && (
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full p-6 relative max-h-[80vh] overflow-y-auto">
+            <button 
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+              onClick={() => setRecipeModalOpen(false)}
+            >
+
+            </button>
+            
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 pr-8">{selectedRecipe.title}</h2>
+            
+            <div className="mb-3">
+              <p className="text-gray-600 text-sm">{selectedRecipe.summary}</p>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="bg-gray-50 p-2 rounded">
+                <span className="block text-xs text-gray-500">Prep Time</span>
+                <span className="font-medium text-sm">{selectedRecipe.prep_time}</span>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <span className="block text-xs text-gray-500">Cook Time</span>
+                <span className="font-medium text-sm">{selectedRecipe.cook_time}</span>
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <span className="block text-xs text-gray-500">Servings</span>
+                <span className="font-medium text-sm">{selectedRecipe.servings}</span>
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <h3 className="text-md font-semibold mb-1">Ingredients</h3>
+              <div className="bg-gray-50 p-3 rounded">
+                <ul className="list-disc pl-5 space-y-0.5 text-sm">
+                  {selectedRecipe.ingredients.split(',').map((ingredient, idx) => (
+                    <li key={idx}>{ingredient.trim()}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <h3 className="text-md font-semibold mb-1">Instructions</h3>
+              <div className="bg-gray-50 p-3 rounded">
+                <ol className="list-decimal pl-5 space-y-1 text-sm">
+                  {selectedRecipe.instructions.split('.').filter(step => step.trim()).map((step, idx) => (
+                    <li key={idx}>{step.trim()}.</li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <h3 className="text-md font-semibold mb-1">Nutrition Information</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="block text-xs text-gray-500">Calories</span>
+                  <span className="font-medium text-sm">{selectedRecipe.calories}</span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="block text-xs text-gray-500">Carbs</span>
+                  <span className="font-medium text-sm">{selectedRecipe.carbohydrates}g</span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="block text-xs text-gray-500">Protein</span>
+                  <span className="font-medium text-sm">{selectedRecipe.protein}g</span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="block text-xs text-gray-500">Fat</span>
+                  <span className="font-medium text-sm">{selectedRecipe.fat}g</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <button
+                className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition duration-200"
+                onClick={() => setRecipeModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

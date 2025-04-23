@@ -1,4 +1,4 @@
-export const verifyEmailTemplate = 
+module.exports.verifyEmailTemplate = 
 `<html dir="ltr" lang="en">
   <head>
     <link rel="preload" as="image" href="https://react-email-demo-k6qpz0pxq-resend.vercel.app/static/aws-logo.png" />

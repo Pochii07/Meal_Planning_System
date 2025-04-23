@@ -13,6 +13,18 @@ const ProgressSchema = new Schema({
     dinner: { type: Boolean, default: false }
 });
 
+const SkippedMealsSchema = new Schema({
+    breakfast: { type: Boolean, default: false },
+    lunch: { type: Boolean, default: false },
+    dinner: { type: Boolean, default: false }
+});
+
+const MealNotesSchema = new Schema({
+    breakfast: { type: String, default: '' },
+    lunch: { type: String, default: '' },
+    dinner: { type: String, default: '' }
+});
+
 const UserDetailsSchema = new Schema({
     age: {
         type: Number,
@@ -68,6 +80,24 @@ const UserDetailsSchema = new Schema({
         Friday: ProgressSchema,
         Saturday: ProgressSchema,
         Sunday: ProgressSchema
+    },
+    skippedMeals: {
+        Monday: SkippedMealsSchema,
+        Tuesday: SkippedMealsSchema,
+        Wednesday: SkippedMealsSchema,
+        Thursday: SkippedMealsSchema,
+        Friday: SkippedMealsSchema,
+        Saturday: SkippedMealsSchema,
+        Sunday: SkippedMealsSchema
+    },
+    mealNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
     },
     userId: {
         type: String,

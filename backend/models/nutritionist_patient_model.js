@@ -1,6 +1,6 @@
 // backend/models/nutritionist_patient_model.js
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const MealSchema = new Schema({
     breakfast: { type: String, default: '' },
@@ -12,6 +12,18 @@ const ProgressSchema = new Schema({
     breakfast: { type: Boolean, default: false },
     lunch: { type: Boolean, default: false },
     dinner: { type: Boolean, default: false }
+});
+
+const SkippedMealsSchema = new Schema({
+    breakfast: { type: Boolean, default: false },
+    lunch: { type: Boolean, default: false },
+    dinner: { type: Boolean, default: false }
+});
+
+const MealNotesSchema = new Schema({
+    breakfast: { type: String, default: '' },
+    lunch: { type: String, default: '' },
+    dinner: { type: String, default: '' }
 });
 
 const NutritionistPatientSchema = new Schema({
@@ -78,11 +90,29 @@ const NutritionistPatientSchema = new Schema({
         Saturday: ProgressSchema,
         Sunday: ProgressSchema
     },
+    skippedMeals: {
+        Monday: SkippedMealsSchema,
+        Tuesday: SkippedMealsSchema,
+        Wednesday: SkippedMealsSchema,
+        Thursday: SkippedMealsSchema,
+        Friday: SkippedMealsSchema,
+        Saturday: SkippedMealsSchema,
+        Sunday: SkippedMealsSchema
+    },
+    mealNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    },
     nutritionistId: {
         type: String,
         ref: 'User',
         required: true
     }
-}, { timestamps: true })
+}, { timestamps: true });
 
-module.exports = mongoose.model('NutritionistPatient', NutritionistPatientSchema)
+module.exports = mongoose.model('NutritionistPatient', NutritionistPatientSchema);

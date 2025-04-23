@@ -4,7 +4,8 @@ const {
     getRecipe,
     createRecipe,
     updateRecipe,
-    deleteRecipe
+    deleteRecipe,
+    getRecipeByTitle
 } = require('../controllers/recipe_controller');
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.patch('/:id', updateRecipe);
 
 // Delete a recipe
 router.delete('/:id', deleteRecipe);
+
+// GET a recipe by title
+router.get('/title/:title', getRecipeByTitle);
 
 module.exports = router;
