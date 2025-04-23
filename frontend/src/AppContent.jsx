@@ -22,6 +22,9 @@ import { Button } from 'flowbite-react';
 import { NutritionistPatientContextProvider } from './context/nutritionist_patient_context';
 import NutritionistDashboard from './components/nutritionist_dashboard';
 import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
+import ContactUs from './pages/ContactUs';
+import AboutUs from './pages/AboutUs';
+import LoadingScreen from './components/LoadingScreen';
 
 const ProtectedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -59,7 +62,7 @@ function App() {
   }, []);
   
   if (isCheckingAuth) {
-    return <div>Loading...</div>
+    return <LoadingScreen/>
   }
 
   const handleLogout = async () => {
@@ -107,6 +110,8 @@ function App() {
               </ProtectedRoute>
             }> 
           </Route>
+          <Route path="/ContactUs" element={<ContactUs/>}> </Route>
+          <Route path="/AboutUs" element={<AboutUs/>}> </Route>
           <Route path="/GuestMealPlanner" element={<GuestMealPlanner />}> </Route>
           <Route path="/NutritionistMealPlanner" element={<NutritionistMealPlanner />}> </Route>
           <Route path="/NutritionistProfile" element={<NutritionistProfile />}> </Route>
@@ -114,8 +119,8 @@ function App() {
           <Route path="/GuestMealTracker" element={<GuestMealTracker />} />
           <Route path="/guest-meal-tracker" element={<GuestMealTracker />} />
           <Route path="/guest-meal-tracker/:accessCode" element={<GuestMealTrackerDisplay />} />    
-            
           <Route path="/ForgotPassword" element={<ForgotPassword/>}></Route>
+          
           {/* Authenticated route  */}
           <Route 
             path="/reset_password/:token" 
