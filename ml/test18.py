@@ -70,14 +70,29 @@ class MealPlanner:
         return pd.cut(calories, bins=bins, labels=labels)
 
     def generate_weekly_plan(self, tdee: int, preferences: DietaryPreferences) -> Dict:
+        """Generate a weekly meal plan with improved variety."""
         if tdee < 1200:
             raise ValueError("TDEE must be at least 1200 calories")
 
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
-            daily_meals = self._generate_daily_meals(filtered_data, tdee)
+        # Track used meals to avoid repetition
+        used_breakfast_titles = set()
+        used_lunch_dinner_titles = set()
+        
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        for day in days:
+            daily_meals = self._generate_daily_meals_with_variety(
+                filtered_data, tdee, used_breakfast_titles, used_lunch_dinner_titles
+            )
+            
+            # Update used meal tracking
+            used_breakfast_titles.add(daily_meals['Breakfast']['title'])
+            used_lunch_dinner_titles.add(daily_meals['Lunch']['title'])
+            used_lunch_dinner_titles.add(daily_meals['Dinner']['title'])
+            
             weekly_plan[day] = daily_meals
 
         return weekly_plan
@@ -92,11 +107,13 @@ class MealPlanner:
         cluster_mask = self.kmeans_model.labels_ == user_cluster
         return filtered_data[cluster_mask]
 
-    def _generate_daily_meals(self, filtered_data: pd.DataFrame, tdee: int) -> Dict:
-        """Generate daily meals ensuring breakfast and lunch/dinner come from appropriate datasets."""
+    def _generate_daily_meals_with_variety(
+        self, filtered_data: pd.DataFrame, tdee: int, 
+        used_breakfast_titles: set, used_lunch_dinner_titles: set
+    ) -> Dict:
+        """Generate daily meals with variety within a day and minimizing repetition across the week."""
         adjusted_tdee = tdee - 600
         meal_calories = adjusted_tdee // 3
-        # Allow 20% deviation from target calories
         calorie_margin = meal_calories * 0.2
 
         # Create masks for breakfast and lunch datasets
@@ -124,11 +141,30 @@ class MealPlanner:
             lunch_dinner_options = filtered_data[lunch_mask]
             if breakfast_options.empty or lunch_dinner_options.empty:
                 raise ValueError("Not enough meal options available for your preferences")
+        
+        # Try to avoid previously used breakfast meals
+        new_breakfast_options = breakfast_options[~breakfast_options['title'].isin(used_breakfast_titles)]
+        if not new_breakfast_options.empty:
+            breakfast_options = new_breakfast_options
+        
+        # Try to avoid previously used lunch/dinner meals
+        new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].isin(used_lunch_dinner_titles)]
+        if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
+            lunch_dinner_options = new_lunch_dinner_options
 
-        # Sample meals from appropriate datasets
+        # Sample breakfast
         breakfast = breakfast_options.sample(n=1).iloc[0]
+        
+        # Sample lunch
         lunch = lunch_dinner_options.sample(n=1).iloc[0]
-        dinner = lunch_dinner_options.sample(n=1).iloc[0]
+        
+        # Sample dinner (ensuring it's different from lunch)
+        dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
+        if dinner_options.empty:
+            # If no other options, accept a repeated meal as last resort
+            dinner = lunch_dinner_options.sample(n=1).iloc[0]
+        else:
+            dinner = dinner_options.sample(n=1).iloc[0]
 
         return {
             'Breakfast': {'title': breakfast['title'], 'calories': breakfast['calories']},
@@ -235,12 +271,12 @@ class MealPlanner:
 
 def main():
     planner = MealPlanner(
-        breakfast_path='new model/combined_bf_recipes.csv',
-        lunch_path='new model/combined_lunch_recipes.csv'
+        breakfast_path='new model/bf.csv',
+        lunch_path='new model/lunch.csv'
     )
     
     preferences = DietaryPreferences(
-        vegetarian=True,
+        # vegetarian=True,
         # low_purine =True,
         # low_fat = True,
         # low_sodium= True,
@@ -253,7 +289,7 @@ def main():
     )
     
     try:
-        weekly_plan = planner.generate_weekly_plan(tdee=2000, preferences=preferences)
+        weekly_plan = planner.generate_weekly_plan(tdee=1872, preferences=preferences)
         
         print("\nWeekly Meal Plan:")
         print("=" * 80)
@@ -276,7 +312,7 @@ def main():
 
     # Evaluate the entire system
     print("\nEvaluating Meal Planning System...")
-    metrics = planner.evaluate_meal_plan_recommendations(tdee=2000, preferences=preferences)
+    metrics = planner.evaluate_meal_plan_recommendations(tdee=1872, preferences=preferences)
     
     print("\nOverall System Performance:")
     print("-" * 40)

@@ -94,14 +94,27 @@ class MealPlanner:
         return pd.cut(calories, bins=bins, labels=labels)
 
     def generate_weekly_plan(self, tdee: int, preferences: DietaryPreferences) -> Dict:
+        """Generate a weekly meal plan with improved variety."""
         if tdee < 1200:
             raise ValueError("TDEE must be at least 1200 calories")
 
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
+        # Track used meals to avoid repetition
+        used_breakfast_titles = set()
+        used_lunch_dinner_titles = set()
+        
         for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
-            daily_meals = self._generate_daily_meals(filtered_data, tdee)
+            daily_meals = self._generate_daily_meals_with_variety(
+                filtered_data, tdee, used_breakfast_titles, used_lunch_dinner_titles
+            )
+            
+            # Track used titles for variety
+            used_breakfast_titles.add(daily_meals['breakfast'])
+            used_lunch_dinner_titles.add(daily_meals['lunch'])
+            used_lunch_dinner_titles.add(daily_meals['dinner'])
+            
             weekly_plan[day] = daily_meals
 
         return weekly_plan
@@ -116,8 +129,11 @@ class MealPlanner:
         cluster_mask = self.kmeans_model.labels_ == user_cluster
         return filtered_data[cluster_mask]
 
-    def _generate_daily_meals(self, filtered_data: pd.DataFrame, tdee: int) -> Dict:
-        """Generate daily meals ensuring breakfast and lunch/dinner come from appropriate datasets."""
+    def _generate_daily_meals_with_variety(
+        self, filtered_data: pd.DataFrame, tdee: int, 
+        used_breakfast_titles: set, used_lunch_dinner_titles: set
+    ) -> Dict:
+        """Generate daily meals with variety within a day and minimizing repetition across the week."""
         adjusted_tdee = tdee - 600
         meal_calories = adjusted_tdee // 3
         # Allow 20% deviation from target calories
@@ -149,10 +165,27 @@ class MealPlanner:
             if breakfast_options.empty or lunch_dinner_options.empty:
                 raise ValueError("Not enough meal options available for your preferences")
 
-        # Important: Set random state to ensure consistent results with test17.py
-        breakfast = breakfast_options.sample(n=1, random_state=42).iloc[0]
-        lunch = lunch_dinner_options.sample(n=1, random_state=42).iloc[0]
-        dinner = lunch_dinner_options.sample(n=1, random_state=42).iloc[0]
+        # Filter out previously used meals if possible
+        unique_breakfast_options = breakfast_options[~breakfast_options['title'].isin(used_breakfast_titles)]
+        if not unique_breakfast_options.empty:
+            breakfast_options = unique_breakfast_options
+            
+        unique_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].isin(used_lunch_dinner_titles)]
+        if not unique_lunch_dinner_options.empty:
+            lunch_dinner_options = unique_lunch_dinner_options
+
+        # Sample different meals for breakfast, lunch, and dinner
+        breakfast = breakfast_options.sample(n=1).iloc[0]
+        
+        # For lunch and dinner, ensure they're different from each other
+        lunch = lunch_dinner_options.sample(n=1).iloc[0]
+        dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
+        
+        # If no different dinner options available, use original options
+        if dinner_options.empty:
+            dinner = lunch_dinner_options.sample(n=1).iloc[0]
+        else:
+            dinner = dinner_options.sample(n=1).iloc[0]
 
         return {
             'breakfast': breakfast['title'],
@@ -175,13 +208,42 @@ class MealPlanner:
         Evaluate the meal planning system with more balanced success criteria.
         """
         try:
+            total_trials = 0
+            successful_trials = 0
+            total_days = 0
+            calorie_matches = 0
+            variety_matches = 0
+            preference_matches = 0
+            
+            min_acceptable = tdee * 0.90
+            max_acceptable = tdee * 1.10
+            
             tp, tn, fp, fn = 0, 0, 0, 0
             
             for _ in range(n_trials):
+                total_trials += 1
+                trial_success = True
+                
                 try:
                     weekly_plan = self.generate_weekly_plan(tdee, preferences)
                     
                     for day, meals in weekly_plan.items():
+                        total_days += 1
+                        
+                        # Check meal variety within the day
+                        day_meals = [meals['breakfast'], meals['lunch'], meals['dinner']]
+                        if len(set(day_meals)) == len(day_meals):
+                            variety_matches += 1
+                        else:
+                            trial_success = False
+                        
+                        # Check preferences
+                        day_pref_match = all(self._verify_meal_preferences(meal, preferences) for meal in day_meals)
+                        if day_pref_match:
+                            preference_matches += 1
+                        else:
+                            trial_success = False
+                            
                         for meal_type, meal_title in meals.items():
                             meets_preferences = self._verify_meal_preferences(meal_title, preferences)
                             
@@ -189,6 +251,9 @@ class MealPlanner:
                                 tp += 1  # Meal matches preferences
                             else:
                                 fp += 1  # Meal doesn't match preferences
+                                
+                    if trial_success:
+                        successful_trials += 1
                 except Exception:
                     fn += 1  # Failed to generate a plan that should have been possible
             
@@ -197,6 +262,16 @@ class MealPlanner:
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+            print("\nDetailed Evaluation Metrics:")
+            print("=" * 40)
+            print(f"Total weekly plans generated: {total_trials}")
+            print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
+            print(f"Days with correct calories: {calorie_matches}/{total_days}")
+            print(f"Days with meal variety: {variety_matches}/{total_days}")
+            print(f"Days meeting preferences: {preference_matches}/{total_days}")
+            print(f"Successful weekly plans: {successful_trials}/{total_trials}")
+            print("-" * 40)
             
             return {
                 'accuracy': accuracy,
@@ -216,8 +291,8 @@ class MealPlanner:
 
 # Initialize the meal planner
 planner = MealPlanner(
-    breakfast_path='combined_bf_recipes.csv',
-    lunch_path='combined_lunch_recipes.csv'
+    breakfast_path='bf.csv',
+    lunch_path='lunch.csv'
 )
 
 # Define a route to predict meal plans

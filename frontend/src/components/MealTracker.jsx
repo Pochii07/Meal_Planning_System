@@ -11,6 +11,9 @@ const MealTracker = () => {
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [originalNote, setOriginalNote] = useState('');
+  const [pendingSkip, setPendingSkip] = useState(null);
 
   useEffect(() => {
     const fetchMealPlan = async () => {
@@ -109,37 +112,100 @@ const handleCheckMeal = async (day, meal) => {
   }
 };
 
-const handleSkipMeal = async (day, meal) => {
+const handleSkipMeal = (day, meal) => {
+  if (skippedMeals[day]?.[meal]) {
+    confirmUnskipMeal(day, meal);
+    return;
+  }
+  
+  setPendingSkip({ day, meal });
+  const updatedMealNotes = {...mealNotes};
+  if (!updatedMealNotes[day]) {
+    updatedMealNotes[day] = {};
+  }
+  if (!updatedMealNotes[day][meal]) {
+    updatedMealNotes[day][meal] = '';
+  }
+  setMealNotes(updatedMealNotes);
+  setEditingNote(`${day}-${meal}`);
+  setOriginalNote('');
+};
+
+const confirmSkipMeal = async (day, meal) => {
   try {
     const updatedSkippedMeals = {...skippedMeals};
     if (!updatedSkippedMeals[day]) {
       updatedSkippedMeals[day] = {};
     }
     
-    // Toggle the skipped status
-    const newSkippedStatus = !updatedSkippedMeals[day][meal];
-    updatedSkippedMeals[day][meal] = newSkippedStatus;
-    
-    // If we're unskipping, also clear the note
-    if (!newSkippedStatus) {
-      const updatedMealNotes = {...mealNotes};
-      if (updatedMealNotes[day]) {
-        updatedMealNotes[day][meal] = '';
-        setMealNotes(updatedMealNotes);
-      }
-    }
-    
-    setSkippedMeals(updatedSkippedMeals);
+    updatedSkippedMeals[day][meal] = true;
     
     if (progress[day]?.[meal]) {
       await handleCheckMeal(day, meal);
     }
     
+    setSkippedMeals(updatedSkippedMeals);
+    
     await updateMealStatus(day, meal);
+    
+    setPendingSkip(null);
+    setEditingNote(null);
   } catch (error) {
-    console.error("Error skipping meal:", error);
+    console.error('Error updating meal status:', error);
+    setError('Failed to update meal status');
+    setPendingSkip(null);
+  }
+};
+
+const confirmUnskipMeal = async (day, meal) => {
+  try {
+    const updatedSkippedMeals = {...skippedMeals};
+    if (!updatedSkippedMeals[day]) {
+      updatedSkippedMeals[day] = {};
+    }
+    
+    updatedSkippedMeals[day][meal] = false;
+    
+    const updatedMealNotes = {...mealNotes};
+    if (updatedMealNotes[day]) {
+      updatedMealNotes[day][meal] = '';
+      setMealNotes(updatedMealNotes);
+    }
+    
+    setSkippedMeals(updatedSkippedMeals);
+    
+    await updateMealStatus(day, meal);
+    
+    setPendingSkip(null);
+  } catch (error) {
+    console.error('Error updating meal status:', error);
     setError('Failed to update meal status');
   }
+};
+
+const cancelSkipMeal = () => {
+  setPendingSkip(null);
+  setEditingNote(null);
+};
+
+const startEditingNote = (day, meal) => {
+  setEditingNote(`${day}-${meal}`);
+  setOriginalNote(mealNotes[day]?.[meal] || '');
+};
+
+const cancelNoteEdit = (day, meal) => {
+  const updatedMealNotes = {...mealNotes};
+  if (!updatedMealNotes[day]) {
+    updatedMealNotes[day] = {};
+  }
+  updatedMealNotes[day][meal] = originalNote;
+  setMealNotes(updatedMealNotes);
+  setEditingNote(null);
+};
+
+const confirmNote = async (day, meal) => {
+  await saveNote(day, meal);
+  setEditingNote(null);
 };
 
 const handleNoteChange = (day, meal, note) => {
@@ -185,11 +251,9 @@ const updateMealStatus = async (day, meal) => {
       return;
     }
     
-    // Get the current status after state updates
     const isSkipped = skippedMeals[day]?.[meal] || false;
     const noteValue = isSkipped ? (mealNotes[day]?.[meal] || '') : '';
     
-    // Send the updated skipped status to the backend
     const response = await fetch(`/api/patient_routes/${mealPlan._id}/meal-notes`, {
       method: 'PATCH',
       headers: {
@@ -206,14 +270,12 @@ const updateMealStatus = async (day, meal) => {
     });
 
     if (response.ok) {
-      // Update states with the response data
       const data = await response.json();
       setSkippedMeals(data.skippedMeals);
       setMealNotes(data.mealNotes);
     } else {
       const errorData = await response.json();
       setError(errorData.error || 'Failed to update meal status');
-      // If the API call fails, revert the skipped status
       const updatedSkippedMeals = {...skippedMeals};
       if (updatedSkippedMeals[day]) {
         updatedSkippedMeals[day][meal] = !updatedSkippedMeals[day][meal];
@@ -223,7 +285,6 @@ const updateMealStatus = async (day, meal) => {
   } catch (error) {
     console.error("Error updating meal status:", error);
     setError('Failed to update meal status');
-    // If there's an error, revert the skipped status
     const updatedSkippedMeals = {...skippedMeals};
     if (updatedSkippedMeals[day]) {
       updatedSkippedMeals[day][meal] = !updatedSkippedMeals[day][meal];
@@ -272,7 +333,7 @@ return (
                                       type="checkbox"
                                       checked={progress[day]?.[meal] || false}
                                       onChange={() => handleCheckMeal(day, meal)}
-                                      disabled={skippedMeals[day]?.[meal]}
+                                      disabled={skippedMeals[day]?.[meal] || pendingSkip?.day === day && pendingSkip?.meal === meal}
                                   />
                                   <span className="meal-type">{meal}</span>
                               </div>
@@ -281,39 +342,58 @@ return (
                                 className="meal-desc flex items-center"
                                 onClick={() => {
                                   if (mealPlan.prediction[day]?.[meal] && 
-                                    !skippedMeals[day]?.[meal]) {
+                                    !skippedMeals[day]?.[meal] && 
+                                    !pendingSkip) {
                                     fetchRecipeDetails(mealPlan.prediction[day][meal]);
                                   }
                                 }}
                                 style={{ 
-                                  cursor: (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal]) ? 'pointer' : 'default' 
+                                  cursor: (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) ? 'pointer' : 'default' 
                                 }}
                               >
-                                <span className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] ? 
+                                <span className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
                                   "text-green-600 hover:text-green-800 hover:underline transition-colors flex-grow" : 
                                   "text-gray-600 flex-grow"
                                 }>
                                   {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
                                 </span>
-                                {mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal]}
                               </div>
                               
                               <button 
-                                  className={`skip-button ${skippedMeals[day]?.[meal] ? 'skipped' : ''}`}
+                                  className={`skip-button ${skippedMeals[day]?.[meal] ? 'skipped' : ''} ${pendingSkip?.day === day && pendingSkip?.meal === meal ? 'pending' : ''}`}
                                   onClick={() => handleSkipMeal(day, meal)}
+                                  disabled={pendingSkip && (pendingSkip.day !== day || pendingSkip.meal !== meal)}
                               >
                                   {skippedMeals[day]?.[meal] ? 'Unskip' : 'Skip'}
                               </button>
                               
-                              {skippedMeals[day]?.[meal] && (
+                              {(skippedMeals[day]?.[meal] || (pendingSkip?.day === day && pendingSkip?.meal === meal)) && (
                                   <div className="meal-notes">
                                       <textarea
                                           placeholder="Why did you skip? What did you eat instead?"
                                           value={mealNotes[day]?.[meal] || ''}
                                           onChange={(e) => handleNoteChange(day, meal, e.target.value)}
-                                          onBlur={() => saveNote(day, meal)}
+                                          onFocus={() => !pendingSkip && startEditingNote(day, meal)}
                                           className="meal-notes-input"
                                       />
+                                      
+                                      {((pendingSkip?.day === day && pendingSkip?.meal === meal) || 
+                                        (editingNote === `${day}-${meal}` && !pendingSkip)) && (
+                                        <div className="note-buttons">
+                                          <button 
+                                            className="note-button cancel"
+                                            onClick={() => pendingSkip ? cancelSkipMeal() : cancelNoteEdit(day, meal)}
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button 
+                                            className="note-button confirm"
+                                            onClick={() => pendingSkip ? confirmSkipMeal(day, meal) : confirmNote(day, meal)}
+                                          >
+                                            Confirm
+                                          </button>
+                                        </div>
+                                      )}
                                   </div>
                               )}
                           </div>

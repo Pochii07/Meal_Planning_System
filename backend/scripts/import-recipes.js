@@ -94,8 +94,8 @@ async function runImport() {
     await Recipe.deleteMany({});
     
     // Import all recipes without specifying meal type
-    await importRecipes('../ml/combined_bf_recipes.csv');
-    await importRecipes('../ml/combined_lunch_recipes.csv');
+    await importRecipes('../ml/bf.csv');
+    await importRecipes('../ml/lunch.csv');
     
     console.log('Import completed successfully');
     mongoose.disconnect();
