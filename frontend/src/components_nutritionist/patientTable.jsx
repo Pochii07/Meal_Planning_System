@@ -207,7 +207,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                         {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
                          <button
                            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                           onClick={() => handleRegenerateMealPlan(patient._id)}
+                           onClick={() => onRegenerateMealPlan(patient._id)}
                          >
                            Regenerate Meal Plan
                          </button>
