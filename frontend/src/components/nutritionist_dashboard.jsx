@@ -112,6 +112,35 @@ const NutritionistDashboard = () => {
     }
   };
 
+  // Add this function with your other handler functions
+  const handleRegenerateMealPlan = async (patientId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${NUTRITIONIST_API}/${patientId}/regenerate-meal-plan`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Update patient in state with new meal plan
+        const updatedPatients = patients.map(patient => 
+          patient._id === patientId ? { ...patient, prediction: data.prediction, progress: data.progress, skippedMeals: data.skippedMeals, mealNotes: data.mealNotes } : patient
+        );
+        dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+        setError(null);
+      } else {
+        setError(data.error || 'Failed to regenerate meal plan');
+      }
+    } catch (error) {
+      console.error('Error regenerating meal plan:', error);
+      setError('An error occurred while regenerating the meal plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch patients on component mount
   useEffect(() => {
 
@@ -532,6 +561,14 @@ const handleDeletePatient = async (patientId) => {
                           </div>
                         </div>
                       </div>
+                      {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
+                        <button
+                          className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
+                          onClick={() => handleRegenerateMealPlan(patient._id)}
+                        >
+                          Regenerate Meal Plan
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}
