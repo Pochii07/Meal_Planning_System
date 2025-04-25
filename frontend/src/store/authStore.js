@@ -1,6 +1,7 @@
 import { create } from "zustand";
+import { AUTH_API } from '../config/api';
 
-const API_URL = 'http://localhost:4000/api/auth';
+const API_URL = AUTH_API;
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -134,12 +135,16 @@ export const useAuthStore = create((set) => ({
                 });
                 return { ...data, shouldVerify: true };
             }
-            set({ 
-                isLoading: false, 
-                isAuthenticated: true, 
-                requiresVerification: false,
-                user: data.user
-            });
+            if (data.user && data.user.token) {
+                // Store token as is without any modifications
+                localStorage.setItem('authToken', data.user.token);
+                
+                set({ 
+                    isLoading: false, 
+                    isAuthenticated: true,
+                    user: data.user
+                });
+            }
             return data;
         } catch (error) {
             set({ 
@@ -158,14 +163,20 @@ export const useAuthStore = create((set) => ({
             error: null
         })
         try {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                set({ isCheckingAuth: false, isAuthenticated: false, user: null });
+                return;
+            }
+            
             const response = await fetch(`${API_URL}/check_auth`, {
                 method: 'GET',
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-            })
-            const data = await response.json()
+                }
+            });
+            const data = await response.json();
             if(data.user){
                 set({ isCheckingAuth: false, isAuthenticated: true, user: data.user });   
             } else {
@@ -178,6 +189,7 @@ export const useAuthStore = create((set) => ({
         }
     },
     logout: async () => {
+        localStorage.removeItem('authToken');
         set({ isLoading: true, error: null });
         try {
           await fetch(`${API_URL}/logout`, {

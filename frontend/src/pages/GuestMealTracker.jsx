@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { PATIENT_API } from '../config/api';
 
 const GuestMealTracker = () => {
   const [accessCode, setAccessCode] = useState('');
@@ -20,7 +21,7 @@ const GuestMealTracker = () => {
 
     try {
       // Verify the access code against your backend
-      const response = await fetch('/api/patient_routes/verify-access-code', {
+      const response = await fetch(`${PATIENT_API}/verify-access-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

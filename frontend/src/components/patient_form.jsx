@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePatientContext } from "../hooks/use_patient_context";
 import { useAuthStore } from "../store/authStore";
+import { PATIENT_API } from '../config/api';
 
 const DIETARY_PREFERENCES = [
   "Vegetarian",
@@ -124,7 +125,7 @@ const PatientForm = () => {
           restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None"
         };
 
-        const endpoint = user ? '/api/patient_routes' : '/api/patient_routes/guest-predict'; 
+        const endpoint = user ? `${PATIENT_API}` : `${PATIENT_API}/guest-predict`; 
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {

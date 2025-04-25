@@ -9,22 +9,12 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
 import json
+import os
 
 # Initialize the Flask app
 app = Flask(__name__)
-# Enable CORS for your frontend origin
-CORS(app, resources={
-    r"/*": {  # Allow all routes
-        "origins": [
-            "http://localhost:5173",  # Vite dev server
-            "http://localhost:3000",  # Optional: React dev server
-            "http://127.0.0.1:5173"   # Alternative local URL
-        ],
-        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
-        "supports_credentials": True  # Important for cookies/auth
-    }
-})
+# Enable CORS for all origins
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @dataclass
 class DietaryPreferences:
@@ -356,4 +346,5 @@ def predict_meal_plan():
         return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

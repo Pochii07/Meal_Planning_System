@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { PATIENT_API, RECIPES_API } from '../config/api';
 
 const GuestMealTrackerDisplay = () => {
   const { accessCode } = useParams();
@@ -19,7 +20,7 @@ const GuestMealTrackerDisplay = () => {
   useEffect(() => {
     const fetchMealPlan = async () => {
       try {
-        const response = await fetch(`/api/patient_routes/access-code-data/${accessCode}`);
+        const response = await fetch(`${PATIENT_API}/access-code-data/${accessCode}`);
         const data = await response.json();
         if (response.ok) {
           setMealPlan({
@@ -54,7 +55,7 @@ const GuestMealTrackerDisplay = () => {
       
       const currentProgress = progress[day]?.[meal] || false;
 
-      const response = await fetch(`/api/patient_routes/update-progress/${accessCode}`, {
+      const response = await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ const GuestMealTrackerDisplay = () => {
       updatedSkippedMeals[day][meal] = true;
       
       if (progress[day]?.[meal]) {
-        const response = await fetch(`/api/patient_routes/update-progress/${accessCode}`, {
+        const response = await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ const GuestMealTrackerDisplay = () => {
       
       setSkippedMeals(updatedSkippedMeals);
       
-      const response = await fetch(`/api/patient_routes/update-meal-status/${accessCode}`, {
+      const response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +176,7 @@ const GuestMealTrackerDisplay = () => {
       
       setSkippedMeals(updatedSkippedMeals);
       
-      const response = await fetch(`/api/patient_routes/update-meal-status/${accessCode}`, {
+      const response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ const GuestMealTrackerDisplay = () => {
 
   const saveNote = async (day, meal) => {
     try {
-      const response = await fetch(`/api/patient_routes/update-meal-notes/${accessCode}`, {
+      const response = await fetch(`${PATIENT_API}/update-meal-notes/${accessCode}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -265,7 +266,7 @@ const GuestMealTrackerDisplay = () => {
     
     setLoadingRecipe(true);
     try {
-      const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`);
+      const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
       if (response.ok) {
         const recipeData = await response.json();
         setSelectedRecipe(recipeData);

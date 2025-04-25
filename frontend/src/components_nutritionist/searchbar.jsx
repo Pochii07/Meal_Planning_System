@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export const BMI_CATEGORIES = [
   { label: 'Underweight', range: [0, 18.4] },
   { label: 'Normal', range: [18.5, 22.9] },
-  { label: 'Overweight', range: [23, 24.9] },
+  { label: 'Overweight', range: [23, 24.99] },
   { label: 'Obese I', range: [25, 29.9] },
   { label: 'Obese II', range: [30, Infinity] }
 ];
@@ -13,13 +13,17 @@ const PatientSearchBar = ({ onSearchChange }) => {
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
-    onSearchChange('', 'name');
+    const initialSearch = '';
+    const initialFilter = 'name';
+    onSearchChange?.(initialSearch, initialFilter);
   }, []);
 
   const handleSearchChange = (e) => {
     setSearchText(e.target.value);
     console.log('Search Text:', e.target.value, 'Filter Type:', filterType); // Debuggi
-    onSearchChange(e.target.value, filterType);
+    if (onSearchChange) {
+      onSearchChange(e.target.value, filterType);
+    }
   };
 
   const handleFilterChange = (type) => {

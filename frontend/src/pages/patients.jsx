@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { usePatientContext } from "../hooks/use_patient_context";
 import PatientDetails from '../components/patient_details';
+import { PATIENT_API } from '../config/api';
 
 const Patients = () => {
   const { patients, dispatch } = usePatientContext();
@@ -9,7 +10,7 @@ const Patients = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await fetch('/api/patient_routes');
+        const response = await fetch(`${PATIENT_API}`);
         if (!response.ok) {
           throw new Error('Failed to fetch patients');
         }

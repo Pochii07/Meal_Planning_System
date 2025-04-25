@@ -5,7 +5,8 @@ const {
     getNutritionistPatient,
     createNutritionistPatient,
     updateNutritionistPatient,
-    deleteNutritionistPatient
+    deleteNutritionistPatient,
+    regenerateMealPlan  // Add this import
 } = require('../controllers/nutritionist_patient_controller')
 const { verifyToken } = require('../middleware/verifyToken')
 
@@ -28,5 +29,8 @@ router.patch('/:id', updateNutritionistPatient)
 
 // Delete patient
 router.delete('/:id', deleteNutritionistPatient)
+
+// Regenerate meal plan for a patient
+router.post('/:id/regenerate-meal-plan', verifyToken, regenerateMealPlan)  // Fix this line
 
 module.exports = router

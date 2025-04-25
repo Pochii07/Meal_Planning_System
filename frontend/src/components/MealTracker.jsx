@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from "../store/authStore";
+import { PATIENT_API, RECIPES_API } from '../config/api';
 
 const MealTracker = () => {
   const { user } = useAuthStore();
@@ -23,7 +24,7 @@ const MealTracker = () => {
         }
 
         try {
-            const response = await fetch('/api/patient_routes/user-meal-plans', {
+            const response = await fetch(`${PATIENT_API}/user-meal-plans`, {
                 headers: {
                     'Authorization': `Bearer ${user.token}`,
                     'Content-Type': 'application/json'
@@ -77,7 +78,7 @@ const handleCheckMeal = async (day, meal) => {
   try {
       const currentProgress = progress[day]?.[meal] || false;
       
-      const response = await fetch(`/api/patient_routes/${mealPlan._id}/progress`, {
+      const response = await fetch(`${PATIENT_API}/${mealPlan._id}/progress`, {
           method: 'PATCH',
           headers: {
               'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ const handleNoteChange = (day, meal, note) => {
 
 const saveNote = async (day, meal) => {
   try {
-    const response = await fetch(`/api/patient_routes/${mealPlan._id}/meal-notes`, {
+    const response = await fetch(`${PATIENT_API}/${mealPlan._id}/meal-notes`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -254,7 +255,7 @@ const updateMealStatus = async (day, meal) => {
     const isSkipped = skippedMeals[day]?.[meal] || false;
     const noteValue = isSkipped ? (mealNotes[day]?.[meal] || '') : '';
     
-    const response = await fetch(`/api/patient_routes/${mealPlan._id}/meal-notes`, {
+    const response = await fetch(`${PATIENT_API}/${mealPlan._id}/meal-notes`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -298,7 +299,7 @@ const fetchRecipeDetails = async (mealName) => {
   
   setLoadingRecipe(true);
   try {
-    const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`);
+    const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
     if (response.ok) {
       const recipeData = await response.json();
       setSelectedRecipe(recipeData);

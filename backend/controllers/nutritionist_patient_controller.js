@@ -52,7 +52,8 @@ const createNutritionistPatient = async (req, res) => {
 
     try {
         // Get prediction from Flask API
-        const response = await axios.post('http://127.0.0.1:5000/predict_meal_plan', {
+        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
+        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
             age,
             height,
             weight,
@@ -180,11 +181,105 @@ const updatePatientProgress = async (req, res) => {
     }
 };
 
+const regenerateMealPlan = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        // Find the patient
+        const patient = await NutritionistPatient.findById(id);
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        // Extract patient details needed for meal plan generation
+        const { 
+            age, 
+            height, 
+            weight, 
+            gender, 
+            activity_level, 
+            preference, 
+            restrictions 
+        } = patient;
+        
+        // Call ML API to generate new meal plan
+        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
+        
+        // Convert numeric activity level to string format
+        let activityLevelString;
+        if (activity_level <= 1.2) activityLevelString = 'sedentary';
+        else if (activity_level <= 1.375) activityLevelString = 'light';
+        else if (activity_level <= 1.55) activityLevelString = 'moderate';
+        else if (activity_level <= 1.725) activityLevelString = 'active';
+        else activityLevelString = 'very active';
+
+        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
+            age,
+            height,
+            weight,
+            gender,
+            dietary_restrictions: preference,
+            allergies: restrictions,
+            activity_level: activityLevelString // Send string instead of number
+        });
+        
+        // Parse the prediction
+        const rawPrediction = response.data.predicted_meal_plan;
+        let prediction = {};
+        
+        try {
+            if (typeof rawPrediction === 'string') {
+                prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+            } else if (typeof rawPrediction === 'object') {
+                prediction = rawPrediction;
+            }
+        } catch (parseError) {
+            console.error('Error parsing prediction:', parseError);
+        }
+        
+        // Reset progress, skipped meals, and meal notes
+        const progress = {
+            Monday: { breakfast: false, lunch: false, dinner: false },
+            Tuesday: { breakfast: false, lunch: false, dinner: false },
+            Wednesday: { breakfast: false, lunch: false, dinner: false },
+            Thursday: { breakfast: false, lunch: false, dinner: false },
+            Friday: { breakfast: false, lunch: false, dinner: false },
+            Saturday: { breakfast: false, lunch: false, dinner: false },
+            Sunday: { breakfast: false, lunch: false, dinner: false }
+        };
+        
+        // Update the patient with new meal plan and reset progress
+        patient.prediction = prediction;
+        patient.progress = progress;
+        patient.skippedMeals = {};
+        patient.mealNotes = {};
+        
+        await patient.save();
+        
+        res.status(200).json({
+            success: true,
+            prediction: patient.prediction,
+            progress: patient.progress,
+            skippedMeals: patient.skippedMeals,
+            mealNotes: patient.mealNotes
+        });
+    } catch (error) {
+        console.error('Error regenerating meal plan:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getNutritionistPatients,
     getNutritionistPatient,
     createNutritionistPatient,
     updateNutritionistPatient,
     deleteNutritionistPatient,
-    updatePatientProgress
+    updatePatientProgress,
+    regenerateMealPlan
 }
