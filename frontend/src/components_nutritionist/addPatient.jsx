@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { patientService } from '../services/patientService';
 import { DIETARY_PREFERENCES, DIETARY_RESTRICTIONS } from './dietary.js';
 
 const AddPatientForm = ({ onSubmit, error }) => {
@@ -45,19 +46,8 @@ const AddPatientForm = ({ onSubmit, error }) => {
         preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
         restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
       }
-
-      console.log("Submitting patient data:", patientData);
-
-      // Use the utility function to get headers
-      const response = await fetch(`${NUTRITIONIST_API}`, {
-        method: 'POST',
-        body: JSON.stringify(patientData),
-        headers: getAuthHeaders()
-      });
-      
-      const json = await response.json();
-      console.log("API response:", json);
-
+      const response = await patientService.createPatient(patientData);
+      console.log("API response:", response);
       if (!response.ok) {
         setError(json.error || "Failed to create patient")
       } else {
