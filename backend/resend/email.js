@@ -4,7 +4,7 @@ const { verifyEmailTemplate } = require('./email_template.js');
 const sendVerificationEmail = async (email, verificationToken) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <onboarding@resend.dev>',
+            from: 'ChefIt <support@chefit.live>',
             to: [email],
             subject: 'Email Address Verification',
             html: 
@@ -29,7 +29,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
 const sendWelcomeEmail = async (email, name) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <onboarding@resend.dev>',
+            from: 'Acme <support@chefit.live>',
             to: [email],
             subject: 'Welcome to MPS',
             html: `Welcome to Meal Planning System!`,
@@ -43,7 +43,7 @@ const sendWelcomeEmail = async (email, name) => {
 const sendPasswordResetEmail = async (email, resetURL) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <onboarding@resend.dev>',
+            from: 'Acme <support@chefit.live>',
             to: [email],
             subject: 'Password Reset',
             html: `Click <a href= "${resetURL}">here</a> to reset your password`,
@@ -56,7 +56,7 @@ const sendPasswordResetEmail = async (email, resetURL) => {
 const sendPasswordResetSuccessEmail = async (email, verificationToken) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <onboarding@resend.dev>',
+            from: 'Acme <support@chefit.live>',
             to: [email],
             subject: 'Reset Password Successful',
             html: `Password reset`,
