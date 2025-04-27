@@ -1,5 +1,5 @@
 const express = require('express')
-const { signup, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth } = require('../controllers/auth_controller.js')
+const { signup, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken } = require('../controllers/auth_controller.js')
 const { verifyToken } = require('../middleware/verifyToken.js')
 
 const router = express.Router();
@@ -13,5 +13,8 @@ router.post("/reset_password/:token", resetPassword);
 
 // for level of access
 router.get("/check_auth", verifyToken, checkAuth)
+router.get("/check_reset_token/:token", checkPasswordResetToken)
+
+
 
 module.exports = router

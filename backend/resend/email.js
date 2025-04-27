@@ -1,10 +1,10 @@
 const { resend } = require('./config.js');
-const { verifyEmailTemplate } = require('./email_template.js');
+const { verifyEmailTemplate, resetPasswordEmailTemplate } = require('./email_template.js');
 
 const sendVerificationEmail = async (email, verificationToken) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'ChefIt <support@chefit.live>',
+            from: 'ChefIT <support@chefit.live>',
             to: [email],
             subject: 'Email Address Verification',
             html: 
@@ -29,7 +29,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
 const sendWelcomeEmail = async (email, name) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <support@chefit.live>',
+            from: 'ChefIT <support@chefit.live>',
             to: [email],
             subject: 'Welcome to MPS',
             html: `Welcome to Meal Planning System!`,
@@ -40,13 +40,16 @@ const sendWelcomeEmail = async (email, name) => {
     }
 }
 
-const sendPasswordResetEmail = async (email, resetURL) => {
+const sendPasswordResetEmail = async (email, firstName, resetURL) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <support@chefit.live>',
+            from: 'ChefIT <support@chefit.live>',
             to: [email],
             subject: 'Password Reset',
-            html: `Click <a href= "${resetURL}">here</a> to reset your password`,
+            html:
+                resetPasswordEmailTemplate
+                    .replace("{resetURL}", resetURL)
+                    .replace("{firstName}", firstName),
           });
     } catch (error) {
         console.log("Error: ", error);
@@ -56,7 +59,7 @@ const sendPasswordResetEmail = async (email, resetURL) => {
 const sendPasswordResetSuccessEmail = async (email, verificationToken) => {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Acme <support@chefit.live>',
+            from: 'ChefIT <support@chefit.live>',
             to: [email],
             subject: 'Reset Password Successful',
             html: `Password reset`,

@@ -13,15 +13,14 @@ const verifyLogin = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [dialogStatus, setDialogStatus] = useState("");
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(0);
   const inputRefs = useRef([]);
 
-  // Load verification data from sessionStorage on mount
+  // load verification data from sessionStorage on mount
   useEffect(() => {
     const storedData = sessionStorage.getItem('pendingVerification');
     
     if (!storedData) {
-      navigate('/signup'); // Redirect if no verification data exists
+      navigate('/signup'); // redirect if no verification data exists
       return;
     }
     
@@ -88,7 +87,7 @@ const verifyLogin = () => {
   const handleCloseDialog = () => {
     setShowDialog(false);
     if (dialogStatus === "success") {
-      // Reset form on successful submission
+      // reset form on successful submission
       setOtp(Array(6).fill(""));
       inputRefs.current[0]?.focus();
     }
@@ -98,31 +97,6 @@ const verifyLogin = () => {
     sessionStorage.removeItem('pendingVerification');
     setShowDialog(false);
     navigate('/LogIn', { state: { verified: true } });
-  };
-
-  const handleResendCode = async () => {
-    // try {
-    //   // Implement your resend API call here
-    //   const response = await resendVerificationCode(verificationData.email);
-      
-    //   if (response.success) {
-    //     const newExpiresAt = Date.now() + 15 * 60 * 1000;
-    //     const newData = {
-    //       ...verificationData,
-    //       expiresAt: newExpiresAt
-    //     };
-    //     sessionStorage.setItem('pendingVerification', JSON.stringify(newData));
-    //     setVerificationData(newData);
-    //     setTimeLeft(15 * 60);
-    //     setOtp(Array(6).fill(""));
-    //     setError("");
-    //     inputRefs.current[0]?.focus();
-    //   } else {
-    //     setError(response.message || "Failed to resend code");
-    //   }
-    // } catch (err) {
-    //   setError("Failed to resend verification code");
-    // }
   };
 
   const handleSubmit = async (event) => {
@@ -272,40 +246,6 @@ const verifyLogin = () => {
                 {error}
               </p>
             )}
-          </div>
-  
-          {/* Resend Code Section */}
-          <div style={{ 
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "8px"
-          }}>
-            <button
-              type="button"
-              onClick={handleResendCode}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#007bff",
-                cursor: "pointer",
-                fontSize: "14px",
-                textDecoration: "underline",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M23 4V10H17" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M1 20V14H7" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M3.51 9C4.01717 7.56678 4.87913 6.2854 6.01547 5.27542C7.1518 4.26543 8.52547 3.55976 10 3.22301C11.4745 2.88625 13.0046 2.93199 14.4556 3.35477C15.9066 3.77754 17.2276 4.56259 18.29 5.63L23 10M1 14L5.71 18.37C6.77238 19.4374 8.09342 20.2225 9.54444 20.6452C10.9954 21.068 12.5255 21.1137 14 20.777C15.4745 20.4402 16.8482 19.7346 17.9845 18.7246C19.1209 17.7146 19.9828 16.4332 20.49 15" stroke="#007bff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Resend Code
-            </button>
-            <span style={{ color: "#666", fontSize: "13px" }}>
-              (Available in 2:00)
-            </span>
           </div>
   
           {/* Submit Button */}
