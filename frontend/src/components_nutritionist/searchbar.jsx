@@ -20,7 +20,6 @@ const PatientSearchBar = ({ onSearchChange }) => {
 
   const handleSearchChange = (e) => {
     setSearchText(e.target.value);
-    console.log('Search Text:', e.target.value, 'Filter Type:', filterType); // Debuggi
     if (onSearchChange) {
       onSearchChange(e.target.value, filterType);
     }

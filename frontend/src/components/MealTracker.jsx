@@ -323,87 +323,126 @@ return (
   <div className="meal-tracker">
       <h2>Weekly Meal Tracker</h2>
       {mealPlan && mealPlan.prediction ? (
-          <div className="meal-grid">
-              {days.map(day => (
-                  <div key={day} className="day-card">
-                      <h3>{day}</h3>
-                      {meals.map(meal => (
-                          <div key={`${day}-${meal}`} className="meal-item">
-                              <div className="meal-controls">
-                                  <input
-                                      type="checkbox"
-                                      checked={progress[day]?.[meal] || false}
-                                      onChange={() => handleCheckMeal(day, meal)}
-                                      disabled={skippedMeals[day]?.[meal] || pendingSkip?.day === day && pendingSkip?.meal === meal}
-                                  />
-                                  <span className="meal-type">{meal}</span>
-                              </div>
-                              
-                              <div 
-                                className="meal-desc flex items-center"
-                                onClick={() => {
-                                  if (mealPlan.prediction[day]?.[meal] && 
-                                    !skippedMeals[day]?.[meal] && 
-                                    !pendingSkip) {
-                                    fetchRecipeDetails(mealPlan.prediction[day][meal]);
-                                  }
-                                }}
-                                style={{ 
-                                  cursor: (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) ? 'pointer' : 'default' 
-                                }}
-                              >
-                                <span className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
-                                  "text-green-600 hover:text-green-800 hover:underline transition-colors flex-grow" : 
-                                  "text-gray-600 flex-grow"
-                                }>
-                                  {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
-                                </span>
-                              </div>
-                              
-                              <button 
-                                  className={`skip-button ${skippedMeals[day]?.[meal] ? 'skipped' : ''} ${pendingSkip?.day === day && pendingSkip?.meal === meal ? 'pending' : ''}`}
-                                  onClick={() => handleSkipMeal(day, meal)}
-                                  disabled={pendingSkip && (pendingSkip.day !== day || pendingSkip.meal !== meal)}
-                              >
-                                  {skippedMeals[day]?.[meal] ? 'Unskip' : 'Skip'}
-                              </button>
-                              
-                              {(skippedMeals[day]?.[meal] || (pendingSkip?.day === day && pendingSkip?.meal === meal)) && (
-                                  <div className="meal-notes">
-                                      <textarea
-                                          placeholder="Why did you skip? What did you eat instead?"
-                                          value={mealNotes[day]?.[meal] || ''}
-                                          onChange={(e) => handleNoteChange(day, meal, e.target.value)}
-                                          onFocus={() => !pendingSkip && startEditingNote(day, meal)}
-                                          className="meal-notes-input"
-                                      />
-                                      
-                                      {((pendingSkip?.day === day && pendingSkip?.meal === meal) || 
-                                        (editingNote === `${day}-${meal}` && !pendingSkip)) && (
-                                        <div className="note-buttons">
-                                          <button 
-                                            className="note-button cancel"
-                                            onClick={() => pendingSkip ? cancelSkipMeal() : cancelNoteEdit(day, meal)}
-                                          >
-                                            Cancel
-                                          </button>
-                                          <button 
-                                            className="note-button confirm"
-                                            onClick={() => pendingSkip ? confirmSkipMeal(day, meal) : confirmNote(day, meal)}
-                                          >
-                                            Confirm
-                                          </button>
-                                        </div>
-                                      )}
-                                  </div>
-                              )}
-                          </div>
-                      ))}
+        <div className="meal-grid">
+          {days.map((day) => (
+            <div key={day} className="day-card">
+              <h3>{day}</h3>
+
+              {meals.map((meal) => (
+                <div key={`${day}-${meal}`} className="meal-item">
+                  
+                  {/* Meal Controls */}
+                  <div className="meal-controls">
+                    <input
+                      type="checkbox"
+                      checked={progress[day]?.[meal] || false}
+                      onChange={() => handleCheckMeal(day, meal)}
+                      disabled={
+                        skippedMeals[day]?.[meal] ||
+                        (pendingSkip?.day === day && pendingSkip?.meal === meal)
+                      }
+                    />
+                    <span className="meal-type">{meal}</span>
                   </div>
+
+                  {/* Meal Description */}
+                  <div
+                    className="meal-desc flex items-center"
+                    onClick={() => {
+                      if (
+                        mealPlan.prediction[day]?.[meal] &&
+                        !skippedMeals[day]?.[meal] &&
+                        !pendingSkip
+                      ) {
+                        fetchRecipeDetails(mealPlan.prediction[day][meal]);
+                      }
+                    }}
+                    style={{
+                      cursor:
+                        mealPlan.prediction[day]?.[meal] &&
+                        !skippedMeals[day]?.[meal] &&
+                        !pendingSkip
+                          ? 'pointer'
+                          : 'default',
+                    }}
+                  >
+                    <span
+                      className={
+                        mealPlan.prediction[day]?.[meal] &&
+                        !skippedMeals[day]?.[meal] &&
+                        !pendingSkip
+                          ? "text-green-600 hover:text-green-800 hover:underline transition-colors flex-grow"
+                          : "text-gray-600 flex-grow"
+                      }
+                    >
+                      {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
+                    </span>
+                  </div>
+
+                  {/* Skip Button */}
+                  <button
+                    className={`skip-button ${
+                      skippedMeals[day]?.[meal] ? 'skipped' : ''
+                    } ${
+                      pendingSkip?.day === day && pendingSkip?.meal === meal
+                        ? 'pending'
+                        : ''
+                    }`}
+                    onClick={() => handleSkipMeal(day, meal)}
+                    disabled={
+                      pendingSkip &&
+                      (pendingSkip.day !== day || pendingSkip.meal !== meal)
+                    }
+                  >
+                    {skippedMeals[day]?.[meal] ? 'Unskip' : 'Skip'}
+                  </button>
+
+                  {/* Meal Notes */}
+                  {(skippedMeals[day]?.[meal] ||
+                    (pendingSkip?.day === day && pendingSkip?.meal === meal)) && (
+                    <div className="meal-notes">
+                      <textarea
+                        placeholder="Why did you skip? What did you eat instead?"
+                        value={mealNotes[day]?.[meal] || ''}
+                        onChange={(e) => handleNoteChange(day, meal, e.target.value)}
+                        onFocus={() => !pendingSkip && startEditingNote(day, meal)}
+                        className="meal-notes-input"
+                      />
+
+                      {(pendingSkip?.day === day && pendingSkip?.meal === meal) ||
+                      (editingNote === `${day}-${meal}` && !pendingSkip) ? (
+                        <div className="note-buttons">
+                          <button
+                            className="note-button cancel"
+                            onClick={() =>
+                              pendingSkip
+                                ? cancelSkipMeal()
+                                : cancelNoteEdit(day, meal)
+                            }
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="note-button confirm"
+                            onClick={() =>
+                              pendingSkip
+                                ? confirmSkipMeal(day, meal)
+                                : confirmNote(day, meal)
+                            }
+                          >
+                            Confirm
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               ))}
-          </div>
+            </div>
+          ))}
+        </div>
       ) : (
-          <div>No meal plan available</div>
+        <div>No meal plan available</div>
       )}
       {error && <div className="error">{error}</div>}
       {recipeModalOpen && selectedRecipe && (
