@@ -1,4 +1,4 @@
-import React, { useEffect, useState} from 'react'; // Make sure React is imported
+import React, { useEffect, useState, useCallback } from 'react'; // Make sure React is imported
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
 import { usePatientManagement } from '../hooks/use_patient_management'
 import { useAuthStore } from '../store/authStore'
@@ -35,10 +35,55 @@ const NutritionistDashboard = () => {
     loading,
     error,
     handleCreatePatient,
-    handleRegenerateMealPlan,
     setLoading,
     setError
   } = usePatientManagement(dispatch);
+
+  const handleRegenerateMealPlan = useCallback(async (patientId) => {
+    try {
+      console.log("Starting meal plan regeneration for patient:", patientId);
+      
+      // Call the service to regenerate the meal plan
+      const response = await patientService.regenerateMealPlan(patientId);
+      console.log("Regeneration API response:", response);
+      
+      if (!response) {
+        console.error("Failed to regenerate meal plan - empty response");
+        return null;
+      }
+      
+      // Update patients in context with the new data
+      if (patients && Array.isArray(patients)) {
+        // Create updated patients array with new meal plan
+        const updatedPatients = patients.map(p => 
+          p._id === patientId ? {
+            ...p,
+            prediction: response.prediction,
+            progress: response.progress || {},
+            skippedMeals: response.skippedMeals || {},
+            mealNotes: response.mealNotes || {}
+          } : p
+        );
+        
+        console.log("Dispatching updated patients:", updatedPatients);
+        dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+        
+        // Also do a full refresh from the backend to ensure data consistency
+        setTimeout(async () => {
+          const refreshedPatients = await patientService.getAllPatients();
+          if (refreshedPatients) {
+            console.log("Dispatching refreshed patients:", refreshedPatients);
+            dispatch({ type: 'SET_PATIENTS', payload: refreshedPatients });
+          }
+        }, 300);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Failed to regenerate meal plan:', error);
+      return null;
+    }
+  }, [patients, dispatch, patientService]);
 
   useEffect(() => {
     const fetchInitialPatients = async () => {
@@ -70,6 +115,7 @@ const NutritionistDashboard = () => {
     } else {
       setFilteredPatients(patients || []);
     }
+    console.log("Patients data updated:", patients);
   }, [patients, currSearchText]); // Add patients to the dependency array
 
   const handleRemovePatient = async (patientId) => {

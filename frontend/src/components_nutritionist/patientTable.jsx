@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import RecipeModal from './modals/recipeModal.jsx';
 import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
+import useForceUpdate from '../hooks/use_force_update'; // Add this import
 
 const days = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
@@ -10,29 +11,46 @@ const days = [
 const meals = ["breakfast", "lunch", "dinner"];
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
+  // Add key to fix warning
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
+  const forceUpdate = useForceUpdate(); // Use the hook
 
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
 
-  const [expandedPatientId, setExpandedPatientId] = useState(null)
+  const [expandedPatientId, setExpandedPatientId] = useState(null);
   const expandRef = useRef(null);
   
   const [mealCalories, setMealCalories] = useState({});
   const [mealPlanVersion, setMealPlanVersion] = useState(0);
   
-  // handle scrolling
+  // Update this function to properly handle regeneration
+  const handleRegenerateMealPlanClick = useCallback((patientId) => {
+    // Show some loading state to the user
+    console.log("Regenerating meal plan for patient:", patientId);
+    
+    onRegenerateMealPlan(patientId).then((updatedData) => {
+      console.log("Meal plan regenerated successfully:", updatedData);
+      
+      // Clear meal calories cache
+      setMealCalories({});
+      
+      // Force re-render using multiple approaches
+      setMealPlanVersion(prev => prev + 1);
+      forceUpdate(); 
+      
+      // Force another update after a short delay
+      setTimeout(() => {
+        forceUpdate();
+        console.log("Forced update after timeout");
+      }, 500);
+    });
+  }, [onRegenerateMealPlan, forceUpdate]);
+
+  // This effect will re-fetch meal calories when patients or mealPlanVersion changes
   useEffect(() => {
-    if (expandedPatientId && expandRef.current) {
-      expandRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest' 
-      });
-    }
-  }, [expandedPatientId]);
-  
-  useEffect(() => {
+    console.log("Effect triggered - fetching meal calories. Version:", mealPlanVersion);
     const fetchAllMealCalories = async () => {
       let newMealCalories = {};
       for (const patient of patients || []) {
@@ -46,10 +64,10 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                 const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
                 if (response.ok) {
                   const recipeData = await response.json();
-                  newMealCalories[patient._id][day][meal] = recipeData.calories;
+                  newMealCalories[patient._id][day][meal] = recipeData.calories || 0;
                 }
-              } catch (e) {
-                newMealCalories[patient._id][day][meal] = null;
+              } catch (err) {
+                console.error('Error fetching meal calories:', err);
               }
             }
           }
@@ -59,7 +77,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
     };
 
     fetchAllMealCalories();
-  }, [patients, mealPlanVersion]);
+  }, [patients, mealPlanVersion]); // Dependencies include both patients and version
 
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
@@ -109,16 +127,6 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
     } finally {
       setLoadingRecipe(false);
     }
-  };
-
-  const handleRegenerateMealPlanClick = (patientId) => {
-    // Show loading state if needed
-    onRegenerateMealPlan(patientId).then(() => {
-      // Clear meal calories cache to force re-fetch
-      setMealCalories({});
-      // Force component re-render
-      setMealPlanVersion(prev => prev + 1);
-    });
   };
 
   return (
