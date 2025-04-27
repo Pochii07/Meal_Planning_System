@@ -260,9 +260,6 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                            Regenerate Meal Plan
                          </button>
                         )}
-                        <div className="grid grid-cols-7 gap-4 py-8">
-                          {days.map((day) => (
-                        </div>                     
                         <div className="grid grid-cols-7 gap-1 py-4">
                           <div className="col-span-7 mb-2 text-sm italic text-gray-600">
                             Click the recipe name for more information
