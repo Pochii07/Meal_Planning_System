@@ -69,21 +69,18 @@ const ForgotPassword = () => {
     if (!regex.test(email)) {
       setDialogStatus("error");
       setShowDialog(true);
-    } else {
-      setDialogStatus("success");
-      setShowDialog(true);
     }
 
     try {
       const data = await forgotpassword(email);
 
-      if (data) {
-        console.log(data);
-      } else {
-        // dialog for try again
-      }
+      setDialogStatus("success");
+      setShowDialog(true);
+      console.log("Password reset request successful:", data);
     } catch (error) {
-      console.error("Login failed:", error);
+      setDialogStatus("error");
+      setShowDialog(true);
+      console.error("Password reset request failed:", error);
     }
   };
 

@@ -171,7 +171,7 @@ const verifyEmail = async (req, res) => {
         user.verificationTokenExpiresAt = undefined;
         await user.save();
         
-        await sendWelcomeEmail(user.email);
+        // await sendWelcomeEmail(user.email);
         return res.status(200).json({
             success: true,
         })
@@ -180,7 +180,6 @@ const verifyEmail = async (req, res) => {
         throw new Error("Error sending verification email");
     }
 }
-
 const forgotPassword = async (req, res) => {
     const {email} = req.body;
 
@@ -199,7 +198,7 @@ const forgotPassword = async (req, res) => {
         user.resetPasswordTokenExpiresAt = resetPasswordTokenExpiresAt;
 
         await user.save();
-        await sendPasswordResetEmail(user.email, `${process.env.CLIENT_URL}/reset_password/${resetPasswordToken}`);
+        await sendPasswordResetEmail(user.email, (user.firstName).toUpperCase(), `${process.env.CLIENT_URL}/reset_password/${resetPasswordToken}`);
         res.status(200).json({
             success: true,
             message: 'Password reset email sent successfully'
@@ -233,7 +232,7 @@ const resetPassword = async (req, res) => {
         user.resetPasswordTokenExpiresAt = undefined;
         await user.save();
 
-        await sendPasswordResetSuccessEmail(user.email);
+        // await sendPasswordResetSuccessEmail(user.email);
         res.status(200).json({
             success: true,
             message: 'Password reset successfully'
@@ -274,4 +273,28 @@ const checkAuth = async (req, res) => {
     }
 }
 
-module.exports = { signup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth };
+const checkPasswordResetToken = async (req, res) => {
+    try {
+        const user = await User.findOne({
+            resetPasswordToken: req.params.token,
+            resetPasswordTokenExpiresAt: { $gt: Date.now() }
+        });
+
+        console.log('Token validation request:', {
+            token: req.params.token,
+            currentTime: new Date(),
+            found: !!user
+        });
+
+        if (!user) {
+            return res.status(400).json({ isValid: false });
+        }
+
+        res.status(200).json({ isValid: true });
+    } catch (error) {
+        console.error("Token validation error:", error);
+        res.status(500).json({ isValid: false });
+    }
+}
+
+module.exports = { signup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken };

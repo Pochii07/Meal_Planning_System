@@ -219,15 +219,17 @@ export const useAuthStore = create((set) => ({
                 credentials: 'include',
                 body: JSON.stringify({ email })
             })
-            const data = await response.json()
-            
-            if (data){
-                set({ isLoading: false, message: data.message });
-                return data
-            } else {
-                set({ isLoading: false, error: error.message });
-                return data
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({
+                    message: `Server error: ${response.status} ${response.statusText}`
+                }));
+                throw new Error(errorData.message || 'Password reset request failed');
             }
+            const data = await response.json().catch(() => ({
+                message: `Server error: ${response.status} ${response.statusText}`
+            }));
+            set({ isLoading: false, message: data.message });
+            return data;
         } catch (error) {
             set({ isLoading: false, error: error.message})
             console.log(error);
@@ -250,11 +252,33 @@ export const useAuthStore = create((set) => ({
             })
             const data = await response.json()
             set({ isLoading: false, message: data.message });
-            console.log(message);
+            console.log(data.message);
         } catch (error) {
             set({ isLoading: false, error: error.message})
             console.log(error);
             throw error
         }
-    }
+    },
+    checkPasswordResetToken: async (token) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await fetch(`${API_URL}/check_reset_token/${token}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Invalid or expired token');
+            }
+            
+            const data = await response.json();
+            return data.isValid;
+        } catch (error) {
+            set({ error: error.message });
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
 }));

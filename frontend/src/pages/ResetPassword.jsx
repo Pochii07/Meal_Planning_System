@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import cooking from "../Images/cooking.png";
 import TextField from "@mui/material/TextField";
 import { IconButton, InputAdornment } from "@mui/material";
@@ -163,20 +163,48 @@ const ConfirmPassword = ({
 };
 
 const ResetPassword = () => {
-  const { resetpassword, isLoading } = useAuthStore();
+  const { resetpassword, isLoading, checkPasswordResetToken } = useAuthStore();
   const { token } = useParams();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState("");
-  const [confirmPassword, checkPassword] = useState("");
-  const [dialogStatus, setShowDialog] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogStatus, setDialogStatus] = useState("");
+  const [dialogMessage, setDialogMessage] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [tokenValid, setTokenValid] = useState(false);
+  const [tokenError, setTokenError] = useState("");
+
   const header = "Reset Password";
   const subHeader = "Enter your new password.";
-  const successMessage = "Password changed successfully.";
+
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        
+        // add token validation API call
+        const isValid = await checkPasswordResetToken(token);
+        if (!isValid) {
+          setTokenError("Invalid or expired password reset link");
+          setTimeout(() => navigate('/login'), 10000);
+        }
+        setTokenValid(true);
+      } catch (error) {
+        setTokenError(error.message || "Invalid reset link. Please request a new password reset link.");
+        console.error("Token validation failed:", error.message || error);
+        setTimeout(() => navigate('/login'), 3000);  // Reduced from 10s to 3s
+      }
+    };
+    validateToken();
+  }, [token, navigate])
 
   const handleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -192,32 +220,58 @@ const ResetPassword = () => {
     event.preventDefault();
 
     // if (!password || !confirmPassword) {
-    //   alert("All fields are required!");
+    //   setDialogStatus("error");
+    //   setDialogMessage("Please fill in both password fields.");
+    //   setShowDialog(true);
     //   return;
     // }
 
     // if (!passwordRegex.test(password)) {
-    //   alert("Password does not meet security requirements!");
+    //   setDialogStatus("error");
+    //   setDialogMessage("Password does not meet security requirements. It needs at least 8 characters, one uppercase, one lowercase, one number, and one special character.");
+    //   setShowDialog(true);
     //   return;
     // }
 
     // if (password !== confirmPassword) {
-    //   alert("Passwords do not match!");
+    //   setDialogStatus("error");
+    //   setDialogMessage("Passwords do not match.");
+    //   setShowDialog(true);
     //   return;
     // }
 
     try {
       const data = await resetpassword(token, password);
 
-      if (!data === false) {
-        setShowDialog(true);
-      } else {
-        // dialog for try again
-      }
+      setDialogStatus("success");
+      setDialogMessage("Password reset successful!");
+      setShowDialog(true);
+      // navigate away after success
+      setTimeout(() => navigate('/login'), 10000); // Example delay
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Password reset failed:", error);
+      setDialogStatus("error");
+      setDialogMessage("Failed to reset password. Please try again.");
+      setShowDialog(true);
     }
   };
+
+  if (!tokenValid) {
+    return (
+      <div className="flex justify-center items-center">
+        <div className="text-center p-8">
+          {tokenError ? (
+            <>
+            <h1 className="text-red-500 text-2xl mb-4">{tokenError}</h1>
+            <p className="text-gray-600">Redirecting to login page...</p>
+            </>
+          ) : (
+            <p className="text-gray-600">Validating reset link...</p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -260,10 +314,9 @@ const ResetPassword = () => {
                   <ConfirmPassword
                     label="Confirm Password"
                     password={password}
-                    setPassword={setPassword}
                     showConfirmPassword={showConfirmPassword}
                     handleShowConfirmPassword={handleShowConfirmPassword}
-                    onChange={(event) => checkPassword(event.target.value)}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
                   />
                 </td>
               </tr>
@@ -275,7 +328,7 @@ const ResetPassword = () => {
                     type="submit"
                     disabled={isLoading}
                     variant="contained"
-                    class="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
+                    className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
                     style={{ minWidth: "160px" }}
                     endIcon={<SendIcon />}
                   >
@@ -287,6 +340,84 @@ const ResetPassword = () => {
           </table>
         </form>
       </div>
+      {showDialog && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "2rem",
+              borderRadius: "8px",
+              textAlign: "center",
+              minWidth: "300px",
+              maxWidth: "90%", // Added for better responsiveness
+            }}
+          >
+            <h3 style={{ color: dialogStatus === "success" ? "green" : "red", marginTop: 0 }}> {/* Added marginTop */}
+              {dialogStatus === "success" ? "🎉 Success!" : "❌ Error"}
+            </h3>
+            <p style={{ wordWrap: "break-word" }}>{dialogMessage}</p> {/* Use dynamic message and allow wrapping */}
+            <div
+              style={{
+                marginTop: "1rem",
+                display: "flex",
+                gap: "10px",
+                justifyContent: "center",
+              }}
+            >
+              {/* Keep the "Back" button for errors */}
+              {dialogStatus === "error" && (
+                <button
+                  onClick={() => {
+                    setShowDialog(false); // Just close the dialog
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#dc3545", // Red color for error button
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+              )}
+              {/* Change button text and action for success */}
+              {dialogStatus === "success" && (
+                <button
+                  onClick={() => {
+                    setShowDialog(false);
+                    navigate("/login"); // Navigate to login page on success
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#28a745", // Green color for success button
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Go to Login
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
