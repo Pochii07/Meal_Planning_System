@@ -3,81 +3,79 @@ import RecipeModal from './modals/recipeModal.jsx';
 import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
-import useForceUpdate from '../hooks/use_force_update'; // Add this import
-
-const days = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-];
-const meals = ["breakfast", "lunch", "dinner"];
+import useForceUpdate from '../hooks/use_force_update';
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
-  // Add key to fix warning
+  // Existing state
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
-  const forceUpdate = useForceUpdate(); // Use the hook
-
+  const forceUpdate = useForceUpdate();
+  const [expandedPatientId, setExpandedPatientId] = useState(null);
+  const expandRef = useRef(null);
+  const [mealCalories, setMealCalories] = useState({});
+  const [mealPlanVersion, setMealPlanVersion] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const meals = ["breakfast", "lunch", "dinner"];
 
-  const [expandedPatientId, setExpandedPatientId] = useState(null);
-  const expandRef = useRef(null);
-  
-  const [mealCalories, setMealCalories] = useState({});
-  const [mealPlanVersion, setMealPlanVersion] = useState(0);
-  
-  // Update this function to properly handle regeneration
+  // Function to fetch calories for a specific patient
+  const fetchPatientMealCalories = async (patientId) => {
+    if (!patientId) return;
+    
+    const patient = patients.find(p => p._id === patientId);
+    if (!patient) return;
+    
+    console.log(`Fetching meal calories for patient: ${patientId}`);
+    
+    const newMealCalories = {...mealCalories};
+    newMealCalories[patientId] = {};
+    
+    for (const day of days) {
+      newMealCalories[patientId][day] = {};
+      for (const meal of meals) {
+        const mealName = patient.prediction?.[day]?.[meal];
+        if (mealName) {
+          try {
+            const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
+            if (response.ok) {
+              const recipeData = await response.json();
+              newMealCalories[patientId][day][meal] = recipeData.calories || 0;
+            }
+          } catch (err) {
+            console.error('Error fetching meal calories:', err);
+          }
+        }
+      }
+    }
+    
+    setMealCalories(newMealCalories);
+  };
+
+  // Effect that runs when expanded patient changes
+  useEffect(() => {
+    if (expandedPatientId) {
+      fetchPatientMealCalories(expandedPatientId);
+    }
+  }, [expandedPatientId, mealPlanVersion]);
+
   const handleRegenerateMealPlanClick = useCallback((patientId) => {
-    // Show some loading state to the user
     console.log("Regenerating meal plan for patient:", patientId);
     
     onRegenerateMealPlan(patientId).then((updatedData) => {
       console.log("Meal plan regenerated successfully:", updatedData);
       
-      // Clear meal calories cache
       setMealCalories({});
-      
-      // Force re-render using multiple approaches
       setMealPlanVersion(prev => prev + 1);
       forceUpdate(); 
       
-      // Force another update after a short delay
       setTimeout(() => {
         forceUpdate();
         console.log("Forced update after timeout");
       }, 500);
     });
   }, [onRegenerateMealPlan, forceUpdate]);
-
-  // This effect will re-fetch meal calories when patients or mealPlanVersion changes
-  useEffect(() => {
-    console.log("Effect triggered - fetching meal calories. Version:", mealPlanVersion);
-    const fetchAllMealCalories = async () => {
-      let newMealCalories = {};
-      for (const patient of patients || []) {
-        newMealCalories[patient._id] = {};
-        for (const day of days) {
-          newMealCalories[patient._id][day] = {};
-          for (const meal of meals) {
-            const mealName = patient.prediction?.[day]?.[meal];
-            if (mealName) {
-              try {
-                const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
-                if (response.ok) {
-                  const recipeData = await response.json();
-                  newMealCalories[patient._id][day][meal] = recipeData.calories || 0;
-                }
-              } catch (err) {
-                console.error('Error fetching meal calories:', err);
-              }
-            }
-          }
-        }
-      }
-      setMealCalories(newMealCalories);
-    };
-
-    fetchAllMealCalories();
-  }, [patients, mealPlanVersion]); // Dependencies include both patients and version
 
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
@@ -87,9 +85,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
     
     days.forEach(day => {
       meals.forEach(meal => {
-        // Don't count skipped meals toward total
         if (skippedMeals?.[day]?.[meal]) {
-          // Skip this meal in calculations
         } else {
           if (progress[day]?.[meal]) {
             completed++;
@@ -341,17 +337,6 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                   </div>
                                   );
                                 })}
-                                {/* <div className="mt-2 font-semibold text-green-700">
-                                  Total: {
-                                    (() => {
-                                      const total = meals.reduce((sum, meal) => {                         uncomment when model is updated
-                                        const c = mealCalories[patient._id]?.[day]?.[meal];
-                                        return sum + (typeof c === 'number' ? c : 0);
-                                      }, 0);
-                                      return total > 0 ? `${total} kcal` : '...';
-                                    })()
-                                  }
-                                </div> */}
                               </div>
                             </div>
                           ))}                    
