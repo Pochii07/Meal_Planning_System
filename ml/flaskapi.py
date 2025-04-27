@@ -72,7 +72,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=50, n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=10, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
