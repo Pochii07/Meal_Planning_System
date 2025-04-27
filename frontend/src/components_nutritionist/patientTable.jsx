@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RecipeModal from './modals/recipeModal.jsx';
-
+import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
+
+const days = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+];
+const meals = ["breakfast", "lunch", "dinner"];
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
     const [expandedPatientId, setExpandedPatientId] = useState(null)
@@ -13,16 +18,43 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
     const [loadingRecipe, setLoadingRecipe] = useState(false);
 
     const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+
+    const [mealCalories, setMealCalories] = useState({});
     
-    
+    useEffect(() => {
+      const fetchAllMealCalories = async () => {
+        let newMealCalories = {};
+        for (const patient of patients || []) {
+          newMealCalories[patient._id] = {};
+          for (const day of days) {
+            newMealCalories[patient._id][day] = {};
+            for (const meal of meals) {
+              const mealName = patient.prediction?.[day]?.[meal];
+              if (mealName) {
+                try {
+                  const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
+                  if (response.ok) {
+                    const recipeData = await response.json();
+                    newMealCalories[patient._id][day][meal] = recipeData.calories;
+                  }
+                } catch (e) {
+                  newMealCalories[patient._id][day][meal] = null;
+                }
+              }
+            }
+          }
+        }
+        setMealCalories(newMealCalories);
+      };
+
+      fetchAllMealCalories();
+    }, [patients]);
+
     const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
     
     let completed = 0;
     let total = 0;
-    
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const meals = ['breakfast', 'lunch', 'dinner'];
     
     days.forEach(day => {
       meals.forEach(meal => {
@@ -175,6 +207,9 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                               <p className="text-sm text-gray-600">
                                 BMI: {patient.BMI}
                               </p>
+                              <p className="text-sm text-gray-600">
+                                TDEE: {patient.TDEE} calories
+                              </p>
                               <p className="text-sm text-gray-600 font-semibold">
                                 Access Code:
                                 <div className="inline-flex gap-2">
@@ -213,54 +248,65 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                          </button>
                         )}
                         <div className="grid grid-cols-7 gap-4 py-8">
-                          {[
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                            "Sunday",
-                          ].map((day) => (
+                          {days.map((day) => (
                             <div key={day} className="bg-white p-4 rounded-lg shadow">
                               <h4 className="font-semibold text-gray-700 mb-2">
                                 {day}
                               </h4>
                               <div className="space-y-2">
-                                {["breakfast", "lunch", "dinner"].map((meal) => (
-                                  <div key={meal} className="flex items-start">
-                                    <span
-                                      className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
-                                        patient.skippedMeals?.[day]?.[meal]
-                                          ? 'bg-red-500' 
-                                          : patient.progress?.[day]?.[meal] 
-                                            ? 'bg-green-500' 
-                                            : 'bg-gray-300'
-                                      }`}
-                                      aria-label={`${meal} status indicator`}
-                                    ></span>
-                                    <div className="flex flex-col flex-1">  {/* Added column layout container */}
-                                      <span 
-                                        className={`text-sm capitalize ${
-                                          patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
-                                        } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
-                                        onClick={() => {
-                                          if (patient.prediction?.[day]?.[meal]) {
-                                            fetchRecipeDetails(patient.prediction[day][meal]);
-                                          }
-                                        }}
-                                      >
-                                        {meal}: {patient.prediction?.[day]?.[meal] || 'No meal planned'}
-                                      </span>
-                                      
-                                      {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
-                                        <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
-                                          Note: {patient.mealNotes[day][meal]}
-                                        </div>
-                                      )}
+                                {meals.map((meal) => {
+                                  const mealName = patient.prediction?.[day]?.[meal];
+                                  const calories = mealCalories[patient._id]?.[day]?.[meal];
+
+                                  return (
+                                    <div key={meal} className="flex items-start">
+                                      <span
+                                        className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
+                                          patient.skippedMeals?.[day]?.[meal]
+                                            ? 'bg-red-500' 
+                                            : patient.progress?.[day]?.[meal] 
+                                              ? 'bg-green-500' 
+                                              : 'bg-gray-300'
+                                        }`}
+                                        aria-label={`${meal} status indicator`}
+                                      ></span>
+                                      <div className="flex flex-col flex-1">
+                                        <span 
+                                          className={`text-sm capitalize ${
+                                            patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
+                                          } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
+                                          onClick={() => {
+                                            if (patient.prediction?.[day]?.[meal]) {
+                                              fetchRecipeDetails(patient.prediction[day][meal]);
+                                            }
+                                          }}
+                                        >
+                                          {meal}: {mealName || 'No meal planned'}
+                                          <span className="ml-2 text-xs text-gray-500">
+                                            ({typeof calories === 'number' ? `${calories} kcal` : '...'})
+                                          </span>
+                                        </span>
+                                        
+                                        {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                          <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
+                                            Note: {patient.mealNotes[day][meal]}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
+                                <div className="mt-2 font-semibold text-green-700">
+                                  Total: {
+                                    (() => {
+                                      const total = meals.reduce((sum, meal) => {
+                                        const c = mealCalories[patient._id]?.[day]?.[meal];
+                                        return sum + (typeof c === 'number' ? c : 0);
+                                      }, 0);
+                                      return total > 0 ? `${total} kcal` : '...';
+                                    })()
+                                  }
+                                </div>
                               </div>
                             </div>
                           ))}

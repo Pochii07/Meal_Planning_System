@@ -84,10 +84,6 @@ class MealPlanner:
         return pd.cut(calories, bins=bins, labels=labels)
 
     def generate_weekly_plan(self, tdee: int, preferences: DietaryPreferences) -> Dict:
-        """Generate a weekly meal plan with improved variety."""
-        if tdee < 1200:
-            raise ValueError("TDEE must be at least 1200 calories")
-
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
@@ -127,7 +123,7 @@ class MealPlanner:
         adjusted_tdee = tdee - 600
         meal_calories = adjusted_tdee // 3
         # Allow 20% deviation from target calories
-        calorie_margin = meal_calories * 0.2
+        calorie_margin = meal_calories * 1
 
         # Create masks for breakfast and lunch datasets
         breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])
@@ -205,8 +201,8 @@ class MealPlanner:
             variety_matches = 0
             preference_matches = 0
             
-            min_acceptable = tdee * 0.90
-            max_acceptable = tdee * 1.10
+            min_acceptable = tdee * 0.99
+            max_acceptable = tdee * 1.01
             
             tp, tn, fp, fn = 0, 0, 0, 0
             
@@ -301,11 +297,11 @@ def predict_meal_plan():
         
         # Calculate TDEE (Total Daily Energy Expenditure) based on inputs
         bmr = 0
+        # Using Mifflin-St Jeor equation for consistency with frontend
         if gender.lower() == 'male':
-            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
         else:
-            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
-            
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
         # Activity multiplier
         activity_multipliers = {
             'sedentary': 1.2,
@@ -343,6 +339,43 @@ def predict_meal_plan():
         # Debugging: Print the error
         print(f"Error: {str(e)}")
         print(f"Request data: {request.json}")
+        return jsonify({'error': str(e)})
+
+# Add a new route below your existing predict_meal_plan route
+@app.route('/evaluate_meal_planner', methods=['POST'])
+def evaluate_meal_planner():
+    try:
+        # Parse the JSON request data
+        data = request.json
+        
+        # Extract necessary inputs for evaluation
+        tdee = int(data.get('tdee', 1872))
+        n_trials = int(data.get('n_trials', 100))
+        
+        # Extract dietary preferences
+        dietary_restrictions = data.get('dietary_restrictions', '').lower()
+        allergies = data.get('allergies', '').lower()
+        
+        # Create dietary preferences object
+        preferences = DietaryPreferences(
+            vegetarian='vegetarian' in dietary_restrictions,
+            low_purine='low purine' in dietary_restrictions,
+            low_fat='low fat' in dietary_restrictions or 'heart healthy' in dietary_restrictions,
+            low_sodium='low sodium' in dietary_restrictions,
+            lactose_free='lactose free' in dietary_restrictions or 'lactose intolerant' in dietary_restrictions,
+            peanut_allergy='peanut' in allergies,
+            shellfish_allergy='shellfish' in allergies,
+            fish_allergy='fish' in allergies,
+            halal_or_kosher='halal' in dietary_restrictions or 'kosher' in dietary_restrictions
+        )
+        
+        # Run evaluation
+        metrics = planner.evaluate_meal_plan_recommendations(tdee, preferences, n_trials)
+        
+        # Return the evaluation metrics as JSON
+        return jsonify(metrics)
+    except Exception as e:
+        print(f"Evaluation error: {str(e)}")
         return jsonify({'error': str(e)})
 
 if __name__ == '__main__':

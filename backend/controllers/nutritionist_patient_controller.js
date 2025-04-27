@@ -1,7 +1,18 @@
-// backend/controllers/nutritionist_patient_controller.js
 const NutritionistPatient = require('../models/nutritionist_patient_model')
 const mongoose = require('mongoose')
 const axios = require('axios')
+
+const calculateBMR = (weight, height, age, gender) => {
+    if (gender.toUpperCase() === "M") {
+        return (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    } else {
+        return (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    }
+};
+
+const calculateTDEE = (BMR, activity_level) => {
+    return (BMR * activity_level);
+};
 
 // Get all patients for a nutritionist
 const getNutritionistPatients = async (req, res) => {
@@ -64,6 +75,11 @@ const createNutritionistPatient = async (req, res) => {
         });
 
         const BMI = (weight / ((height / 100) ** 2)).toFixed(2);
+        
+        // Calculate BMR and TDEE
+        const BMR = calculateBMR(weight, height, age, gender);
+        const TDEE = calculateTDEE(BMR, activity_level);
+
         const rawPrediction = response.data.predicted_meal_plan;
         let prediction = {};
 
@@ -100,6 +116,7 @@ const createNutritionistPatient = async (req, res) => {
             weight,
             gender,
             BMI,
+            TDEE, // Add TDEE here
             activity_level,
             preference,
             restrictions,
@@ -206,6 +223,13 @@ const regenerateMealPlan = async (req, res) => {
             preference, 
             restrictions 
         } = patient;
+
+        // Recalculate BMR and TDEE to ensure they're up to date
+        const BMR = calculateBMR(weight, height, age, gender);
+        const TDEE = calculateTDEE(BMR, activity_level);
+        
+        // Update TDEE in patient data
+        patient.TDEE = TDEE;
         
         // Call ML API to generate new meal plan
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
@@ -266,7 +290,8 @@ const regenerateMealPlan = async (req, res) => {
             prediction: patient.prediction,
             progress: patient.progress,
             skippedMeals: patient.skippedMeals,
-            mealNotes: patient.mealNotes
+            mealNotes: patient.mealNotes,
+            TDEE: patient.TDEE // Include TDEE in response
         });
     } catch (error) {
         console.error('Error regenerating meal plan:', error);
