@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import RecipeModal from './modals/recipeModal.jsx';
 import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
@@ -10,47 +10,57 @@ const days = [
 const meals = ["breakfast", "lunch", "dinner"];
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
-    const [expandedPatientId, setExpandedPatientId] = useState(null)
+  const { copiedCode, copyToClipboard } = useCopyToClipboard();
 
-    const { copiedCode, copyToClipboard } = useCopyToClipboard();
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
 
-    const [selectedRecipe, setSelectedRecipe] = useState(null);
-    const [loadingRecipe, setLoadingRecipe] = useState(false);
-
-    const [recipeModalOpen, setRecipeModalOpen] = useState(false);
-
-    const [mealCalories, setMealCalories] = useState({});
-    
-    useEffect(() => {
-      const fetchAllMealCalories = async () => {
-        let newMealCalories = {};
-        for (const patient of patients || []) {
-          newMealCalories[patient._id] = {};
-          for (const day of days) {
-            newMealCalories[patient._id][day] = {};
-            for (const meal of meals) {
-              const mealName = patient.prediction?.[day]?.[meal];
-              if (mealName) {
-                try {
-                  const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
-                  if (response.ok) {
-                    const recipeData = await response.json();
-                    newMealCalories[patient._id][day][meal] = recipeData.calories;
-                  }
-                } catch (e) {
-                  newMealCalories[patient._id][day][meal] = null;
+  const [expandedPatientId, setExpandedPatientId] = useState(null)
+  const expandRef = useRef(null);
+  
+  const [mealCalories, setMealCalories] = useState({});
+  
+  // handle scrolling
+  useEffect(() => {
+    if (expandedPatientId && expandRef.current) {
+      expandRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest' 
+      });
+    }
+  }, [expandedPatientId]);
+  
+  useEffect(() => {
+    const fetchAllMealCalories = async () => {
+      let newMealCalories = {};
+      for (const patient of patients || []) {
+        newMealCalories[patient._id] = {};
+        for (const day of days) {
+          newMealCalories[patient._id][day] = {};
+          for (const meal of meals) {
+            const mealName = patient.prediction?.[day]?.[meal];
+            if (mealName) {
+              try {
+                const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
+                if (response.ok) {
+                  const recipeData = await response.json();
+                  newMealCalories[patient._id][day][meal] = recipeData.calories;
                 }
+              } catch (e) {
+                newMealCalories[patient._id][day][meal] = null;
               }
             }
           }
         }
-        setMealCalories(newMealCalories);
-      };
+      }
+      setMealCalories(newMealCalories);
+    };
 
-      fetchAllMealCalories();
-    }, [patients]);
+    fetchAllMealCalories();
+  }, [patients]);
 
-    const calculateProgress = (progress, skippedMeals) => {
+  const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
     
     let completed = 0;
@@ -106,7 +116,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
             <table>
               <thead>
                 <tr>
-                  <th className="th-name">Name</th>
+                  <th>Name (LN, FN) </th>
                   <th>Age</th>
                   <th>BMI</th>
                   <th>Progress</th>
@@ -118,7 +128,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
         </div>   
         <div className="patient-table-body">
           {(!patients || patients.length === 0) ? (
-            <div className='text-center text-gray-500 py-4'>
+            <div className='text-center text-gray-500 py-2'>
               No Patients found.
             </div>
           ) : (
@@ -127,7 +137,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                 <tbody key={patient._id}>
                   <tr className="hover:bg-gray-50 transition-colors inherit">
                     <td className="td-name whitespace-normal break-words max-w-[200px]">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 uppercase">
                         {`${patient.lastName}, ${patient.firstName}`}
                       </div>
                     </td>
@@ -165,7 +175,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 whitespace-nowrap text-sm font-medium">
                       <button
                         className="text-green-600 hover:text-green-900 mr-4 cursor-pointer" title="View patient's meal progress"
                         onClick={() =>
@@ -191,13 +201,16 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                   </tr>
                   {expandedPatientId === patient._id && (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                      <td ref={expandRef} colSpan="6" className="px-5 py-0 bg-gray-50">
                         <div className="mt-4 p-4 bg-white rounded-lg shadow">
                           <h4 className="font-semibold text-gray-700 mb-2">
                             Patient Details
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
+                              <p className="text-sm text-gray-600">
+                                Age: {patient.age} years old
+                              </p>
                               <p className="text-sm text-gray-600">
                                 Height: {patient.height} cm
                               </p>
@@ -231,7 +244,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                 Activity Level: {patient.activity_level}
                               </p>
                               <p className="text-sm text-gray-600">
-                                Dietary Preference: {patient.preference}
+                                Dietary Preference: {patient.preference}  
                               </p>
                               <p className="text-sm text-gray-600">
                                 Restrictions: {patient.restrictions}
@@ -249,6 +262,20 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                         )}
                         <div className="grid grid-cols-7 gap-4 py-8">
                           {days.map((day) => (
+                        </div>                     
+                        <div className="grid grid-cols-7 gap-1 py-4">
+                          <div className="col-span-7 mb-2 text-sm italic text-gray-600">
+                            Click the recipe name for more information
+                          </div>
+                          {[
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                            "Sunday",
+                          ].map((day) => (
                             <div key={day} className="bg-white p-4 rounded-lg shadow">
                               <h4 className="font-semibold text-gray-700 mb-2">
                                 {day}
@@ -257,43 +284,51 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                 {meals.map((meal) => {
                                   const mealName = patient.prediction?.[day]?.[meal];
                                   const calories = mealCalories[patient._id]?.[day]?.[meal];
-
+                                  
                                   return (
-                                    <div key={meal} className="flex items-start">
-                                      <span
-                                        className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
-                                          patient.skippedMeals?.[day]?.[meal]
-                                            ? 'bg-red-500' 
-                                            : patient.progress?.[day]?.[meal] 
-                                              ? 'bg-green-500' 
-                                              : 'bg-gray-300'
-                                        }`}
-                                        aria-label={`${meal} status indicator`}
-                                      ></span>
-                                      <div className="flex flex-col flex-1">
-                                        <span 
-                                          className={`text-sm capitalize ${
-                                            patient.skippedMeals?.[day]?.[meal] ? 'text-red-600 line-through' : ''
-                                          } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
+                                  <div key={meal} className="flex items-start">
+                                    <span
+                                      className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
+                                        patient.skippedMeals?.[day]?.[meal]
+                                          ? 'bg-red-500' 
+                                          : patient.progress?.[day]?.[meal] 
+                                            ? 'bg-green-500' 
+                                            : 'bg-gray-300'
+                                      }`}
+                                      aria-label={`${meal} status indicator`}
+                                    ></span>
+                                    <div className="flex flex-col flex-1 w-full">
+                                      <div className="flex flex-col">
+                                        <span className="font-semibold text-sm text-gray-700 capitalize">
+                                          {meal}:
+                                        </span>
+                                        <span
+                                          className={`text-sm ${
+                                            patient.skippedMeals?.[day]?.[meal] 
+                                              ? 'text-red-600 line-through' 
+                                              : 'text-gray-800'
+                                          } ${patient.prediction?.[day]?.[meal] 
+                                            ? 'cursor-pointer hover:text-green-600' 
+                                            : ''}`}
                                           onClick={() => {
                                             if (patient.prediction?.[day]?.[meal]) {
                                               fetchRecipeDetails(patient.prediction[day][meal]);
                                             }
                                           }}
                                         >
-                                          {meal}: {mealName || 'No meal planned'}
+                                          {mealName || 'No meal planned'}
                                           <span className="ml-2 text-xs text-gray-500">
                                             ({typeof calories === 'number' ? `${calories} kcal` : '...'})
                                           </span>
                                         </span>
-                                        
-                                        {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
-                                          <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
-                                            Note: {patient.mealNotes[day][meal]}
-                                          </div>
-                                        )}
-                                      </div>
+                                      </div>                                    
+                                      {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                        <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
+                                          Note: {patient.mealNotes[day][meal]}
+                                        </div>
+                                      )}
                                     </div>
+                                  </div>
                                   );
                                 })}
                                 <div className="mt-2 font-semibold text-green-700">
@@ -309,7 +344,17 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          ))}                    
+                        </div>
+                        <div className='flex justify-end mt-0'>
+                          {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
+                            <button
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
+                              onClick={() => onRegenerateMealPlan(patient._id)}
+                            >
+                              Regenerate Meal Plan
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

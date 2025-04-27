@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'; // Make sure React is imported
+import React, { useEffect, useState} from 'react'; // Make sure React is imported
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
 import { usePatientManagement } from '../hooks/use_patient_management'
 import { useAuthStore } from '../store/authStore'
@@ -63,40 +63,6 @@ const NutritionistDashboard = () => {
     }
   }, [user, isAuthenticated, isCheckingAuth, navigate]);
 
-  const handleProgressToggle = async (patientId, day, meal) => {
-    try {
-      const response = await fetch(`/api/nutritionist/patients/${patientId}/progress`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        },
-        body: JSON.stringify({
-          day,
-          meal,
-          value: !patient.progress?.[day]?.[meal]
-        })
-      });
-  
-      if (response.ok) {
-        const updatedPatient = await response.json();
-        dispatch({
-          type: 'UPDATE_PATIENT_PROGRESS',
-          payload: {
-            id: patientId,
-            progress: updatedPatient.progress
-          }
-        });
-      } else {
-        const json = await response.json();
-        setError(json.error || "Failed to update progress");
-      }
-    } catch (error) {
-      console.error("Error updating progress:", error);
-      setError("An unexpected error occurred. Please try again.");
-    }
-  };
-
   const handleRemovePatient = async (patientId) => {
     setRemovingPatientId(patientId);
     setOpenRemoveDialog(true);
@@ -145,8 +111,6 @@ const NutritionistDashboard = () => {
           return true;
       }
     });
-  
-    console.log('Filtered Patients:', filtered); // Debugging
     setFilteredPatients(filtered);
   };
 
@@ -170,6 +134,8 @@ const NutritionistDashboard = () => {
         <AddPatientForm 
           onSubmit={handleCreatePatient}
           error={error}
+          dispatch={dispatch}
+          setIsFormOpen={setIsFormOpen}
         />
       )}
       {/* Patients Table */}

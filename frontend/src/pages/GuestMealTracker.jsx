@@ -45,7 +45,7 @@ const GuestMealTracker = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center py-35 bg-gray-50 min-h-screen">
+    <div className="flex flex-col items-center justify-center py-35">
       <div className="text-center p-4 max-w-1xl">
         <h1 className="text-4xl font-bold text-gray-800 mb-4">
           Track Your Progress
