@@ -18,6 +18,7 @@ const FoodPlan = express()
 FoodPlan.use(cors({
     origin: [
         'https://chefit-livid.vercel.app', 
+        'https://chefit-git-main-pochii07s-projects.vercel.app',
         'http://localhost:5173',
         'https://chefit.live',     // Add the https version
         'http://chefit.live'       // Add the http version if needed
