@@ -63,6 +63,15 @@ const NutritionistDashboard = () => {
     }
   }, [user, isAuthenticated, isCheckingAuth, navigate]);
 
+  useEffect(() => {
+    // Re-apply current search filter when patients data changes
+    if (currSearchText) {
+      handleSearch(currSearchText);
+    } else {
+      setFilteredPatients(patients || []);
+    }
+  }, [patients, currSearchText]); // Add patients to the dependency array
+
   const handleRemovePatient = async (patientId) => {
     setRemovingPatientId(patientId);
     setOpenRemoveDialog(true);

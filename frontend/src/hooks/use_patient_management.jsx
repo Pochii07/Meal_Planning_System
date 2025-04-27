@@ -1,5 +1,7 @@
+import { NUTRITIONIST_API } from '../config/api';
 import { useState } from 'react';
 import { patientService } from '../services/patientService';
+import { getAuthHeaders } from '../utils/authHeaders';
 
 export const usePatientManagement = (dispatch, patients) => {
   const [loading, setLoading] = useState(false);
@@ -49,20 +51,41 @@ export const usePatientManagement = (dispatch, patients) => {
       });
       
       const data = await response.json();
+      console.log("Regenerate meal plan response:", data); // Add logging
       
       if (response.ok) {
-        // Update patient in state with new meal plan
-        const updatedPatients = patients.map(patient => 
-          patient._id === patientId ? { ...patient, prediction: data.prediction, progress: data.progress, skippedMeals: data.skippedMeals, mealNotes: data.mealNotes } : patient
-        );
-        dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+        // Validate that the data has the expected structure
+        if (!data.prediction) {
+          console.error("Missing prediction data in response:", data);
+          setError('Invalid response data: missing prediction');
+          return Promise.reject('Invalid response data: missing prediction');
+        }
+
+        // Check if patients array exists before mapping
+        if (patients && Array.isArray(patients)) {
+          const updatedPatients = patients.map(patient => 
+            patient._id === patientId ? { 
+              ...patient, 
+              prediction: data.prediction, 
+              progress: data.progress || {}, 
+              skippedMeals: data.skippedMeals || {}, 
+              mealNotes: data.mealNotes || {} 
+            } : patient
+          );
+          
+          console.log("Updated patients:", updatedPatients); // Add logging
+          dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+        }
         setError(null);
+        return data; // Return the updated patient data
       } else {
         setError(data.error || 'Failed to regenerate meal plan');
+        return Promise.reject(data.error || 'Failed to regenerate meal plan');
       }
     } catch (error) {
       console.error('Error regenerating meal plan:', error);
       setError('An error occurred while regenerating the meal plan');
+      return Promise.reject(error);
     } finally {
       setLoading(false);
     }
