@@ -123,7 +123,7 @@ class MealPlanner:
         adjusted_tdee = tdee - 600
         meal_calories = adjusted_tdee // 3
         # Allow 20% deviation from target calories
-        calorie_margin = meal_calories * 1
+        calorie_margin = meal_calories - 100
 
         # Create masks for breakfast and lunch datasets
         breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])

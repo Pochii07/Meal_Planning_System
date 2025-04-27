@@ -240,7 +240,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                 BMI: {patient.BMI}
                               </p>
                               <p className="text-sm text-gray-600">
-                                TDEE: {patient.TDEE} calories
+                                TDEE: {patient.TDEE - 600} calories
                               </p>
                               <p className="text-sm text-gray-600 font-semibold">
                                 Access Code:
@@ -341,17 +341,17 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                   </div>
                                   );
                                 })}
-                                <div className="mt-2 font-semibold text-green-700">
+                                {/* <div className="mt-2 font-semibold text-green-700">
                                   Total: {
                                     (() => {
-                                      const total = meals.reduce((sum, meal) => {
+                                      const total = meals.reduce((sum, meal) => {                         uncomment when model is updated
                                         const c = mealCalories[patient._id]?.[day]?.[meal];
                                         return sum + (typeof c === 'number' ? c : 0);
                                       }, 0);
                                       return total > 0 ? `${total} kcal` : '...';
                                     })()
                                   }
-                                </div>
+                                </div> */}
                               </div>
                             </div>
                           ))}                    
