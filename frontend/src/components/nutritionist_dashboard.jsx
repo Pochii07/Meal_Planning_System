@@ -109,14 +109,18 @@ const NutritionistDashboard = () => {
   }, [user, isAuthenticated, isCheckingAuth, navigate]);
 
   useEffect(() => {
-    // Re-apply current search filter when patients data changes
+    // Initialize filteredPatients with all patients when component mounts
+    setFilteredPatients(patients || []);
+  }, []);
+
+  useEffect(() => {
     if (currSearchText) {
-      handleSearch(currSearchText);
+      handleSearch(currSearchText, 'name');
     } else {
       setFilteredPatients(patients || []);
     }
     console.log("Patients data updated:", patients);
-  }, [patients, currSearchText]); // Add patients to the dependency array
+  }, [patients]); 
 
   const handleRemovePatient = async (patientId) => {
     setRemovingPatientId(patientId);
@@ -195,7 +199,7 @@ const NutritionistDashboard = () => {
       )}
       {/* Patients Table */}
       <PatientTable 
-        patients={currSearchText ? filteredPatients : patients}
+        patients={filteredPatients.length > 0 || currSearchText ? filteredPatients : patients}
         onRemove={handleRemovePatient}
         onRegenerateMealPlan={handleRegenerateMealPlan}
         openRemoveDialog={openRemoveDialog}
