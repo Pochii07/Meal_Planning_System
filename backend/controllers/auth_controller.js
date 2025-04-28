@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { createJWTToken } = require("../utilities/createJWTToken");
 const { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } = require("../resend/email");
 
+  
 const signup = async (req, res) => {
     const generateCustomIdTemplate = () => {
         const randomId = Math.floor(Math.random() * 1000).toString().padStart(4, '0');
@@ -86,63 +87,47 @@ const signup = async (req, res) => {
 // verification token generator from yt
 const createVerificationToken = () => Math.floor (100000 + Math.random() * 900000).toString();
 
+
 const login = async (req, res) => {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
+  
     try {
-        const user = await User.findOne({ email });
-        if (!user || !user.password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
-        let isPasswordValid;
-        try {
-            isPasswordValid = await bcrypt.compare(password, user.password);
-        } catch (bcryptError) {
-            console.error("Bcrypt error:", bcryptError.message);
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid password format', 
-            });
-        }
-
-        if (!isPasswordValid) {
-            return res.status(400).json({
-                success: false,
-                message: 'Incorrect password', // Wrong password
-            });
-        }
-        // user exists but isn't verified
-        if (!user.isVerified) {
-            return res.status(200).json({
-                email: user.email,
-                expiresAt: user.verificationTokenExpiresAt,
-                verificationToken: user.verificationToken,
-                message: 'Account requires verification',
-                requiresVerification: true,
-                success: true,
-            });
-        }
-        // session token
-        const token = createJWTToken(res, user._id);
-
-        res.status(200).json({
-            success: true,
-            user: {
-                ...user._doc,
-                password: undefined,
-                token
-            }
+      const user = await User.findOne({ email });
+      if (!user || !user.password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid credentials'
         });
+      }
+  
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Incorrect password',
+        });
+      }
+  
+      const token = createJWTToken(res, user._id, { expiresIn: '7d' });
+  
+      res.status(200).json({
+        success: true,
+        user: {
+          ...user._doc,
+          password: undefined,
+          token,
+        }
+      });
+  
     } catch (error) {
-        console.error("Login error:", error);
-        res.status(400).json({
-            success: false,
-            message: 'An error occurred during login' // Avoid exposing error.message
-        });
+      res.status(400).json({
+        success: false,
+        message: 'An error occurred during login'
+      });
     }
-}
+  };
+  
+
 const logout = async (req, res) => {
     res.clearCookie("token");
     res.status(200).json({

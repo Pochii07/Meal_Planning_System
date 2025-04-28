@@ -10,9 +10,13 @@ export function NavbarCustom() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Updated logout handler
   const handleLogout = async () => {
+    // Call the logout function from the store to clear the state
     await logout();
-    navigate("/");
+
+    // Redirect to the login page after logging out
+    navigate("/login");
   };
 
   const toggleMenu = () => {
@@ -45,17 +49,11 @@ export function NavbarCustom() {
               
               {isAuthenticated ? (
                 user.role === 'nutritionist' ? (
-                  <>
-                    <Link to="/nutritionist/dashboard" className="text-sm font-medium hover:text-[#008000]">Patients</Link>
-                  </>
+                  <Link to="/nutritionist/dashboard" className="text-sm font-medium hover:text-[#008000]">Patients</Link>
                 ) : (
                   <>
                     <Link to="/form" className="text-sm font-medium hover:text-[#008000]">Meal Plan</Link>
-                    <Link 
-                      to={user.role === 'guest' ? "/GuestMealTracker" : "/meal-tracker"} 
-                      className="text-sm font-medium hover:text-[#008000]">
-                      Meal Tracker
-                    </Link>
+                    <Link to={user.role === 'guest' ? "/GuestMealTracker" : "/meal-tracker"} className="text-sm font-medium hover:text-[#008000]">Meal Tracker</Link>
                   </>
                 )
               ) : (
@@ -72,16 +70,10 @@ export function NavbarCustom() {
             <div className="flex items-center rounded-md shadow-xs -space-x-1 ml-6" role="group">
               {isAuthenticated ? (
                 <>
-                  <Link 
-                    to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} 
-                    className="px-4 py-2 text-sm font-medium text-[#008000] hover:text-green-700 cursor-pointer transition-colors"
-                  >
+                  <Link to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} className="px-4 py-2 text-sm font-medium text-[#008000] hover:text-green-700 cursor-pointer transition-colors">
                     {user.firstName + ' ' + user.lastName}
                   </Link>
-                  <button 
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]"
-                  >
+                  <button onClick={handleLogout} className="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]">
                     Logout
                   </button>
                 </>
@@ -107,112 +99,42 @@ export function NavbarCustom() {
         {isOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-2">
             <div className="flex flex-col space-y-2">
-              <Link 
-                to="/" 
-                className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                onClick={() => setIsOpen(false)}
-              >
-                Home
-              </Link>
-              
+              <Link to="/" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Home</Link>
               {isAuthenticated ? (
                 user.role === 'nutritionist' ? (
-                  <>
-                    <Link 
-                      to="/nutritionist/dashboard" 
-                      className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Patients
-                    </Link>
-                  </>
+                  <Link to="/nutritionist/dashboard" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Patients</Link>
                 ) : (
                   <>
-                    <Link 
-                      to="/form" 
-                      className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Meal Plan
-                    </Link>
-                    <Link 
-                      to={user.role === 'guest' ? "/GuestMealTracker" : "/meal-tracker"} 
-                      className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Meal Tracker
-                    </Link>
+                    <Link to="/form" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Meal Plan</Link>
+                    <Link to={user.role === 'guest' ? "/GuestMealTracker" : "/meal-tracker"} className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Meal Tracker</Link>
                   </>
                 )
               ) : (
                 <>
-                  <Link 
-                    to="/form" 
-                    className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Meal Plan
-                  </Link>
-                  <Link 
-                    to="/GuestMealTracker" 
-                    className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Meal Tracker
-                  </Link>
+                  <Link to="/form" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Meal Plan</Link>
+                  <Link to="/GuestMealTracker" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Meal Tracker</Link>
                 </>
               )}
-              
-              <Link 
-                to="#" 
-                className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                onClick={() => setIsOpen(false)}
-              >
-                About Us
-              </Link>
-              <Link 
-                to="#" 
-                className="block px-3 py-2 text-base font-medium hover:text-[#008000]"
-                onClick={() => setIsOpen(false)}
-              >
-                Contact Us
-              </Link>
+              <Link to="/AboutUs" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>About Us</Link>
+              <Link to="/ContactUs" className="block px-3 py-2 text-base font-medium hover:text-[#008000]" onClick={() => setIsOpen(false)}>Contact Us</Link>
             </div>
 
             <div className="pt-4 border-t border-gray-200">
               {isAuthenticated ? (
                 <div className="flex flex-col space-y-2">
-                  <Link 
-                    to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} 
-                    className="block px-3 py-2 text-base font-medium text-[#008000] hover:text-green-700"
-                    onClick={() => setIsOpen(false)}
-                  >
+                  <Link to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} className="block px-3 py-2 text-base font-medium text-[#008000] hover:text-green-700" onClick={() => setIsOpen(false)}>
                     {user.firstName + ' ' + user.lastName}
                   </Link>
-                  <button 
-                    onClick={() => {
-                      handleLogout();
-                      setIsOpen(false);
-                    }}
-                    className="w-full px-3 py-2 text-base font-medium text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]"
-                  >
+                  <button onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full px-3 py-2 text-base font-medium text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]">
                     Logout
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col space-y-2">
-                  <Link 
-                    to="/LogIn" 
-                    className="block px-3 py-2 text-base font-medium text-center text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]"
-                    onClick={() => setIsOpen(false)}
-                  >
+                  <Link to="/LogIn" className="block px-3 py-2 text-base font-medium text-center text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]" onClick={() => setIsOpen(false)}>
                     Log in
                   </Link>
-                  <Link 
-                    to="/SignUp" 
-                    className="block px-3 py-2 text-base font-medium text-center text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]"
-                    onClick={() => setIsOpen(false)}
-                  >
+                  <Link to="/SignUp" className="block px-3 py-2 text-base font-medium text-center text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]" onClick={() => setIsOpen(false)}>
                     Sign up
                   </Link>
                 </div>

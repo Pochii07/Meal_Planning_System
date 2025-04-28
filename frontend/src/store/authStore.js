@@ -12,10 +12,7 @@ export const useAuthStore = create((set) => ({
     verificationData: null,
 
     signup: async (firstName, lastName, email, birthDate, sex, password) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/signup`, {
                 method: 'POST',
@@ -24,17 +21,10 @@ export const useAuthStore = create((set) => ({
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify({
-                    firstName,
-                    lastName,
-                    email,
-                    birthDate,
-                    sex,
-                    password
-                })
-            })
-            const data = await response.json()
-            
+                body: JSON.stringify({ firstName, lastName, email, birthDate, sex, password })
+            });
+            const data = await response.json();
+
             if (!response.ok) {
                 throw new Error(data.message || 'Registration failed');
             }
@@ -46,22 +36,20 @@ export const useAuthStore = create((set) => ({
                 token: data.verificationData.token
             };
 
-            console.log(verificationData)
+            console.log(verificationData);
             sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
 
-            set({ isLoading: false, verificationData, user: null});
+            set({ isLoading: false, verificationData, user: null });
             return data;
         } catch (error) {
-            set({ isLoading: false, error: error.message})
+            set({ isLoading: false, error: error.message });
             console.log(error);
-            throw error
+            throw error;
         }
-    },  
+    },
+
     verify_login: async (code) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const storedData = sessionStorage.getItem('pendingVerification');
             if (!storedData) {
@@ -71,22 +59,17 @@ export const useAuthStore = create((set) => ({
 
             const response = await fetch(`${API_URL}/verify_login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ 
-                    code,
-                    email,
-                    userId,
-                 })
-            })
-            const data = await response.json()
-            console.log('Verify_login response:', data); // Debug log
-            
+                body: JSON.stringify({ code, email, userId })
+            });
+            const data = await response.json();
+            console.log('Verify_login response:', data);
+
             if (!response.ok) {
                 throw new Error(data.message || 'Verification failed');
             }
+
             set({ 
                 isLoading: false,
                 isAuthenticated: false,
@@ -96,30 +79,28 @@ export const useAuthStore = create((set) => ({
             sessionStorage.removeItem('pendingVerification');
             return data;
         } catch (error) {
-            set({ isLoading: false, error: error.message})
+            set({ isLoading: false, error: error.message });
             console.log(error);
-            throw error
+            throw error;
         }
     },
+
     login: async (email, password) => {
-        set({
-            isLoading: true,
-            error: null
-        });
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ email, password })
             });
             const data = await response.json();
+
             if (!data.success) {
                 throw new Error(data.message || 'Login failed');
             }
-            if (data.requiresVerification){
+
+            if (data.requiresVerification) {
                 const verificationData = {
                     email: data.email,
                     verificationToken: data.verificationToken,
@@ -134,16 +115,23 @@ export const useAuthStore = create((set) => ({
                 });
                 return { ...data, shouldVerify: true };
             }
+
+            // Save token to localStorage 🔥
+            if (data.user && data.user.token) {
+                localStorage.setItem('token', data.user.token);
+            }
+
             set({ 
-                isLoading: false, 
-                isAuthenticated: true, 
+                isLoading: false,
+                isAuthenticated: true,
                 requiresVerification: false,
                 user: data.user
             });
+
             return data;
         } catch (error) {
             set({ 
-                isLoading: false, 
+                isLoading: false,
                 isAuthenticated: false,
                 requiresVerification: false,
                 user: null,
@@ -152,97 +140,99 @@ export const useAuthStore = create((set) => ({
             throw error;
         }
     },
-    checkAuth: async () => {    
-        set({
-            isCheckingAuth: true,
-            error: null
-        })
+
+    checkAuth: async () => {
+        set({ isCheckingAuth: true, error: null });
         try {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                set({ isCheckingAuth: false, isAuthenticated: false, user: null });
+                return;
+            }
+
             const response = await fetch(`${API_URL}/check_auth`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`  // Attach token manually
                 },
                 credentials: 'include',
-            })
-            const data = await response.json()
-            if(data.user){
-                set({ isCheckingAuth: false, isAuthenticated: true, user: data.user });   
+            });
+            const data = await response.json();
+
+            if (data.user) {
+                set({ isCheckingAuth: false, isAuthenticated: true, user: { ...data.user, token } });
             } else {
-                set({ isCheckingAuth: false, isAuthenticated: false, user: null})
+                set({ isCheckingAuth: false, isAuthenticated: false, user: null });
             }
         } catch (error) {
-            set({ isCheckingAuth: false, isAuthenticated: false, user: null})
+            set({ isCheckingAuth: false, isAuthenticated: false, user: null });
             console.log(error);
-            throw error
+            throw error;
         }
     },
+
     logout: async () => {
         set({ isLoading: true, error: null });
         try {
-          await fetch(`${API_URL}/logout`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          });
-          set({ isLoading: false, isAuthenticated: false, user: null });
+            await fetch(`${API_URL}/logout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            // Remove token from localStorage 🔥
+            localStorage.removeItem('token');
+
+            set({ isLoading: false, isAuthenticated: false, user: null });
         } catch (error) {
-          set({ isLoading: false, error: error.message });
-          throw error;
+            set({ isLoading: false, error: error.message });
+            throw error;
         }
-    },    
+    },
+
     forgotpassword: async (email) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/forgot_password`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ email })
-            })
-            const data = await response.json()
-            
-            if (data){
+            });
+            const data = await response.json();
+
+            if (data) {
                 set({ isLoading: false, message: data.message });
-                return data
+                return data;
             } else {
                 set({ isLoading: false, error: error.message });
-                return data
+                return data;
             }
         } catch (error) {
-            set({ isLoading: false, error: error.message})
+            set({ isLoading: false, error: error.message });
             console.log(error);
-            throw error
+            throw error;
         }
     },
+
     resetpassword: async (token, password) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/reset_password/${token}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ password })
-            })
-            const data = await response.json()
+            });
+            const data = await response.json();
             set({ isLoading: false, message: data.message });
-            console.log(message);
+            console.log(data.message);
         } catch (error) {
-            set({ isLoading: false, error: error.message})
+            set({ isLoading: false, error: error.message });
             console.log(error);
-            throw error
+            throw error;
         }
     }
 }));

@@ -74,7 +74,7 @@ class MealPlanner:
         y = self.data['calorie_range']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
-        rf = RandomForestClassifier(n_estimators=50)
+        rf = RandomForestClassifier(n_estimators=50, random_state=42)
         rf.fit(X_train, y_train)
 
         # Train K-means
@@ -331,7 +331,6 @@ def predict_meal_plan():
         dietary_restrictions = data.get('dietary_restrictions', '').lower()
         allergies = data.get('allergies', '').lower()
         
-        # Create dietary preferences object
         preferences = DietaryPreferences(
             vegetarian='vegetarian' in dietary_restrictions,
             low_purine='low purine' in dietary_restrictions,
@@ -355,5 +354,33 @@ def predict_meal_plan():
         print(f"Request data: {request.json}")
         return jsonify({'error': str(e)})
 
+@app.route('/api/recipes/get-updated-meal-plan', methods=['POST'])
+def get_updated_meal_plan():
+    try:
+        # Extract the body of the request
+        data = request.json
+        
+        # Extract parameters: preferences, restrictions, and mealPlanId
+        preferences = data.get('preferences', {})
+        restrictions = data.get('restrictions', {})
+        meal_plan_id = data.get('mealPlanId')
+
+        # Here we use your `MealPlanner` to generate the updated meal plan
+        meal_planner = MealPlanner(breakfast_path='bf.csv', lunch_path='lunch.csv')  # Adjust paths as needed
+
+        # Generate the weekly plan (you might pass TDEE if needed)
+        # Replace with your actual logic to get TDEE from user or pass it from frontend
+        tdee = 2000  # Example value for TDEE (Total Daily Energy Expenditure)
+        dietary_preferences = DietaryPreferences(**preferences)  # Map the preferences dictionary to your DietaryPreferences class
+        
+        # Generate updated weekly meal plan
+        weekly_plan = meal_planner.generate_weekly_plan(tdee, dietary_preferences)
+        
+        # Return the updated meal plan
+        return jsonify({'updatedPrediction': weekly_plan})
+    
+    except Exception as e:
+        print(f"Error in get_updated_meal_plan: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 if __name__ == '__main__':
     app.run(debug=True)

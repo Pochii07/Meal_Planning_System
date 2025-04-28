@@ -21,6 +21,91 @@ import {
 
 bouncy.register();
 
+const fetchData = async () => {
+  const token = localStorage.getItem('token');  // Get token from localStorage
+
+  if (!token) {
+    console.log('No token, please login first.');
+    return;
+  }
+
+  const response = await fetch('http://localhost:4000/api/nutritionist/patients/meal', {
+    method: 'GET',  // or 'PATCH', 'POST', etc.
+    headers: {
+      'Authorization': `Bearer ${token}`,  // Attach token here
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const data = await response.json();
+  console.log(data); 
+};
+
+const loginUser = async (email, password) => {
+  console.log('Sending Token:', localStorage.getItem('token'));
+  const response = await fetch('http://localhost:4000/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await response.json();
+
+  if (data.success) {
+    localStorage.setItem('token', data.token); 
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    navigate('/'); 
+  } else {
+    alert(data.message); 
+  }
+};
+
+
+
+
+const handleSubmit = async (event) => {
+  event.preventDefault();
+  
+  if (!email || !password) {
+    showDialog('Missing Information', 'All fields are required!');
+    return;
+  }
+
+  try {
+    const { success, requiresVerification, verificationToken, email: userEmail, expiresAt } = await loginUser(email, password);
+
+    if (requiresVerification) {
+      sessionStorage.setItem('pendingVerification', JSON.stringify({ email: userEmail, token: verificationToken, expiresAt }));
+
+      navigate('/verify_login', { state: { email: userEmail, fromLogin: true } });
+      return;
+    }
+
+    if (success) {
+      await checkAuth();
+      localStorage.setItem('token', data.user.token);
+      console.log('Token saved:', data.user.token);
+      navigate('/', { replace: true });
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message;
+
+    if (errorMessage.includes('Incorrect password')) {
+      showDialog('Incorrect Password', 'Wrong password. Would you like to recover your account?', {
+        text: 'Recover Account',
+        handler: () => navigate('/forgot-password')
+      });
+    } else {
+      showDialog('Login Failed', errorMessage);
+    }
+
+    sessionStorage.removeItem('pendingVerification');
+  }
+};
+
 const EmailInput = ({ label, onChange }) => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState(false);

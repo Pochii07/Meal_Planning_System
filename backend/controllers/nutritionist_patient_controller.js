@@ -1,7 +1,45 @@
-// backend/controllers/nutritionist_patient_controller.js
 const NutritionistPatient = require('../models/nutritionist_patient_model')
 const mongoose = require('mongoose')
-const axios = require('axios')
+const axios = require('axios');
+const express = require('express');
+const router = express.Router();  // Initialize the router
+
+const updatePatientMeal = async (req, res) => {
+    const { id } = req.params;  // Get patient ID from the request parameters
+    const { day, meal, newMeal } = req.body; // Get the new meal details from the request body
+  
+    if (!id || !day || !meal || !newMeal) {
+      return res.status(400).json({ success: false, message: 'Missing fields for updating meal' });
+    }
+  
+    try {
+      const patient = await NutritionistPatient.findById(id);  // Find the patient by ID
+  
+      if (!patient) {
+        return res.status(404).json({ success: false, message: 'Patient not found' });
+      }
+  
+      // Ensure the day exists in the prediction object, if not, create it
+      if (!patient.prediction[day]) {
+        patient.prediction[day] = {};
+      }
+  
+      // Update the patient's meal for the given day
+      patient.prediction[day][meal] = newMeal;
+  
+      await patient.save();  // Save the updated patient document
+  
+      return res.status(200).json({
+        success: true,
+        message: 'Meal updated successfully',
+        updatedPatient: patient,
+      });
+    } catch (error) {
+      console.error('Error updating patient meal:', error);
+      return res.status(500).json({ success: false, message: 'Server error updating meal' });
+    }
+  };
+  
 
 // Get all patients for a nutritionist
 const getNutritionistPatients = async (req, res) => {
@@ -186,5 +224,6 @@ module.exports = {
     createNutritionistPatient,
     updateNutritionistPatient,
     deleteNutritionistPatient,
-    updatePatientProgress
-}
+    updatePatientProgress,
+    updatePatientMeal  // Keep the export here
+};

@@ -12,10 +12,7 @@ const {
     verifyAccessCode,
     getPatientDataByAccessCode,
     updateProgressByAccessCode,
-    updateMealNotes,
-    updateMealStatusByAccessCode,
-    updateMealNotesByAccessCode
-
+    updateMealNotes // Add this new controller
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -52,8 +49,6 @@ router.post('/guest-predict', generateGuestMealPlan)
 router.post('/verify-access-code', verifyAccessCode);
 router.get('/access-code-data/:accessCode', getPatientDataByAccessCode);
 router.patch('/update-progress/:accessCode', updateProgressByAccessCode);
-router.patch('/update-meal-status/:accessCode', updateMealStatusByAccessCode);
-router.patch('/update-meal-notes/:accessCode', updateMealNotesByAccessCode);
 
 // Add this new route for meal notes
 router.patch('/:id/meal-notes', verifyToken, updateMealNotes)

@@ -1,43 +1,28 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+  const token = req.cookies.token || req.headers.authorization?.split(' ')[1];  // Extract token from headers or cookies
 
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'Authentication required'
-        });
-    }
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  console.log('Received Token:', token);  // Log the token to ensure it's passed correctly
 
-        // check if this is a verification token being used for regular access
-        if (decoded.isVerificationToken && req.path !== '/verify-login') {
-            return res.status(403).json({
-                success: false,
-                message: 'Account not verified',
-                requiresVerification: true
-            });
-        }
-        req.userId = decoded.userId;
-        req.isVerificationToken = decoded.isVerificationToken || false;
-        next();
-    } catch (error) {
-        console.error('Token verification error:', error);
-        
-        let message = 'Invalid token';
-        if (error.name === 'TokenExpiredError') {
-            message = 'Session expired';
-        } else if (error.name === 'JsonWebTokenError') {
-            message = 'Invalid authentication';
-        }
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
+    });
+  }
 
-        return res.status(401).json({
-            success: false,
-            message
-        });
-    }
-}
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);  // Verify the token using your secret key
+    req.userId = decoded.userId;  // Attach userId for further use
+    next();  // Proceed to next middleware/route handler
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token'
+    });
+  }
+};
 
-module.exports = { verifyToken};
+module.exports = { verifyToken };

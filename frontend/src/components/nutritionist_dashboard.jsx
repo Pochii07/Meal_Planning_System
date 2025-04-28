@@ -1,160 +1,173 @@
-import { useState, useEffect } from 'react'
-import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context'
-import { useAuthStore } from '../store/authStore'
-import { useNavigate } from 'react-router-dom'
-import React from 'react'
+import { useState, useEffect } from 'react';
+import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context';
+import { useAuthStore } from '../store/authStore';
+import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
+import React from 'react';
 
 const DIETARY_PREFERENCES = [
   "Vegetarian",
   "Low-Purine",
   "Low-Fat/Heart-Healthy",
   "Low-Sodium"
-]
+];
 
 const DIETARY_RESTRICTIONS = [
-  "Lactose Free",
-  "Peanut Allergy",
-  "Shellfish Allergy",
-  "Fish Allergy",
+  "Contains Dairy",
+  "Contains Peanuts",
+  "Contains Shellfish",
+  "Contains Fish",
   "Halal or Kosher"
-]
+];
 
 const NutritionistDashboard = () => {
-  const { patients, dispatch } = useNutritionistPatientContext()
-  const { user, isAuthenticated, isCheckingAuth } = useAuthStore()
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [expandedPatientId, setExpandedPatientId] = useState(null)
-  const [recipeModalOpen, setRecipeModalOpen] = useState(false)
-  const [selectedRecipe, setSelectedRecipe] = useState(null)
-  const [loadingRecipe, setLoadingRecipe] = useState(false)
+  const { patients, dispatch } = useNutritionistPatientContext();
+  const { user, isAuthenticated, isCheckingAuth } = useAuthStore();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [expandedPatientId, setExpandedPatientId] = useState(null);
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
   
   // New state for meal change functionality
-  const [changeMealModalOpen, setChangeMealModalOpen] = useState(false)
-  const [currentMealToChange, setCurrentMealToChange] = useState(null)
-  const [mealSuggestions, setMealSuggestions] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchError, setSearchError] = useState(null)
+  const [changeMealModalOpen, setChangeMealModalOpen] = useState(false);
+  const [currentMealToChange, setCurrentMealToChange] = useState(null);
+  const [mealSuggestions, setMealSuggestions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
   // Form states
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [age, setAge] = useState('')
-  const [height, setHeight] = useState('')
-  const [weight, setWeight] = useState('')
-  const [gender, setGender] = useState('')
-  const [activityLevel, setActivityLevel] = useState('')
-  const [selectedPreferences, setSelectedPreferences] = useState([])
-  const [selectedRestrictions, setSelectedRestrictions] = useState([])
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [age, setAge] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [gender, setGender] = useState('');
+  const [activityLevel, setActivityLevel] = useState('');
+  const [selectedPreferences, setSelectedPreferences] = useState([]);
+  const [selectedRestrictions, setSelectedRestrictions] = useState([]);
 
   const handlePreferenceChange = (value) => {
-    setSelectedPreferences(prev =>
-      prev.includes(value)
+    setSelectedPreferences(prev => 
+      prev.includes(value) 
         ? prev.filter(p => p !== value)
         : [...prev, value]
-    )
-  }
+    );
+  };
 
   const handleRestrictionChange = (value) => {
-    setSelectedRestrictions(prev =>
-      prev.includes(value)
+    setSelectedRestrictions(prev => 
+      prev.includes(value) 
         ? prev.filter(r => r !== value)
         : [...prev, value]
-    )
-  }
+    );
+  };
 
   const calculateProgress = (progress, skippedMeals) => {
-    if (!progress) return 0
+    if (!progress) return 0;
     
-    let completed = 0
-    let total = 0
+    let completed = 0;
+    let total = 0;
     
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    const meals = ['breakfast', 'lunch', 'dinner']
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const meals = ['breakfast', 'lunch', 'dinner'];
     
     days.forEach(day => {
       meals.forEach(meal => {
         if (!skippedMeals?.[day]?.[meal]) {
           if (progress[day]?.[meal]) {
-            completed++
+            completed++;
           }
-          total++
+          total++;
         }
-      })
-    })
+      });
+    });
     
-    return total > 0 ? Math.round((completed / total) * 100) : 0
-  }
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  };
 
   const fetchRecipeDetails = async (mealName) => {
-    if (!mealName) return
-    
-    setLoadingRecipe(true)
+    if (!mealName) return;
+  
+    setLoadingRecipe(true);
     try {
-      const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`)
+      const response = await fetch(`/api/recipes/title/${encodeURIComponent(mealName)}`);
       if (response.ok) {
-        const recipeData = await response.json()
-        setSelectedRecipe(recipeData)
-        setRecipeModalOpen(true)
+        const recipeData = await response.json();
+        setSelectedRecipe(recipeData);
+        setRecipeModalOpen(true);
       } else {
-        console.error('Recipe not found')
+        const errorData = await response.json();
+        console.error('Recipe fetch error:', errorData.error || 'Recipe not found');
+        setSearchError(errorData.error || 'Recipe not found');
       }
     } catch (error) {
-      console.error('Error fetching recipe:', error)
+      console.error('Error fetching recipe:', error);
+      setSearchError(error.message || 'An unexpected error occurred.');
     } finally {
-      setLoadingRecipe(false)
+      setLoadingRecipe(false);
     }
-  }
+  };
 
-  // Function to update patient's meal
   const updatePatientMeal = async (newMeal) => {
-    if (!currentMealToChange || !newMeal) return;
-    
+    const token = localStorage.getItem('token');  // Safely get token from storage
+  
+    if (!token) {
+      console.log('No token found. Redirecting to login...');
+      navigate('/login');
+      return;
+    }
+  
+    console.log('Sending Token for PATCH:', token);
+  
     try {
-      const response = await fetch(`/api/nutritionist/patients/${currentMealToChange.patientId}/meal`, {
+      const response = await fetch(`http://localhost:4000/api/nutritionist/patients/${currentMealToChange.patientId}/meal`, {
         method: 'PATCH',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
         },
         body: JSON.stringify({
           day: currentMealToChange.day,
-          meal: currentMealToChange.meal, // Preserve original meal type
-          newMeal
-        })
+          meal: currentMealToChange.meal,
+          newMeal,
+        }),
       });
   
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Failed to update meal');
       }
-
-      const updatedPatient = await response.json()
-      dispatch({ type: 'UPDATE_PATIENT', payload: updatedPatient })
-      setChangeMealModalOpen(false)
-      setSearchQuery('')
-      setMealSuggestions([])
+  
+      const updatedPatient = await response.json();
+      dispatch({ type: 'UPDATE_PATIENT', payload: updatedPatient.updatedPatient });
+      setChangeMealModalOpen(false);
+      setSearchQuery('');
+      setMealSuggestions([]);
+      setSelectedRecipe(null); // reset selected recipe
     } catch (error) {
       console.error('Error updating meal:', error);
-      setSearchError(error.message); // Show error in modal instead of general error
+      setSearchError(error.message || 'An unexpected error occurred.');
     }
-  }
-
+  };
+  
   const handleChangeMeal = (day, meal) => {
-    const patient = patients.find(p => p._id === expandedPatientId)
-    if (!patient) return
-    
+    const patient = patients.find(p => p._id === expandedPatientId);
+    if (!patient) return;
+  
     setCurrentMealToChange({
       day,
       meal,
-      currentMeal: patient.prediction?.[day]?.[meal] || '',
-      patientId: expandedPatientId
-    })
-    setChangeMealModalOpen(true)
-  }
+      currentMeal: patient.prediction?.[day]?.[meal] || '', 
+      patientId: expandedPatientId, 
+    });
+  
+    setChangeMealModalOpen(true); 
+  };
 
   const searchMealSuggestions = async () => {
     if (!searchQuery.trim()) {
@@ -164,80 +177,79 @@ const NutritionistDashboard = () => {
   
     setIsSearching(true);
     setSearchError(null);
-    
+  
     try {
-      // First get ALL meals
-      const response = await fetch('/api/meals', {
+      const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(searchQuery)}`, {
         headers: {
-          'Authorization': `Bearer ${user.token}`
-        }
+          'Authorization': `Bearer ${user.token}`,
+        },
       });
   
       if (!response.ok) {
-        throw new Error('Failed to fetch meals');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to search recipes');
       }
   
-      const allMeals = await response.json();
-      
-      // Filter client-side
-      const filtered = allMeals.filter(meal => {
-        const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            meal.description.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesType = !currentMealToChange?.meal || 
-                           meal.category?.toLowerCase() === currentMealToChange.meal.toLowerCase();
-        
-        return matchesSearch && matchesType;
-      });
+      const recipes = await response.json();
+      setMealSuggestions(recipes);
   
-      setMealSuggestions(filtered);
+      if (recipes.length === 0) {
+        setSearchError('No recipes found matching your search');
+      }
     } catch (err) {
       console.error('Search error:', err);
-      setSearchError('Failed to load meals. Try again later.');
+      setSearchError(err.message || 'Failed to search recipes. Please try again.');
       setMealSuggestions([]);
     } finally {
       setIsSearching(false);
     }
-  };
-
-  // Real-time search effect
+  };  
+  
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim() && changeMealModalOpen) {
-        searchMealSuggestions()
+        searchMealSuggestions();
       }
-    }, 500)
+    }, 500);
 
-    return () => clearTimeout(timer)
-  }, [searchQuery, changeMealModalOpen])
+    return () => clearTimeout(timer);
+  }, [searchQuery, changeMealModalOpen]);
 
   useEffect(() => {
     if (!isCheckingAuth && (!isAuthenticated || !user || user.role !== 'nutritionist')) {
-      navigate('/')
-    } else {
-      setLoading(false)
+      navigate('/');
+      return;
     }
 
     const fetchPatients = async () => {
-      const response = await fetch('/api/nutritionist/patients', {
-        headers: {
-          'Authorization': `Bearer ${user.token}`
-        }
-      })
-      const json = await response.json()
+      try {
+        const response = await fetch('/api/nutritionist/patients', {
+          headers: {
+            'Authorization': `Bearer ${user.token}`
+          }
+        });
+        const json = await response.json();
 
-      if (response.ok) {
-        dispatch({ type: 'SET_PATIENTS', payload: json })
+        if (response.ok) {
+          dispatch({ type: 'SET_PATIENTS', payload: json });
+        } else {
+          throw new Error(json.error || 'Failed to fetch patients');
+        }
+      } catch (error) {
+        console.error('Error fetching patients:', error);
+        setError(error.message || 'An unexpected error occurred.');
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
     if (user) {
-      fetchPatients()
+      fetchPatients();
     }
-  }, [dispatch, user, isAuthenticated, isCheckingAuth, navigate])
+  }, [dispatch, user, isAuthenticated, isCheckingAuth, navigate]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     try {
       const patientData = {
@@ -248,11 +260,11 @@ const NutritionistDashboard = () => {
         weight,
         gender,
         activity_level: activityLevel,
-        preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
-        restrictions: selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : "None",
-      }
+        preference: selectedPreferences.join(', ') || "None",
+        restrictions: selectedRestrictions.join(', ') || "None",
+      };
 
-      console.log("Submitting patient data:", patientData)
+      console.log("Submitting patient data:", patientData);
 
       const response = await fetch('/api/nutritionist/patients', {
         method: 'POST',
@@ -261,59 +273,141 @@ const NutritionistDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.token}`
         }
-      })
+      });
       
-      const json = await response.json()
-      console.log("API response:", json)
+      const json = await response.json();
+      console.log("API response:", json);
 
       if (!response.ok) {
-        setError(json.error || "Failed to create patient")
+        throw new Error(json.error || "Failed to create patient");
       } else {
-        setFirstName('')
-        setLastName('')
-        setAge('')
-        setHeight('')
-        setWeight('')
-        setGender('')
-        setActivityLevel('')
-        setSelectedPreferences([])
-        setSelectedRestrictions([])
-        setError(null)
-        dispatch({ type: 'CREATE_PATIENT', payload: json })
-        setIsFormOpen(false)
+        setFirstName('');
+        setLastName('');
+        setAge('');
+        setHeight('');
+        setWeight('');
+        setGender('');
+        setActivityLevel('');
+        setSelectedPreferences([]);
+        setSelectedRestrictions([]);
+        setError(null);
+        dispatch({ type: 'CREATE_PATIENT', payload: json });
+        setIsFormOpen(false);
       }
     } catch (error) {
-      console.error("Error creating patient:", error)
-      setError("An unexpected error occurred. Please try again.")
+      console.error("Error creating patient:", error);
+      setError(error.message || "An unexpected error occurred. Please try again.");
     }
-  }
+  };
 
   const handleDeletePatient = async (patientId) => {
-    dispatch({ 
-      type: 'SET_PATIENTS', 
-      payload: patients.filter(patient => patient._id !== patientId) 
-    })
-
     try {
       const response = await fetch(`/api/nutritionist/patients/${patientId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,
         },
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to delete patient')
-        dispatch({ type: 'SET_PATIENTS', payload: patients })
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete patient');
+      } else {
+        dispatch({ 
+          type: 'SET_PATIENTS', 
+          payload: patients.filter(patient => patient._id !== patientId) 
+        });
       }
     } catch (error) {
-      console.error('Error deleting patient:', error)
-      setError('Failed to delete patient')
-      dispatch({ type: 'SET_PATIENTS', payload: patients })
+      console.error('Error deleting patient:', error);
+      setError(error.message || 'Failed to delete patient');
     }
-  }
+  };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token'); // Get the token from localStorage
+
+    if (!token) {
+      console.log('No token found, please log in.');
+      navigate('/login');  // Redirect to login page if no token
+      return;
+    }
+
+    const decodedToken = jwtDecode(token);
+    const expTimestamp = decodedToken.exp; // Get the expiration timestamp from the token
+    const expDate = new Date(expTimestamp * 1000); // Convert it to a human-readable date
+    console.log("Token expires at:", expDate);
+
+    const now = new Date();
+    if (expDate < now) {
+      console.log('The token has expired.');
+      localStorage.removeItem('token'); // Remove expired token
+      navigate('/login');  // Redirect to login page
+    } else {
+      console.log('The token is still valid.');
+    }
+  }, [navigate]);
+
+  const handleSearchQueryChange = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+  };
+
+  const filterMealSuggestions = () => {
+    if (!mealSuggestions || mealSuggestions.length === 0) {
+      return [];
+    }
+  
+    return mealSuggestions.filter(meal => {
+      const matchesRestrictions = selectedRestrictions.some(restriction =>
+        meal[restriction.replace(/\s+/g, '_').toLowerCase()] === true
+      );
+  
+      const matchesPreferences = selectedPreferences.some(preference =>
+        meal[preference.replace(/\s+/g, '_').toLowerCase()] === true
+      );
+  
+      return matchesRestrictions || matchesPreferences;
+    });
+  };
+  
+  const filteredMealSuggestions = filterMealSuggestions();
+
+  const labelColors = {
+    'Vegetarian': 'green',
+    'Low-Fat/Heart-Healthy': 'blue',
+    'Low-Sodium': 'orange',
+    'Lactose-Free': 'purple',
+    'Peanut-Allergy-Safe': 'red',
+    'Shellfish-Allergy-Safe': 'yellow',
+    'Fish-Allergy-Safe': 'pink',
+    'Halal-or-Kosher': 'brown'
+  };
+  
+  const getLabelStyle = (label) => {
+    return { backgroundColor: labelColors[label] || 'gray', color: 'white', padding: '5px', borderRadius: '5px', margin: '3px' };
+  };
+
+  const handleConfirmMealChange = () => {
+    if (currentMealToChange && selectedRecipe) {
+      const { day, meal, patientId } = currentMealToChange;
+  
+      updatePatientMeal(selectedRecipe.title).then(() => {
+        const updatedPatient = patients.find(patient => patient._id === patientId);
+        if (updatedPatient) {
+          updatedPatient.prediction[day][meal] = selectedRecipe.title;
+  
+          dispatch({ type: 'UPDATE_PATIENT', payload: updatedPatient });
+  
+          setChangeMealModalOpen(false);
+          setSearchQuery('');
+          setMealSuggestions([]);
+          setSelectedRecipe(null);
+        }
+      });
+    }
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header with Add Patient Button */}
@@ -571,7 +665,7 @@ const NutritionistDashboard = () => {
                                         patient.skippedMeals?.[day]?.[meal]
                                           ? 'bg-red-500' 
                                           : patient.progress?.[day]?.[meal] 
-                                            ? 'bg-green-500' 
+                                            ? 'bg-green-600' 
                                             : 'bg-gray-300'
                                       }`}
                                       aria-label={`${meal} status indicator`}
@@ -582,7 +676,7 @@ const NutritionistDashboard = () => {
                                       } ${patient.prediction?.[day]?.[meal] ? 'cursor-pointer hover:text-green-600' : ''}`}
                                       onClick={() => {
                                         if (patient.prediction?.[day]?.[meal]) {
-                                          fetchRecipeDetails(patient.prediction[day][meal])
+                                          fetchRecipeDetails(patient.prediction[day][meal]);
                                         }
                                       }}
                                     >
@@ -593,11 +687,13 @@ const NutritionistDashboard = () => {
                                         onClick={() => handleChangeMeal(day, meal)}
                                         className="ml-2 text-xs text-green-600 hover:text-green-800"
                                       >
-                                        Change
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                                            <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
+                                          </svg>
                                       </button>
                                     )}
                                   </div>
-                                  
+
                                   {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
                                     <div className="ml-6 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
                                       Note: {patient.mealNotes[day][meal]}
@@ -680,18 +776,27 @@ const NutritionistDashboard = () => {
                 </ul>
               </div>
             </div>
-            
-            <div className="mb-3">
-              <h3 className="text-md font-semibold mb-1">Instructions</h3>
-              <div className="bg-gray-50 p-3 rounded">
-                <ol className="list-decimal pl-5 space-y-1 text-sm">
-                  {selectedRecipe.instructions.split('.').filter(step => step.trim()).map((step, idx) => (
-                    <li key={idx}>{step.trim()}.</li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-            
+
+            {selectedRecipe.instructions ? (
+                <div className="mb-3">
+                  <h3 className="text-md font-semibold mb-1">Instructions</h3>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <ol className="list-decimal pl-5 space-y-1 text-sm">
+                      {selectedRecipe.instructions.split('.').filter(step => step.trim()).map((step, idx) => (
+                        <li key={idx}>{step.trim()}.</li>
+                      ))}
+                    </ol>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3">
+                  <h3 className="text-md font-semibold mb-1">Instructions</h3>
+                  <div className="bg-gray-50 p-3 rounded text-sm text-gray-500 italic">
+                    No instructions provided.
+                  </div>
+                </div>
+              )}
+
             <div className="mb-3">
               <h3 className="text-md font-semibold mb-1">Nutrition Information</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -729,108 +834,135 @@ const NutritionistDashboard = () => {
       {/* Change Meal Modal */}
       {changeMealModalOpen && (
         <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 relative max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto">
             <button 
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
               onClick={() => {
-                setChangeMealModalOpen(false)
-                setSearchQuery('')
-                setMealSuggestions([])
+                setChangeMealModalOpen(false);
+                setSearchQuery('');
+                setMealSuggestions([]);
+                setSelectedRecipe(null); 
               }}
             >
-              &times;
+              ×
             </button>
             
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Change {currentMealToChange?.meal} for {currentMealToChange?.day}
             </h2>
+      {!selectedRecipe ? (
+        <>
+          <div className="mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search meals..."
+              className="flex-1 p-2 border rounded focus:ring-2 focus:ring-green-500 w-[625px]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchMealSuggestions();
+                }
+              }}
+            />
             
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                Current meal: <span className="font-medium">{currentMealToChange?.currentMeal || 'None'}</span>
-              </p>
-              
-              <div className="flex gap-2 mb-4">
-              <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search meals..."
-                  className="flex-1 p-2 border rounded focus:ring-2 focus:ring-green-500"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      searchMealSuggestions();
-                    }
-                  }}
-                />
-                <button
-                  onClick={searchMealSuggestions}
-                  disabled={isSearching}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
+          </div>
+
+          {searchError && (
+            <div className="text-red-500 mb-4">{searchError}</div>
+          )}
+
+          {mealSuggestions.length > 0 && (
+            <div className="space-y-2">
+              {mealSuggestions.map((recipe) => (
+                <div
+                  key={recipe._id}
+                  className="p-3 border rounded hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedRecipe(recipe)}
                 >
-                  {isSearching ? 'Searching...' : 'Search'}
-                </button>
-              </div>
+                  <h4 className="font-medium">{recipe.title}</h4>
+                  <p className="text-sm text-gray-600">{recipe.summary}</p>
 
-              {searchError && (
-                <div className="text-red-500 mb-4 p-2 bg-red-50 rounded">
-                  {searchError}
-                  <div className="mt-2 text-sm">
-                    {searchError.includes('unavailable') && (
-                      <p>We're working to restore this feature. In the meantime, you can manually enter meal suggestions.</p>
-                    )}
-                  </div>
-                </div>
-              )}
+                  {/* Display Labels (Dietary Preferences/Restrictions) */}
+                  <div className="mt-2">
+                    <p className="text-sm text-[#008000] font-semibold">{recipe.calories} Calories</p>
 
-              {isSearching ? (
-                <div className="text-center py-4">Loading suggestions...</div>
-              ) : mealSuggestions.length > 0 ? (
-                <div className="space-y-2">
-                {mealSuggestions.map((meal) => (
-                  <div 
-                    key={meal._id || meal.id} 
-                    className="p-3 border rounded hover:bg-gray-50 cursor-pointer"
-                    onClick={() => updatePatientMeal(meal.name)}
-                  >
-                    <h4 className="font-medium">{meal.name}</h4>
-                    <p className="text-sm text-gray-600">{meal.description}</p>
-                    <div className="flex gap-2 mt-1">
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                        {meal.calories} cal
-                      </span>
-                      {meal.tags?.map(tag => (
-                        <span key={tag} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {tag}
+                    {[
+                      recipe.vegetarian && 'Vegetarian',
+                      recipe.low_purine && 'Low Purine',
+                      recipe.low_fat && 'Low Fat/Heart-Healthy',
+                      recipe.low_sodium && 'Low Sodium',
+                      recipe.lactose_free && 'Lactose Free',
+                      recipe.peanut_allergy_safe && 'Peanut Allergy Safe',
+                      recipe.shellfish_allergy_safe && 'Shellfish Allergy Safe',
+                      recipe.fish_allergy_safe && 'Fish Allergy Safe',
+                      recipe.halal_kosher && 'Halal/Kosher'
+                    ]
+                      .filter(Boolean) 
+                      .map((label, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-full mr-2 mt-1"
+                        >
+                          {label}
                         </span>
                       ))}
-                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                {searchQuery ? 'No meals found. Try a different search.' : 'Enter a meal name to search'}
-              </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Selected recipe view */}
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold mb-2">{selectedRecipe.title}</h3>
+            <p className="text-gray-600 mb-4">{selectedRecipe.summary}</p>
+
+            <h4 className="font-semibold mb-2">Ingredients:</h4>
+            <ul className="list-disc list-inside mb-4 text-sm">
+              {selectedRecipe.ingredients.split(',').map((ingredient, idx) => (
+                <li key={idx}>{ingredient.trim()}</li>
+              ))}
+            </ul>
+
+            {selectedRecipe.instructions && (
+              <>
+                <h4 className="font-semibold mb-2">Instructions:</h4>
+                <ol className="list-decimal list-inside text-sm">
+                  {selectedRecipe.instructions.split('.').filter(i => i.trim()).map((step, idx) => (
+                    <li key={idx}>{step.trim()}.</li>
+                  ))}
+                </ol>
+              </>
             )}
-            </div>
-            
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-                onClick={() => {
-                  setChangeMealModalOpen(false)
-                  setSearchQuery('')
-                  setMealSuggestions([])
-                }}
-              >
-                Cancel
-              </button>
-            </div>
           </div>
-        </div>
+
+          {/* Confirm or Cancel Buttons */}
+          <div className="flex justify-end gap-2">
+            <button
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+              onClick={() => {
+                setSelectedRecipe(null);
+              }}
+            >
+              Back
+            </button>
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={() => handleConfirmMealChange()}
+            >
+              Confirm Change
+            </button>
+          </div>
+        </>
       )}
+    </div>
+  </div>
+)}
+
     </div>
   )
 }
