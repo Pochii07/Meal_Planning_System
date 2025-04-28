@@ -63,6 +63,16 @@ const MealPlanHistorySchema = new Schema({
         Friday: MealNotesSchema,
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
+    },
+    // Add this block to include nutritionist notes in the history schema
+    nutritionistNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
     }
 });
 

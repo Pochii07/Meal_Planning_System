@@ -61,7 +61,8 @@ const NutritionistDashboard = () => {
             prediction: response.prediction,
             progress: response.progress || {},
             skippedMeals: response.skippedMeals || {},
-            mealNotes: response.mealNotes || {}
+            mealNotes: response.mealNotes || {},
+            nutritionistNotes: response.nutritionistNotes || {}
           } : p
         );
         

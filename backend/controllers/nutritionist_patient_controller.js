@@ -304,7 +304,7 @@ const regenerateMealPlan = async (req, res) => {
             console.error('Error parsing prediction:', parseError);
         }
         
-        // Reset progress, skipped meals, and meal notes
+        // Reset progress, skipped meals, meal notes, and nutritionist notes
         const progress = {
             Monday: { breakfast: false, lunch: false, dinner: false },
             Tuesday: { breakfast: false, lunch: false, dinner: false },
@@ -315,11 +315,11 @@ const regenerateMealPlan = async (req, res) => {
             Sunday: { breakfast: false, lunch: false, dinner: false }
         };
         
-        // Update the patient with new meal plan and reset progress
         patient.prediction = prediction;
         patient.progress = progress;
         patient.skippedMeals = {};
         patient.mealNotes = {};
+        patient.nutritionistNotes = {};
         
         await patient.save();
         
@@ -329,7 +329,8 @@ const regenerateMealPlan = async (req, res) => {
             progress: patient.progress,
             skippedMeals: patient.skippedMeals,
             mealNotes: patient.mealNotes,
-            TDEE: patient.TDEE // Include TDEE in response
+            nutritionistNotes: patient.nutritionistNotes,
+            TDEE: patient.TDEE 
         });
     } catch (error) {
         console.error('Error regenerating meal plan:', error);
@@ -401,6 +402,6 @@ module.exports = {
     deleteNutritionistPatient,
     updatePatientProgress,
     regenerateMealPlan,
-    getMealPlanHistory, // Add this export
+    getMealPlanHistory,
     updateNutritionistNotes
 }
