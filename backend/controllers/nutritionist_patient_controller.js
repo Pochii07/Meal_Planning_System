@@ -212,6 +212,23 @@ const regenerateMealPlan = async (req, res) => {
         if (!patient) {
             return res.status(404).json({ error: 'Patient not found' });
         }
+
+        // Before generating the new meal plan, save the current one to history
+        if (patient.prediction && Object.keys(patient.prediction).length > 0) {
+            // Initialize mealPlanHistory array if it doesn't exist
+            if (!patient.mealPlanHistory) {
+                patient.mealPlanHistory = [];
+            }
+            
+            // Push the current meal plan to history
+            patient.mealPlanHistory.push({
+                date: new Date(),
+                prediction: patient.prediction,
+                progress: patient.progress || {},
+                skippedMeals: patient.skippedMeals || {},
+                mealNotes: patient.mealNotes || {}
+            });
+        }
         
         // Extract patient details needed for meal plan generation
         const { 
@@ -230,10 +247,7 @@ const regenerateMealPlan = async (req, res) => {
         
         // Update TDEE in patient data
         patient.TDEE = TDEE;
-        
-        // Call ML API to generate new meal plan
-        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
-        
+
         // Convert numeric activity level to string format
         let activityLevelString;
         if (activity_level <= 1.2) activityLevelString = 'sedentary';
@@ -242,6 +256,7 @@ const regenerateMealPlan = async (req, res) => {
         else if (activity_level <= 1.725) activityLevelString = 'active';
         else activityLevelString = 'very active';
 
+        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
         const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
             age,
             height,
@@ -299,6 +314,27 @@ const regenerateMealPlan = async (req, res) => {
     }
 };
 
+// Get meal plan history for a patient
+const getMealPlanHistory = async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findById(id);
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient.mealPlanHistory || []);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getNutritionistPatients,
     getNutritionistPatient,
@@ -306,5 +342,6 @@ module.exports = {
     updateNutritionistPatient,
     deleteNutritionistPatient,
     updatePatientProgress,
-    regenerateMealPlan
+    regenerateMealPlan,
+    getMealPlanHistory // Add this export
 }

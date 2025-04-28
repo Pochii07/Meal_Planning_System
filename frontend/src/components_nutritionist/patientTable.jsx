@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import RecipeModal from './modals/recipeModal.jsx';
+import MealPlanHistoryModal from './modals/mealPlanHistoryModal.jsx';
 import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
+import { patientService } from '../services/patientService';
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
   // Existing state
@@ -16,6 +18,9 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedPatientHistory, setSelectedPatientHistory] = useState([]);
+  const [selectedPatientId, setSelectedPatientId] = useState(null);
   
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const meals = ["breakfast", "lunch", "dinner"];
@@ -76,6 +81,17 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
       }, 500);
     });
   }, [onRegenerateMealPlan, forceUpdate]);
+
+  const handleViewHistory = async (patientId) => {
+    try {
+        setSelectedPatientId(patientId);
+        const history = await patientService.getMealPlanHistory(patientId);
+        setSelectedPatientHistory(history);
+        setHistoryModalOpen(true);
+    } catch (error) {
+        console.error('Error fetching meal plan history:', error);
+    }
+  };
 
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return 0;
@@ -341,7 +357,13 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                             </div>
                           ))}                    
                         </div>
-                        <div className='flex justify-end mt-0'>
+                        <div className='flex justify-end mt-0 gap-2'>
+                          <button
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
+                              onClick={() => handleViewHistory(patient._id)}
+                          >
+                              View History
+                          </button>
                           {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
                             <button
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
@@ -364,6 +386,12 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
         isOpen={recipeModalOpen}
         onClose={() => setRecipeModalOpen(false)}
     />         
+    <MealPlanHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        history={selectedPatientHistory}
+        patient={patients?.find(p => p._id === selectedPatientId)}
+    />
     </div>
   );
 };

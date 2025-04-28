@@ -26,6 +26,45 @@ const MealNotesSchema = new Schema({
     dinner: { type: String, default: '' }
 });
 
+// Add this schema for meal plan history
+const MealPlanHistorySchema = new Schema({
+    date: {
+        type: Date,
+        default: Date.now
+    },
+    prediction: {
+        type: Schema.Types.Mixed,
+        required: true
+    },
+    progress: {
+        Monday: ProgressSchema,
+        Tuesday: ProgressSchema,
+        Wednesday: ProgressSchema,
+        Thursday: ProgressSchema,
+        Friday: ProgressSchema,
+        Saturday: ProgressSchema,
+        Sunday: ProgressSchema
+    },
+    skippedMeals: {
+        Monday: SkippedMealsSchema,
+        Tuesday: SkippedMealsSchema,
+        Wednesday: SkippedMealsSchema,
+        Thursday: SkippedMealsSchema,
+        Friday: SkippedMealsSchema,
+        Saturday: SkippedMealsSchema,
+        Sunday: SkippedMealsSchema
+    },
+    mealNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    }
+});
+
 const NutritionistPatientSchema = new Schema({
 
     accessCode: {
@@ -111,6 +150,7 @@ const NutritionistPatientSchema = new Schema({
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
     },
+    mealPlanHistory: [MealPlanHistorySchema],
     nutritionistId: {
         type: String,
         ref: 'User',

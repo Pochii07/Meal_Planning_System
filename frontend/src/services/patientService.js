@@ -38,5 +38,12 @@ export const patientService = {
       headers: getAuthHeaders()
     });
     return response.json();
+  },
+
+  getMealPlanHistory: async (patientId) => {
+    const response = await fetch(`${NUTRITIONIST_API}/${patientId}/meal-plan-history`, {
+        headers: getAuthHeaders()
+    });
+    return response.json();
   }
 };
