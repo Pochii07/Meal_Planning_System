@@ -1,53 +1,101 @@
-import React, { useEffect, useState, useRef  } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import RecipeModal from './modals/recipeModal.jsx';
 import { RECIPES_API } from '../config/api';
-
 import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
+import useForceUpdate from '../hooks/use_force_update';
 
 const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
+  // Existing state
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
-
+  const forceUpdate = useForceUpdate();
+  const [expandedPatientId, setExpandedPatientId] = useState(null);
+  const expandRef = useRef(null);
+  const [mealCalories, setMealCalories] = useState({});
+  const [mealPlanVersion, setMealPlanVersion] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const meals = ["breakfast", "lunch", "dinner"];
 
-  const [expandedPatientId, setExpandedPatientId] = useState(null)
-  const expandRef = useRef(null);
-
-    // handle scrolling
-  useEffect(() => {
-    if (expandedPatientId && expandRef.current) {
-      expandRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest' 
-      });
+  // Function to fetch calories for a specific patient
+  const fetchPatientMealCalories = async (patientId) => {
+    if (!patientId) return;
+    
+    const patient = patients.find(p => p._id === patientId);
+    if (!patient) return;
+    
+    console.log(`Fetching meal calories for patient: ${patientId}`);
+    
+    const newMealCalories = {...mealCalories};
+    newMealCalories[patientId] = {};
+    
+    for (const day of days) {
+      newMealCalories[patientId][day] = {};
+      for (const meal of meals) {
+        const mealName = patient.prediction?.[day]?.[meal];
+        if (mealName) {
+          try {
+            const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
+            if (response.ok) {
+              const recipeData = await response.json();
+              newMealCalories[patientId][day][meal] = recipeData.calories || 0;
+            }
+          } catch (err) {
+            console.error('Error fetching meal calories:', err);
+          }
+        }
+      }
     }
-  }, [expandedPatientId]);
+    
+    setMealCalories(newMealCalories);
+  };
+
+  // Effect that runs when expanded patient changes
+  useEffect(() => {
+    if (expandedPatientId) {
+      fetchPatientMealCalories(expandedPatientId);
+    }
+  }, [expandedPatientId, mealPlanVersion]);
+
+  const handleRegenerateMealPlanClick = useCallback((patientId) => {
+    console.log("Regenerating meal plan for patient:", patientId);
+    
+    onRegenerateMealPlan(patientId).then((updatedData) => {
+      console.log("Meal plan regenerated successfully:", updatedData);
+      
+      setMealCalories({});
+      setMealPlanVersion(prev => prev + 1);
+      forceUpdate(); 
+      
+      setTimeout(() => {
+        forceUpdate();
+        console.log("Forced update after timeout");
+      }, 500);
+    });
+  }, [onRegenerateMealPlan, forceUpdate]);
 
   const calculateProgress = (progress, skippedMeals) => {
-  if (!progress) return 0;
-
-  let completed = 0;
-  let total = 0;
+    if (!progress) return 0;
     
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const meals = ['breakfast', 'lunch', 'dinner'];
+    let completed = 0;
+    let total = 0;
     
-  days.forEach(day => {
-    meals.forEach(meal => {
-      // don't count skipped meals toward total
-      if (skippedMeals?.[day]?.[meal]) {
-      } else {
-        if (progress[day]?.[meal]) {
-          completed++;
+    days.forEach(day => {
+      meals.forEach(meal => {
+        if (skippedMeals?.[day]?.[meal]) {
+        } else {
+          if (progress[day]?.[meal]) {
+            completed++;
+          }
+          total++;
         }
-        total++;
-      }
+      });
     });
-  });
     
-  return total > 0 ? Math.round((completed / total) * 100) : 0;
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
   const handleRemovePatient = (patientId) => {
@@ -187,6 +235,9 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                               <p className="text-sm text-gray-600">
                                 BMI: {patient.BMI}
                               </p>
+                              <p className="text-sm text-gray-600">
+                                TDEE: {patient.TDEE - 600} calories
+                              </p>
                               <p className="text-sm text-gray-600 font-semibold">
                                 Access Code:
                                 <div className="inline-flex gap-2">
@@ -215,7 +266,9 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                               </p>
                             </div>
                           </div>
-                        </div>                     
+                        </div>
+                        {calculateProgress(patient.progress, patient.skippedMeals) >= 0}
+                        
                         <div className="grid grid-cols-7 gap-1 py-4">
                           <div className="col-span-7 mb-2 text-sm italic text-gray-600">
                             Click the recipe name for more information
@@ -234,7 +287,11 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                 {day}
                               </h4>
                               <div className="space-y-2">
-                                {["breakfast", "lunch", "dinner"].map((meal) => (
+                                {meals.map((meal) => {
+                                  const mealName = patient.prediction?.[day]?.[meal];
+                                  const calories = mealCalories[patient._id]?.[day]?.[meal];
+                                  
+                                  return (
                                   <div key={meal} className="flex items-start">
                                     <span
                                       className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
@@ -248,7 +305,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                     ></span>
                                     <div className="flex flex-col flex-1 w-full">
                                       <div className="flex flex-col">
-                                      <span className="font-semibold text-sm text-gray-700 capitalize">
+                                        <span className="font-semibold text-sm text-gray-700 capitalize">
                                           {meal}:
                                         </span>
                                         <span
@@ -265,9 +322,12 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                             }
                                           }}
                                         >
-                                          {patient.prediction?.[day]?.[meal] || 'No meal planned'}
+                                          {mealName || 'No meal planned'}
+                                          <span className="ml-2 text-xs text-gray-500">
+                                            ({typeof calories === 'number' ? `${calories} kcal` : '...'})
+                                          </span>
                                         </span>
-                                      </div>                                      
+                                      </div>                                    
                                       {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
                                         <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
                                           Note: {patient.mealNotes[day][meal]}
@@ -275,7 +335,8 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                       )}
                                     </div>
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           ))}                    
@@ -284,7 +345,7 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                           {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
                             <button
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                              onClick={() => onRegenerateMealPlan(patient._id)}
+                              onClick={() => handleRegenerateMealPlanClick(patient._id)}
                             >
                               Regenerate Meal Plan
                             </button>

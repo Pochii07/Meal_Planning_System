@@ -60,6 +60,9 @@ const NutritionistPatientSchema = new Schema({
     BMI: {
         type: Number,
     },
+    TDEE: {
+        type:Number,
+    },
     activity_level: {
         type: Number,
         required: true

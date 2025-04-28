@@ -56,6 +56,7 @@ const PatientDetails = ({ patient }) => {
       <p><strong>Height: </strong>{patient.height}</p>
       <p><strong>Weight: </strong>{patient.weight}</p>
       <p><strong>BMI: </strong>{patient.BMI}</p>
+      <p><strong>TDEE: </strong>{patient.TDEE} calories</p>
       <p><strong>Activity Level: </strong>{patient.activity_level}</p>
       <p><strong>Preference: </strong>{patient.preference}</p>
       <p><strong>Restrictions: </strong>{patient.restrictions}</p>
