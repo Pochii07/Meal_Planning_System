@@ -175,7 +175,7 @@ export function LogIn() {
           'Wrong password. Would you like to recover your account?',
           {
             text: 'Recover Account',
-            handler: () => navigate('/forgot-password')
+            handler: () => navigate('/forgotPassword')
           }
         );
       } else {
