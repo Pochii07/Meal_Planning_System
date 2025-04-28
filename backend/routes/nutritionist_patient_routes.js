@@ -6,7 +6,8 @@ const {
     updateNutritionistPatient,
     deleteNutritionistPatient,
     regenerateMealPlan,  // Add this import
-    getMealPlanHistory   // Add this import
+    getMealPlanHistory,  // Add this import
+    updateNutritionistNotes // Add this import
 } = require('../controllers/nutritionist_patient_controller')
 const { verifyToken } = require('../middleware/verifyToken')
 
@@ -35,5 +36,8 @@ router.post('/:id/regenerate-meal-plan', verifyToken, regenerateMealPlan)
 
 // Get meal plan history for a patient
 router.get('/:id/meal-plan-history', verifyToken, getMealPlanHistory)
+
+// Update nutritionist notes for a patient
+router.patch('/:id/nutritionist-notes', verifyToken, updateNutritionistNotes)
 
 module.exports = router

@@ -7,7 +7,7 @@ import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
 import { patientService } from '../services/patientService';
 
-const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
+const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
   // Existing state
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
   const forceUpdate = useForceUpdate();
@@ -21,9 +21,17 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedPatientHistory, setSelectedPatientHistory] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
-  
+  const [editingNote, setEditingNote] = useState(null);
+  const [noteText, setNoteText] = useState("");
+  const [patients, setPatients] = useState(propsPatients || []);
+
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const meals = ["breakfast", "lunch", "dinner"];
+
+  // Update local state when props change
+  useEffect(() => {
+    setPatients(propsPatients || []);
+  }, [propsPatients]);
 
   // Function to fetch calories for a specific patient
   const fetchPatientMealCalories = async (patientId) => {
@@ -138,6 +146,39 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
       console.error('Error fetching recipe:', error);
     } finally {
       setLoadingRecipe(false);
+    }
+  };
+
+  const handleNoteSubmit = async (patientId, day, meal, note) => {
+    try {
+      const response = await patientService.updateNutritionistNotes(patientId, day, meal, note);
+      if (response.success) {
+        // Update the local patients array
+        const updatedPatients = patients.map(p => 
+          p._id === patientId 
+            ? { ...p, nutritionistNotes: response.nutritionistNotes } 
+            : p
+        );
+        
+        // Update the patients state
+        setPatients(updatedPatients);
+        
+        // Reset editing state
+        setEditingNote(null);
+        setNoteText("");
+        
+        // Show a temporary success toast/message
+        const successToast = document.createElement('div');
+        successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+        successToast.innerHTML = '<span class="mr-2">✅</span> Note updated successfully!';
+        document.body.appendChild(successToast);
+        
+        setTimeout(() => {
+          successToast.remove();
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Error updating nutritionist note:", error);
     }
   };
 
@@ -352,6 +393,55 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                                       {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
                                         <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
                                           Note: {patient.mealNotes[day][meal]}
+                                        </div>
+                                      )}
+                                      {patient.prediction?.[day]?.[meal] && (
+                                        <div className="mt-1">
+                                          {editingNote === `${patient._id}-${day}-${meal}` ? (
+                                            <div className="flex flex-col space-y-2">
+                                              <textarea
+                                                className="w-full p-2 text-sm border border-gray-300 rounded"
+                                                value={noteText}
+                                                onChange={(e) => setNoteText(e.target.value)}
+                                                placeholder="Add note..."
+                                                rows={2}
+                                              />
+                                              <div className="flex justify-end space-x-2">
+                                                <button 
+                                                  className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                                                  onClick={() => {
+                                                    setEditingNote(null);
+                                                    setNoteText("");
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </button>
+                                                <button 
+                                                  className="px-2 py-1 text-xs text-white bg-green-600 rounded hover:bg-green-700"
+                                                  onClick={() => handleNoteSubmit(patient._id, day, meal, noteText)}
+                                                >
+                                                  Save
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div>
+                                              {patient.nutritionistNotes?.[day]?.[meal] && (
+                                                <div className="p-1.5 mt-1 text-xs italic bg-green-50 border border-green-100 rounded">
+                                                  <span className="font-medium">Your note:</span> {patient.nutritionistNotes[day][meal]}
+                                                </div>
+                                              )}
+                                              <button 
+                                                className="text-xs text-blue-600 hover:underline mt-1"
+                                                onClick={() => {
+                                                  setEditingNote(`${patient._id}-${day}-${meal}`);
+                                                  setNoteText(patient.nutritionistNotes?.[day]?.[meal] || "");
+                                                }}
+                                              >
+                                                {patient.nutritionistNotes?.[day]?.[meal] ? "Edit note" : "Add note"}
+                                              </button>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>

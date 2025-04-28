@@ -130,16 +130,29 @@ const MealPlanHistoryModal = ({ isOpen, onClose, history, patient }) => {
                             <div key={day} className="border rounded p-4">
                                 <h3 className="font-bold text-lg mb-2">{day}</h3>
                                 {meals.map((meal) => {
-                                    const note = currentHistory.mealNotes?.[day]?.[meal];
+                                    const patientNote = currentHistory.mealNotes?.[day]?.[meal];
+                                    const nutritionistNote = currentHistory.nutritionistNotes?.[day]?.[meal];
+                                    
                                     return (
                                         <div key={`${day}-${meal}`} className="mb-3">
-                                            <span className="font-medium capitalize">{meal}: </span>
-                                            {note ? (
+                                            <span className="font-medium capitalize">{meal}:</span>
+                                            
+                                            {/* Patient notes section */}
+                                            {patientNote ? (
                                                 <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
-                                                    {note}
+                                                    <span className="text-xs text-gray-500">Patient note:</span>
+                                                    <div>{patientNote}</div>
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-500">No notes</span>
+                                                <div className="text-gray-500">No patient notes</div>
+                                            )}
+                                            
+                                            {/* Nutritionist notes section */}
+                                            {nutritionistNote && (
+                                                <div className="mt-1 p-2 bg-green-50 rounded text-sm border border-green-100">
+                                                    <span className="text-xs text-gray-500">Your note:</span>
+                                                    <div>{nutritionistNote}</div>
+                                                </div>
                                             )}
                                         </div>
                                     );

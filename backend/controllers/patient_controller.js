@@ -366,7 +366,8 @@ const getPatientDataByAccessCode = async (req, res) => {
             prediction: predictionData,
             progress: patient.progress || {},
             skippedMeals: patient.skippedMeals || {},
-            mealNotes: patient.mealNotes || {}
+            mealNotes: patient.mealNotes || {},
+            nutritionistNotes: patient.nutritionistNotes || {} // Add this line
         });
     } catch (error) {
         console.error('Error retrieving data by access code:', error);

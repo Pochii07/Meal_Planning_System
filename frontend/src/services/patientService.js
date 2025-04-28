@@ -45,5 +45,20 @@ export const patientService = {
         headers: getAuthHeaders()
     });
     return response.json();
+  },
+
+  updateNutritionistNotes: async (patientId, day, meal, note) => {
+    const response = await fetch(`${NUTRITIONIST_API}/${patientId}/nutritionist-notes`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ day, meal, note })
+    });
+    const data = await response.json();
+    
+    // Make sure we're returning the data from the response
+    return data;
   }
 };

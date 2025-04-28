@@ -151,6 +151,15 @@ const NutritionistPatientSchema = new Schema({
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
     },
+    nutritionistNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    },
     mealPlanHistory: [MealPlanHistorySchema],
     nutritionistId: {
         type: String,
