@@ -84,15 +84,24 @@ const createNutritionistPatient = async (req, res) => {
         let prediction = {};
 
         try {
-            // Check if rawPrediction is already an object
             if (typeof rawPrediction === 'string') {
                 prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
             } else if (typeof rawPrediction === 'object') {
-                // If it's already an object, use it directly
                 prediction = rawPrediction;
-            } else {
-                console.error('Unexpected prediction format:', typeof rawPrediction);
             }
+            
+            // Transform the prediction to include dates
+            const transformedPrediction = {};
+            for (const [day, data] of Object.entries(prediction)) {
+                transformedPrediction[day] = {
+                    breakfast: data.meals.breakfast,
+                    lunch: data.meals.lunch,
+                    dinner: data.meals.dinner,
+                    date: new Date(data.date)
+                };
+            }
+            
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }
@@ -277,6 +286,19 @@ const regenerateMealPlan = async (req, res) => {
             } else if (typeof rawPrediction === 'object') {
                 prediction = rawPrediction;
             }
+            
+            // Transform the prediction to include dates
+            const transformedPrediction = {};
+            for (const [day, data] of Object.entries(prediction)) {
+                transformedPrediction[day] = {
+                    breakfast: data.meals.breakfast,
+                    lunch: data.meals.lunch,
+                    dinner: data.meals.dinner,
+                    date: new Date(data.date)
+                };
+            }
+            
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }

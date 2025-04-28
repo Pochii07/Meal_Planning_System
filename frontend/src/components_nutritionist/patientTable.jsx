@@ -301,6 +301,11 @@ const PatientTable = ({ patients, onRemove, onRegenerateMealPlan, openRemoveDial
                             <div key={day} className="bg-white p-4 rounded-lg shadow">
                               <h4 className="font-semibold text-gray-700 mb-2">
                                 {day}
+                                {patient.prediction?.[day]?.date && (
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    {new Date(patient.prediction[day].date).toLocaleDateString()}
+                                  </span>
+                                )}
                               </h4>
                               <div className="space-y-2">
                                 {meals.map((meal) => {

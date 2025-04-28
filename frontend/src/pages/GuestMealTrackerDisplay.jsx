@@ -298,7 +298,14 @@ const GuestMealTrackerDisplay = () => {
         <div className="meal-grid">
           {days.map((day) => (
             <div key={day} className="day-card">
-              <h3>{day}</h3>
+              <h3>
+                {day}
+                {mealPlan.prediction[day]?.date && (
+                  <span className="ml-2 text-sm text-gray-500">
+                    {new Date(mealPlan.prediction[day].date).toLocaleDateString()}
+                  </span>
+                )}
+              </h3>
               {meals.map((meal) => (
                 <div key={`${day}-${meal}`} className="meal-item">
                   <div className="meal-controls">
@@ -381,7 +388,14 @@ const GuestMealTrackerDisplay = () => {
       )}
       {error && <div className="error">{error}</div>}
       {recipeModalOpen && selectedRecipe && (
-        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setRecipeModalOpen(false);
+            }
+          }}
+        >
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 relative max-h-[80vh] overflow-y-auto">
             <button 
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"

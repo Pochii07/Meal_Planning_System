@@ -5,7 +5,8 @@ const Schema = mongoose.Schema;
 const MealSchema = new Schema({
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
-    dinner: { type: String, default: '' }
+    dinner: { type: String, default: '' },
+    date: { type: Date }  // Add this line
 });
 
 const ProgressSchema = new Schema({
