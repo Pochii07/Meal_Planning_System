@@ -12,7 +12,7 @@ export function NavbarCustom() {
   };
 
   return (
-    <Navbar fluid rounded className="mt-5 bg-transparent">
+    <Navbar fluid rounded className="mt-5 bg-transparent !bg-opacity-0">
       <NavbarBrand href="/" className="mr-10">
         <img src={ChefItLogo} className="mr-3 h-6 sm:h-9" alt="ChefIt" />
         <span className="self-center whitespace-nowrap text-xl font-semibold">ChefIt</span>
