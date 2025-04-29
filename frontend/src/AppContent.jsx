@@ -23,6 +23,8 @@ import { NutritionistPatientContextProvider } from './context/nutritionist_patie
 import NutritionistDashboard from './components/nutritionist_dashboard';
 import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
 
+import AdminPage from './pages/Admin'
+
 const ProtectedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated && !user) {
@@ -31,6 +33,17 @@ const ProtectedRoute = ({children}) => {
 
   return children
 }
+
+const ProtectedAdminRoute = ({children}) => {
+  const { isAuthenticated, user, isAdmin } = useAuthStore();
+  
+  if (!isAuthenticated || !isAdmin()) {
+    return <Navigate to="/" replace/>
+  }
+
+  return children;
+}
+
 const AuthenticatedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
   if (isAuthenticated && user) {
@@ -42,7 +55,7 @@ const AuthenticatedRoute = ({children}) => {
 
 function App() {
   const location = useLocation();
-  const hideNavbarRoutes = ["/verify_login"];
+  const hideNavbarRoutes = ["/verify_login", "/ChefitAdmin"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   const { isCheckingAuth, checkAuth, logout, user } = useAuthStore();
@@ -162,7 +175,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route 
+            path="/ChefitAdmin" 
+            element={
+              <ProtectedAdminRoute>
+                <AdminPage />
+              </ProtectedAdminRoute>
+            }
+          />
         </Routes>
       </div>
     </div>

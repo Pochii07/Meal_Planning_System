@@ -3,7 +3,7 @@ import { AUTH_API } from '../config/api';
 
 const API_URL = AUTH_API;
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
     user: null,
     isLoading: false,
     error: null,
@@ -279,6 +279,49 @@ export const useAuthStore = create((set) => ({
             throw error;
         } finally {
             set({ isLoading: false });
+        }
+    },
+    isAdmin: () => {   
+        const { isAuthenticated, user } = get();
+        return isAuthenticated && user && user.role === 'admin';
+    },
+    adminSignup: async (email, password, role, firstName = null, lastName = null, sex = null) => {
+        set({
+            isLoading: true,
+            error: null
+        })
+        try {
+            const userData = { email, password, role };
+            
+            // Add nutritionist-specific fields if needed
+            if (role === 'nutritionist' && firstName && lastName && sex) {
+                userData.firstName = firstName;
+                userData.lastName = lastName;
+                userData.sex = sex.toString();
+            }
+            
+            const response = await fetch(`${API_URL}/admin_signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${get().user?.token}`
+                },
+                credentials: 'include',
+                body: JSON.stringify(userData)
+            })
+            
+            const data = await response.json()
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Admin signup failed');
+            }
+            
+            set({ isLoading: false });
+            return data;
+        } catch (error) {
+            set({ isLoading: false, error: error.message})
+            console.log(error);
+            throw error
         }
     },
 }));

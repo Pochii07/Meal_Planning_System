@@ -24,12 +24,17 @@ const signup = async (req, res) => {
     const newId = await generateUniqueId();
 
     // creating document / user login entry
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const {firstName, lastName, birthDate, sex, email, password} = req.body;
     
     try {
         if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         } 
+
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
         
         const birthDateObj = new Date(birthDate);
         const today = new Date();
@@ -297,4 +302,101 @@ const checkPasswordResetToken = async (req, res) => {
     }
 }
 
-module.exports = { signup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken };
+const adminSignup = async (req, res) => {
+    const generateUniqueId = async (role) => {
+        let newId = `ADMN${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+        if (role === 'admin') {
+            newId = `ADMN${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+        } else if (role === 'nutritionist') {
+            newId = `NUTR${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+        }
+        let isUnique = await User.exists({ _id: newId });
+        while (isUnique) {
+            if (role === 'admin') {
+                newId = `ADMIN${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+            } else if (role === 'nutritionist') {
+                newId = `NUTR${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+            }
+            isUnique = await User.exists({ _id: newId });
+        }
+        return newId;
+    };
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const { email, password, role } = req.body;
+
+    try {
+        if (!email || !password || !role) {
+            return res.status(400).json({ message: 'Email, password and role are required' });
+        }
+
+        if (!emailRegex.test(email) && role !== 'admin' ) {
+            return res.status(400).json({ message: 'Invalid email format' });
+        }
+
+        if (!['admin', 'nutritionist'].includes(role)) {
+            return res.status(400).json({ message: 'Invalid role specification' });
+        }
+
+        const userAlreadyExists = await User.findOne({ email });
+        if (userAlreadyExists) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        const newId = await generateUniqueId(role);
+        const hashPassword = await bcrypt.hash(password, 10);
+
+        const userData = {
+            _id: newId,
+            email,
+            password: hashPassword,
+            isVerified: role === 'admin' ? true : false,
+            role
+        };
+
+        if (role === 'admin') {
+            userData.firstName = "Admin";
+            userData.lastName = newId.slice(-3); 
+            userData.sex = 'Admin';
+        }
+        // add nutritionist-specific fields if needed
+        if (role === 'nutritionist') {
+            const { firstName, lastName, sex } = req.body;
+            if (!firstName || !lastName || !sex) {
+                return res.status(400).json({ message: 'Nutritionist requires first name, last name, and sex' });
+            }
+            userData.firstName = firstName;
+            userData.lastName = lastName;
+            userData.sex = sex;
+            userData.verificationToken = createVerificationToken();
+            userData.verificationTokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
+        } 
+        userData.birthDate = new Date('2000-01-01');
+
+        const user = new User(userData);
+        await user.save();
+
+        if (role === 'nutritionist') {
+            await sendVerificationEmail(user.email, user.verificationToken);
+        } 
+        res.status(201).json({
+            success: true,
+            message: `${role} created successfully`,
+            user: {
+                _id: user._id,
+                email: user.email,
+                role: user.role,
+                isVerified: user.isVerified
+            }
+        });
+
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// ... existing exports ...
+module.exports = { signup, adminSignup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken };

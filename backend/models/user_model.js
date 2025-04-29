@@ -20,7 +20,7 @@ const UserSchema = new Schema({
     },
     sex: {
         type: String,
-        enum: ['Male', 'Female'],
+        enum: ['Male', 'Female', 'Admin'],
         required: true 
     },
     email: {
@@ -38,7 +38,7 @@ const UserSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'nutritionist'],
+        enum: ['user', 'nutritionist', 'admin'],
         default: 'user'
     },
     resetPasswordToken: String,

@@ -7,7 +7,7 @@ import SendIcon from '@mui/icons-material/Send';
 import LogInIMG from '../Images/LogInIMG.jpg'; 
 
 import { useAuthStore } from "../store/authStore";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import {
   Dialog,
@@ -93,7 +93,7 @@ const Password = ({ label, password, setPassword, showPassword, handleShowPasswo
 };
 
 export function LogIn() {
-  const { login, checkAuth , isLoading } = useAuthStore();
+  const { login, checkAuth , isLoading, isAdmin } = useAuthStore();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -163,8 +163,13 @@ export function LogIn() {
       }
 
       if (success) {
-          await checkAuth(); // verify auth state is synchronized
-          navigate('/', { replace: true }); // replace history entry
+          await checkAuth(); 
+
+          if (isAdmin()) {
+            navigate('/ChefitAdmin', { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message;
