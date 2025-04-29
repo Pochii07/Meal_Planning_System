@@ -102,5 +102,40 @@ export const patientService = {
       console.error('Error removing meal addon:', error);
       throw error;
     }
+  },
+
+  archivePatient: async (patientId) => {
+    const response = await fetch(`${NUTRITIONIST_API}/${patientId}/archive`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to archive patient');
+    }
+
+    return response.json();
+  },
+
+  restorePatient: async (patientId) => {
+    const response = await fetch(`${NUTRITIONIST_API}/${patientId}/restore`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to restore patient');
+    }
+
+    return response.json();
+  },
+
+  fetchArchivedPatients: async () => {
+    const response = await fetch(`${NUTRITIONIST_API}/archived`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
   }
 };

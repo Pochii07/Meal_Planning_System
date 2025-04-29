@@ -504,6 +504,76 @@ const removeMealAddon = async (req, res) => {
     }
 };
 
+const archiveNutritionistPatient = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findByIdAndUpdate(
+            id,
+            { 
+                archived: true,
+                archivedAt: new Date()
+            },
+            { new: true }
+        );
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Get archived patients
+const getArchivedPatients = async (req, res) => {
+    try {
+        const nutritionistId = req.userId;
+        const archivedPatients = await NutritionistPatient.find({ 
+            nutritionistId,
+            archived: true 
+        }).sort({ archivedAt: -1 });
+        
+        res.status(200).json(archivedPatients);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+}
+
+// Restore patient from archive
+const restoreNutritionistPatient = async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findByIdAndUpdate(
+            id,
+            { 
+                archived: false,
+                archivedAt: null
+            },
+            { new: true }
+        );
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getNutritionistPatients,
     getNutritionistPatient,
@@ -516,5 +586,8 @@ module.exports = {
     updateNutritionistNotes,
     addMealAddon,
     updateAddonStatus,
-    removeMealAddon
+    removeMealAddon,
+    archiveNutritionistPatient,
+    getArchivedPatients,
+    restoreNutritionistPatient
 }

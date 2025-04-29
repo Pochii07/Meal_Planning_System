@@ -1,4 +1,3 @@
-// backend/models/nutritionist_patient_model.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -6,7 +5,7 @@ const MealSchema = new Schema({
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
     dinner: { type: String, default: '' },
-    date: { type: Date }  // Add this line
+    date: { type: Date } 
 });
 
 const ProgressSchema = new Schema({
@@ -27,7 +26,7 @@ const MealNotesSchema = new Schema({
     dinner: { type: String, default: '' }
 });
 
-// Add this schema for meal addons
+
 const MealAddonsSchema = new Schema({
     breakfast: [{ 
         text: { type: String, required: true },
@@ -46,7 +45,7 @@ const MealAddonsSchema = new Schema({
     }]
 });
 
-// Add this schema for meal plan history
+
 const MealPlanHistorySchema = new Schema({
     date: {
         type: Date,
@@ -83,7 +82,7 @@ const MealPlanHistorySchema = new Schema({
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
     },
-    // Add this block to include nutritionist notes in the history schema
+
     nutritionistNotes: {
         Monday: MealNotesSchema,
         Tuesday: MealNotesSchema,
@@ -203,6 +202,14 @@ const NutritionistPatientSchema = new Schema({
         type: String,
         ref: 'User',
         required: true
+    },
+    archived: {
+        type: Boolean,
+        default: false
+    },
+    archivedAt: {
+        type: Date,
+        default: null
     }
 }, { timestamps: true });
 

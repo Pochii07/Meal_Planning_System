@@ -8,6 +8,7 @@ import { patientService } from '../services/patientService';
 import AddPatientForm from '../components_nutritionist/addPatient';
 import PatientTable from '../components_nutritionist/patientTable';
 import PatientSearchBar from '../components_nutritionist/searchbar';
+import ArchivedPatientTable from '../components_nutritionist/archivedPatientTable';
 
 import { BMI_CATEGORIES } from '../components_nutritionist/searchbar';
 import {
@@ -30,6 +31,7 @@ const NutritionistDashboard = () => {
 
   const [currSearchText, setCurrSearchText] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'archived'
 
   const {
     loading,
@@ -85,6 +87,31 @@ const NutritionistDashboard = () => {
       return null;
     }
   }, [patients, dispatch, patientService]);
+
+  const handleArchivePatient = async (patientId) => {
+    try {
+      const archivedPatient = await patientService.archivePatient(patientId);
+      
+      // Update the patients list
+      dispatch({ 
+        type: 'ARCHIVE_PATIENT', 
+        payload: archivedPatient
+      });
+      
+      // Show success message
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+      successToast.innerHTML = '<span class="mr-2">✅</span> Patient archived successfully!';
+      document.body.appendChild(successToast);
+      setTimeout(() => successToast.remove(), 3000);
+    } catch (error) {
+      console.error('Error archiving patient:', error);
+      setError('Failed to archive patient');
+    } finally {
+      setRemovingPatientId(null);
+      setOpenRemoveDialog(false);
+    }
+  };
 
   useEffect(() => {
     const fetchInitialPatients = async () => {
@@ -176,56 +203,96 @@ const NutritionistDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header with Add Patient Button */}
+      {/* Header with tabs */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Patient Management</h1>
-        <button 
-          onClick={() => setIsFormOpen(!isFormOpen)}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
-        >
-          {isFormOpen ? 'Close Form' : 'Add New Patient'}
-        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Patient Management</h1>
+          <div className="mt-4 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                className={`${
+                  activeTab === 'active'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                onClick={() => setActiveTab('active')}
+              >
+                Active Patients
+              </button>
+              <button
+                className={`${
+                  activeTab === 'archived'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                onClick={() => setActiveTab('archived')}
+              >
+                Archived Patients
+              </button>
+            </nav>
+          </div>
+        </div>
+        
+        {activeTab === 'active' && (
+          <button 
+            onClick={() => setIsFormOpen(!isFormOpen)}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
+          >
+            {isFormOpen ? 'Close Form' : 'Add New Patient'}
+          </button>
+        )}
       </div>
-      <PatientSearchBar 
-        onSearchChange={handleSearch}
-      />
-      {/* Patient Form */}
-      {isFormOpen && (
-        <AddPatientForm 
-          onSubmit={handleCreatePatient}
-          error={error}
-          dispatch={dispatch}
-          setIsFormOpen={setIsFormOpen}
-        />
+      
+      {/* Content based on active tab */}
+      {activeTab === 'active' ? (
+        <>
+          <PatientSearchBar onSearchChange={handleSearch} />
+          
+          {isFormOpen && (
+            <AddPatientForm 
+              onSubmit={handleCreatePatient}
+              error={error}
+              dispatch={dispatch}
+              setIsFormOpen={setIsFormOpen}
+            />
+          )}
+          
+          <PatientTable 
+            patients={filteredPatients}
+            onUpdatePatient={(updatedPatient) => {
+              const updatedPatients = patients.map(p => 
+                p._id === updatedPatient._id ? updatedPatient : p
+              );
+              dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+            }}
+            onRemove={(patientId) => {
+              setRemovingPatientId(patientId);
+              setOpenRemoveDialog(true);
+            }}
+            onRegenerateMealPlan={handleRegenerateMealPlan}
+            openRemoveDialog={openRemoveDialog}
+            setOpenRemoveDialog={setOpenRemoveDialog}
+          />
+        </>
+      ) : (
+        <ArchivedPatientTable />
       )}
-      {/* Patients Table */}
-      <PatientTable 
-        patients={filteredPatients} 
-        onUpdatePatient={(updatedPatient) => {
-          const updatedPatients = patients.map(p => 
-            p._id === updatedPatient._id ? updatedPatient : p
-          );
-          dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
-        }}
-        onRemove={handleRemovePatient}
-        onRegenerateMealPlan={handleRegenerateMealPlan}
-        openRemoveDialog={openRemoveDialog}
-        setOpenRemoveDialog={setOpenRemoveDialog}
-      />
+      
+      {/* Archive confirmation dialog */}
       <Dialog
         open={openRemoveDialog}
         onClose={() => {
-          setOpenRemoveDialog(false)
+          setOpenRemoveDialog(false);
           setRemovingPatientId(null);
         }}
-        aria-labelledby="remove-patient-dialog-title"
+        aria-labelledby="archive-patient-dialog-title"
       >
-        <DialogTitle id="remove-patient-dialog-title">
-          Confirm Patient Removal
+        <DialogTitle id="archive-patient-dialog-title">
+          Archive Patient
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to remove this patient? This action cannot be undone.
+            Are you sure you want to archive this patient? You can restore them from the Archive tab later.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -239,11 +306,11 @@ const NutritionistDashboard = () => {
             Cancel
           </Button>
           <Button 
-            onClick={confirmRemovePatient}
-            color="error"
+            onClick={() => handleArchivePatient(removingPatientId)}
+            color="primary"
             autoFocus
           >
-            Remove Patient
+            Archive Patient
           </Button>
         </DialogActions>
       </Dialog>
