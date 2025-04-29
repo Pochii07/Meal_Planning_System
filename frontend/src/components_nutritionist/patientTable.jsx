@@ -102,24 +102,27 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
   };
 
   const calculateProgress = (progress, skippedMeals) => {
-    if (!progress) return 0;
+    if (!progress) return { percent: 0, completed: 0, total: 0 };
     
     let completed = 0;
     let total = 0;
     
     days.forEach(day => {
-      meals.forEach(meal => {
-        if (skippedMeals?.[day]?.[meal]) {
-        } else {
-          if (progress[day]?.[meal]) {
-            completed++;
-          }
-          total++;
-        }
-      });
+        meals.forEach(meal => {
+            if (!skippedMeals?.[day]?.[meal]) {
+                if (progress[day]?.[meal]) {
+                    completed++;
+                }
+                total++;
+            }
+        });
     });
     
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
+    return {
+        percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+        completed,
+        total: total || 21
+    };
   };
 
   const handleRemovePatient = (patientId) => {
@@ -182,6 +185,15 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
     }
   };
 
+  useEffect(() => {
+    if (expandedPatientId && expandRef.current) {
+      expandRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest' 
+      });
+    }
+  }, [expandedPatientId]);
+
   return (
     <div className="patient-table-container bg-white">
         <div className="patient-table-header">
@@ -222,12 +234,22 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {patient.progress ? (
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-green-600 h-2.5 rounded-full"
-                              style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
-                            />
-                          </div>
+                          (() => {
+                            const progress = calculateProgress(patient.progress, patient.skippedMeals);
+                            return (
+                              <>
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                  <div
+                                    className="bg-green-600 h-2.5 rounded-full"
+                                    style={{ width: `${progress.percent}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-600 ml-2">
+                                  {progress.percent}% ({progress.completed}/{progress.total})
+                                </span>
+                              </>
+                            );
+                          })()
                         ) : (
                           <span className="text-gray-500">No progress yet</span>
                         )}
@@ -280,6 +302,9 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
+                              <p className="text-sm text-gray-600 capitalize">
+                                Full Name: {patient.firstName}  {patient.lastName}
+                              </p>
                               <p className="text-sm text-gray-600">
                                 Age: {patient.age} years old
                               </p>
@@ -448,7 +473,7 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                                   </div>
                                   );
                                 })}
-                              </div>
+                              </div>  
                             </div>
                           ))}                    
                         </div>
@@ -459,12 +484,12 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                           >
                               View History
                           </button>
-                          {calculateProgress(patient.progress, patient.skippedMeals) >= 0 && (
+                          {patient.progress && (
                             <button
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                              onClick={() => handleRegenerateMealPlanClick(patient._id)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
+                                onClick={() => handleRegenerateMealPlanClick(patient._id)}
                             >
-                              Regenerate Meal Plan
+                                Regenerate Meal Plan
                             </button>
                           )}
                         </div>
