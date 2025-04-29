@@ -27,6 +27,8 @@ const NutritionistDashboard = () => {
   
   const [removingPatientId, setRemovingPatientId] = useState(null);
   const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [regeneratePatientId, setRegeneratePatientId] = useState(null);
 
   const [currSearchText, setCurrSearchText] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -211,6 +213,9 @@ const NutritionistDashboard = () => {
         onRegenerateMealPlan={handleRegenerateMealPlan}
         openRemoveDialog={openRemoveDialog}
         setOpenRemoveDialog={setOpenRemoveDialog}
+        regenerateDialogOpen={regenerateDialogOpen}
+        setRegenerateDialogOpen={setRegenerateDialogOpen}
+        setRegeneratePatientId={setRegeneratePatientId}
       />
       <Dialog
         open={openRemoveDialog}
@@ -246,6 +251,37 @@ const NutritionistDashboard = () => {
             Remove Patient
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog 
+          open={regenerateDialogOpen} 
+          onClose={() => {
+            setRegenerateDialogOpen(false);
+            setRegeneratePatientId(null);
+          }} 
+      > 
+          <DialogTitle>Confirm Meal Plan Regeneration</DialogTitle> 
+          <DialogContent> 
+              <DialogContentText> 
+                  Are you sure you want to regenerate this meal plan? Existing meal data will be replaced. 
+              </DialogContentText> 
+          </DialogContent> 
+          <DialogActions> 
+              <Button onClick={() => {
+                setRegenerateDialogOpen(false);
+                setRegeneratePatientId(null);
+              }}>Cancel</Button> 
+              <Button 
+                  onClick={() => { 
+                      handleRegenerateMealPlan(regeneratePatientId); 
+                      setRegenerateDialogOpen(false); 
+                      setRegeneratePatientId(null);
+                  }} 
+                  color="primary" 
+                  autoFocus 
+              > 
+                  Confirm 
+              </Button> 
+          </DialogActions> 
       </Dialog>
     </div>
   )

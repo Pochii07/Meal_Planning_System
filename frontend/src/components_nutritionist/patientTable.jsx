@@ -7,7 +7,7 @@ import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
 import { patientService } from '../services/patientService';
 
-const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
+const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog, setRegenerateDialogOpen }) => {
   // Existing state
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
   const forceUpdate = useForceUpdate();
@@ -230,6 +230,15 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
     }
   };
 
+  useEffect(() => {
+    if (expandedPatientId && expandRef.current) {
+      expandRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest' 
+      });
+    }
+  }, [expandedPatientId]);
+
   return (
     <div className="patient-table-container bg-white">
         <div className="patient-table-header">
@@ -334,13 +343,10 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                       <td ref={expandRef} colSpan="6" className="px-5 py-0 bg-gray-50">
                         <div className="mt-4 p-4 bg-white rounded-lg shadow">
                           <h4 className="font-semibold text-gray-700 mb-2">
-                            Patient Details
+                            Patient Details of <span className="text-green-600">{`${patient.firstName.toUpperCase()} ${patient.lastName.toUpperCase()}`}</span>
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <p className="text-sm text-gray-600 capitalize">
-                                Full Name: {patient.firstName}  {patient.lastName}
-                              </p>
                               <p className="text-sm text-gray-600">
                                 Age: {patient.age} years old
                               </p>
@@ -350,6 +356,7 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                               <p className="text-sm text-gray-600">
                                 Weight: {patient.weight} kg
                               </p>
+                              <div className="border-b border-gray-200 my-2"></div>
                               <p className="text-sm text-gray-600">
                                 BMI: {patient.BMI}
                               </p>
@@ -388,7 +395,7 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                         {calculateProgress(patient.progress, patient.skippedMeals) >= 0}
                         
                         <div className="grid grid-cols-7 gap-1 py-4">
-                          <div className="col-span-7 mb-2 text-sm italic text-gray-600">
+                          <div ref={expandRef} className="col-span-7 mb-2 text-sm italic text-gray-600">
                             Click the recipe name for more information
                           </div>
                           {[
@@ -404,9 +411,11 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                               <h4 className="font-semibold text-gray-700 mb-2">
                                 {day}
                                 {patient.prediction?.[day]?.date && (
-                                  <span className="ml-2 text-xs text-gray-500">
-                                    {new Date(patient.prediction[day].date).toLocaleDateString()}
-                                  </span>
+                                  <div className="mt-1">
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(patient.prediction[day].date).toLocaleDateString()}
+                                    </span>
+                                  </div>
                                 )}
                               </h4>
                               <div className="space-y-2">
@@ -528,13 +537,11 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                                                   </svg>
                                                 </button>
                                               </div>
-                                            ))}
-                                            
+                                            ))}                                            
                                             {/* Add new addon */}
                                             {editingAddon === `${patient._id}-${day}-${meal}` ? (
                                               <div className="flex flex-col mt-2 gap-2">
-                                                <input
-                                                  type="text"
+                                                <textarea
                                                   className="w-full text-xs p-1.5 border rounded"
                                                   value={addonText}
                                                   onChange={(e) => setAddonText(e.target.value)}
@@ -589,8 +596,11 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                           </button>
                           {patient.progress && (
                             <button
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                                onClick={() => handleRegenerateMealPlanClick(patient._id)}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
+                              onClick={() => {
+                                setSelectedPatientId(patient._id);
+                                setRegenerateDialogOpen(true);
+                              }}
                             >
                                 Regenerate Meal Plan
                             </button>
