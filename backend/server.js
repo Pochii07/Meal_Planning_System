@@ -20,6 +20,7 @@ FoodPlan.use(cors({
         'https://chefit-livid.vercel.app', 
         'https://chefit-git-main-pochii07s-projects.vercel.app',
         'http://localhost:5173',
+        'http://localhost:4000',
         'https://chefit.live',     // Add the https version
         'http://chefit.live'       // Add the http version if needed
     ],
@@ -36,10 +37,10 @@ FoodPlan.use((req, res, next) =>{
 }) 
 
 // Routes
-FoodPlan.use('/api/patient_routes', patientRoutes)
-FoodPlan.use('/api/recipes', recipeRoutes)
-FoodPlan.use('/api/auth', authRoutes)
-FoodPlan.use('/api/nutritionist/patients',nutritionistPatientRoutes)
+FoodPlan.use('/api/patient_routes', patientRoutes);
+FoodPlan.use('/api/recipes', recipeRoutes);
+FoodPlan.use('/api/auth', authRoutes);
+FoodPlan.use('/api/nutritionist/patients',nutritionistPatientRoutes);
 
 // connect to db
 const port = process.env.PORT || 4000;

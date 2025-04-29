@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
+// Define the schema
 const recipeSchema = new Schema({
   title: String,
   summary: String,
@@ -25,4 +26,8 @@ const recipeSchema = new Schema({
   halal_kosher: Boolean,
 });
 
+// Add text index on the `title` and `ingredients` fields for full-text search
+recipeSchema.index({ title: 'text', ingredients: 'text' });
+
+// Create and export the model
 module.exports = mongoose.model('Recipe', recipeSchema);

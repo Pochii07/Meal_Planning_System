@@ -11,102 +11,52 @@ export const useAuthStore = create((set) => ({
     isCheckingAuth: true,
     message: null,
     verificationData: null,
+    requiresVerification: false,
+    verificationEmail: null,
 
-    signup: async (firstName, lastName, email, birthDate, sex, password) => {
-        set({
-            isLoading: true,
-            error: null
-        })
-        try {
-            const response = await fetch(`${API_URL}/signup`, {
-                method: 'POST',
-                headers: {
-                    accept: 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    firstName,
-                    lastName,
-                    email,
-                    birthDate,
-                    sex,
-                    password
-                })
-            })
-            const data = await response.json()
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Registration failed');
-            }
+    // Initialize auth state when store is created
+    initialize: async () => {
+        await useAuthStore.getState().checkAuth();
+    },
 
-            const verificationData = {
-                email: data.verificationData.email,
-                expiresAt: data.verificationData.expiresAt,
-                userId: data.verificationData.tempUserId,
-                token: data.verificationData.token
-            };
+    // Universal authenticated fetch method
+    authFetch: async (url, options = {}) => {
+        const token = localStorage.getItem('authToken');
+        console.log('Token from localStorage:', token);  // Added debug log
 
-            console.log(verificationData)
-            sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
 
-            set({ isLoading: false, verificationData, user: null});
-            return data;
-        } catch (error) {
-            set({ isLoading: false, error: error.message})
-            console.log(error);
-            throw error
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.error('No token found in localStorage.');
         }
-    },  
-    verify_login: async (code) => {
-        set({
-            isLoading: true,
-            error: null
-        })
-        try {
-            const storedData = sessionStorage.getItem('pendingVerification');
-            if (!storedData) {
-                throw new Error('No pending verification found');
-            }
-            const { email, userId } = JSON.parse(storedData);
 
-            const response = await fetch(`${API_URL}/verify_login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers,
                 credentials: 'include',
-                body: JSON.stringify({ 
-                    code,
-                    email,
-                    userId,
-                 })
-            })
-            const data = await response.json()
-            console.log('Verify_login response:', data); // Debug log
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Verification failed');
-            }
-            set({ 
-                isLoading: false,
-                isAuthenticated: false,
-                user: null,
-                verificationData: null
             });
-            sessionStorage.removeItem('pendingVerification');
-            return data;
+
+            if (response.status === 401) {
+                localStorage.removeItem('authToken');
+                set({ isAuthenticated: false, user: null });
+                throw new Error('Session expired. Please login again.');
+            }
+
+            return response;
         } catch (error) {
-            set({ isLoading: false, error: error.message})
-            console.log(error);
-            throw error
+            console.error('Auth fetch error:', error);
+            throw error;
         }
     },
+
     login: async (email, password) => {
-        set({
-            isLoading: true,
-            error: null
-        });
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
@@ -114,102 +64,107 @@ export const useAuthStore = create((set) => ({
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
             });
+
             const data = await response.json();
-            if (!data.success) {
+
+            if (!response.ok) {
                 throw new Error(data.message || 'Login failed');
             }
-            if (data.requiresVerification){
-                const verificationData = {
-                    email: data.email,
-                    verificationToken: data.verificationToken,
-                    expiresAt: data.expiresAt,
-                };
-                sessionStorage.setItem('pendingVerification', JSON.stringify(verificationData));
 
-                set({ 
+            if (data.user?.token) {
+                localStorage.setItem('authToken', data.user.token);  // Store token in localStorage
+                set({
                     isLoading: false,
-                    requiresVerification: true,
-                    verificationEmail: data.email
+                    isAuthenticated: true,  // Set isAuthenticated to true
+                    user: data.user,
                 });
-                return { ...data, shouldVerify: true };
+                console.log('Logged in successfully, user:', data.user);
+                return data;
             }
-            if (data.user && data.user.token) {
-                // Store token as is without any modifications
-                localStorage.setItem('authToken', data.user.token);
-                
-                set({ 
-                    isLoading: false, 
-                    isAuthenticated: true,
-                    user: data.user
-                });
-            }
-            return data;
+
+            throw new Error('Invalid login response');
         } catch (error) {
             set({ 
-                isLoading: false, 
-                isAuthenticated: false,
-                requiresVerification: false,
+                isLoading: false,
+                isAuthenticated: false,  // Ensure it's set to false on failure
                 user: null,
                 error: error.message,
             });
+            console.error('Login error:', error);
             throw error;
         }
     },
-    checkAuth: async () => {    
-        set({
-            isCheckingAuth: true,
-            error: null
-        })
+
+    checkAuth: async () => {
+        set({ isCheckingAuth: true, error: null });
         try {
             const token = localStorage.getItem('authToken');
+            console.log('Checking auth with token:', token); // Debug log for token check
             if (!token) {
                 set({ isCheckingAuth: false, isAuthenticated: false, user: null });
-                return;
+                return false;
             }
-            
+
             const response = await fetch(`${API_URL}/check_auth`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                }
+                },
+                credentials: 'include',
             });
-            const data = await response.json();
-            if(data.user){
-                set({ isCheckingAuth: false, isAuthenticated: true, user: data.user });   
-            } else {
-                set({ isCheckingAuth: false, isAuthenticated: false, user: null})
+
+            if (!response.ok) {
+                localStorage.removeItem('authToken');
+                throw new Error('Session expired');
             }
+
+            const data = await response.json();
+            set({ isCheckingAuth: false, isAuthenticated: true, user: data.user });
+            console.log('User authenticated:', data.user);  // Added log
+            return true;
         } catch (error) {
-            set({ isCheckingAuth: false, isAuthenticated: false, user: null})
-            console.log(error);
-            throw error
+            localStorage.removeItem('authToken');
+            set({
+                isCheckingAuth: false,
+                isAuthenticated: false,
+                user: null,
+                error: error.message,
+            });
+            console.error('Auth check error:', error);  // Log error here
+            return false;
         }
     },
     logout: async () => {
-        localStorage.removeItem('authToken');
         set({ isLoading: true, error: null });
         try {
-          await fetch(`${API_URL}/logout`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          });
-          set({ isLoading: false, isAuthenticated: false, user: null });
+            await fetch(`${API_URL}/logout`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+            });
+            
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('pendingVerification');
+            set({ 
+                isLoading: false, 
+                isAuthenticated: false, 
+                user: null,
+                requiresVerification: false,
+                verificationData: null
+            });
         } catch (error) {
-          set({ isLoading: false, error: error.message });
-          throw error;
+            set({ isLoading: false, error: error.message });
+            throw error;
         }
     },    
+
     forgotpassword: async (email) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/forgot_password`, {
                 method: 'POST',
@@ -218,29 +173,26 @@ export const useAuthStore = create((set) => ({
                 },
                 credentials: 'include',
                 body: JSON.stringify({ email })
-            })
+            });
+            
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({
                     message: `Server error: ${response.status} ${response.statusText}`
                 }));
                 throw new Error(errorData.message || 'Password reset request failed');
             }
-            const data = await response.json().catch(() => ({
-                message: `Server error: ${response.status} ${response.statusText}`
-            }));
+            
+            const data = await response.json();
             set({ isLoading: false, message: data.message });
             return data;
         } catch (error) {
-            set({ isLoading: false, error: error.message})
-            console.log(error);
-            throw error
+            set({ isLoading: false, error: error.message });
+            throw error;
         }
     },
+
     resetpassword: async (token, password) => {
-        set({
-            isLoading: true,
-            error: null
-        })
+        set({ isLoading: true, error: null });
         try {
             const response = await fetch(`${API_URL}/reset_password/${token}`, {
                 method: 'POST',
@@ -249,16 +201,17 @@ export const useAuthStore = create((set) => ({
                 },
                 credentials: 'include',
                 body: JSON.stringify({ password })
-            })
-            const data = await response.json()
+            });
+            
+            const data = await response.json();
             set({ isLoading: false, message: data.message });
-            console.log(data.message);
+            return data;
         } catch (error) {
-            set({ isLoading: false, error: error.message})
-            console.log(error);
-            throw error
+            set({ isLoading: false, error: error.message });
+            throw error;
         }
     },
+
     checkPasswordResetToken: async (token) => {
         set({ isLoading: true, error: null });
         try {
@@ -268,6 +221,7 @@ export const useAuthStore = create((set) => ({
                     'Content-Type': 'application/json',
                 }
             });
+            
             if (!response.ok) {
                 throw new Error('Invalid or expired token');
             }
@@ -281,4 +235,31 @@ export const useAuthStore = create((set) => ({
             set({ isLoading: false });
         }
     },
+
+    refreshToken: async () => {
+        set({ isLoading: true });
+        try {
+            const response = await fetch(`${API_URL}/refresh_token`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.token) {
+                localStorage.setItem('authToken', data.token);
+                set({ user: data.user, isAuthenticated: true });
+            }
+            
+            return data.token;
+        } catch (error) {
+            set({ error: error.message });
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    clearError: () => set({ error: null }),
+    clearMessage: () => set({ message: null }),
 }));

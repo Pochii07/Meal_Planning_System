@@ -1,31 +1,25 @@
 const express = require('express');
+const router = express.Router();
 const {
     getAllRecipes,
     getRecipe,
     createRecipe,
     updateRecipe,
     deleteRecipe,
-    getRecipeByTitle
+    getRecipeByTitle,
+    searchFilteredRecipes 
 } = require('../controllers/recipe_controller');
+const { verifyToken } = require('../middleware/verifyToken');
 
-const router = express.Router();
-
-// Get all recipes
+// Public routes
 router.get('/', getAllRecipes);
-
-// Get a single recipe
 router.get('/:id', getRecipe);
-
-// Create a new recipe
-router.post('/', createRecipe);
-
-// Update a recipe
-router.patch('/:id', updateRecipe);
-
-// Delete a recipe
-router.delete('/:id', deleteRecipe);
-
-// GET a recipe by title
 router.get('/title/:title', getRecipeByTitle);
+
+// Protected routes
+router.post('/search-filtered', verifyToken, searchFilteredRecipes);
+router.post('/', verifyToken, createRecipe);
+router.patch('/:id', verifyToken, updateRecipe);
+router.delete('/:id', verifyToken, deleteRecipe);
 
 module.exports = router;
