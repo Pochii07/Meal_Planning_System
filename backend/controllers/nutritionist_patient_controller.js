@@ -394,6 +394,116 @@ const updateNutritionistNotes = async (req, res) => {
     }
 };
 
+const addMealAddon = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { day, meal, addonText } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        const patient = await NutritionistPatient.findById(id);
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        // Initialize mealAddons if it doesn't exist
+        if (!patient.mealAddons) {
+            patient.mealAddons = {};
+        }
+        if (!patient.mealAddons[day]) {
+            patient.mealAddons[day] = {};
+        }
+        if (!patient.mealAddons[day][meal]) {
+            patient.mealAddons[day][meal] = [];
+        }
+
+        // Add the new addon
+        patient.mealAddons[day][meal].push({
+            text: addonText,
+            completed: false,
+            skipped: false
+        });
+
+        await patient.save();
+
+        res.status(200).json({ 
+            success: true, 
+            mealAddons: patient.mealAddons
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const updateAddonStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { day, meal, addonIndex, completed, skipped } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        const patient = await NutritionistPatient.findById(id);
+        
+        if (!patient || !patient.mealAddons?.[day]?.[meal]?.[addonIndex]) {
+            return res.status(404).json({ error: 'Addon not found' });
+        }
+
+        // Update the addon status
+        if (completed !== undefined) {
+            patient.mealAddons[day][meal][addonIndex].completed = completed;
+        }
+        
+        if (skipped !== undefined) {
+            patient.mealAddons[day][meal][addonIndex].skipped = skipped;
+        }
+
+        await patient.save();
+
+        res.status(200).json({ 
+            success: true, 
+            mealAddons: patient.mealAddons
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const removeMealAddon = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { day, meal, addonIndex } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        const patient = await NutritionistPatient.findById(id);
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        if (!patient.mealAddons?.[day]?.[meal] || addonIndex >= patient.mealAddons[day][meal].length) {
+            return res.status(404).json({ error: 'Addon not found' });
+        }
+
+        // Remove the addon at the specified index
+        patient.mealAddons[day][meal].splice(addonIndex, 1);
+
+        await patient.save();
+
+        res.status(200).json({ 
+            success: true, 
+            mealAddons: patient.mealAddons
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getNutritionistPatients,
     getNutritionistPatient,
@@ -403,5 +513,8 @@ module.exports = {
     updatePatientProgress,
     regenerateMealPlan,
     getMealPlanHistory,
-    updateNutritionistNotes
+    updateNutritionistNotes,
+    addMealAddon,
+    updateAddonStatus,
+    removeMealAddon
 }

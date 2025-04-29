@@ -5,9 +5,12 @@ const {
     createNutritionistPatient,
     updateNutritionistPatient,
     deleteNutritionistPatient,
-    regenerateMealPlan,  // Add this import
-    getMealPlanHistory,  // Add this import
-    updateNutritionistNotes // Add this import
+    regenerateMealPlan,
+    getMealPlanHistory,  
+    updateNutritionistNotes,
+    addMealAddon,
+    removeMealAddon,
+    updateAddonStatus
 } = require('../controllers/nutritionist_patient_controller')
 const { verifyToken } = require('../middleware/verifyToken')
 
@@ -39,5 +42,14 @@ router.get('/:id/meal-plan-history', verifyToken, getMealPlanHistory)
 
 // Update nutritionist notes for a patient
 router.patch('/:id/nutritionist-notes', verifyToken, updateNutritionistNotes)
+
+// Add meal addon for a patient
+router.post('/:id/addon', verifyToken, addMealAddon);
+
+// Remove meal addon for a patient
+router.delete('/:id/addon', verifyToken, removeMealAddon);
+
+// Update addon status (completed/skipped)
+router.patch('/:id/addon-status', verifyToken, updateAddonStatus);
 
 module.exports = router

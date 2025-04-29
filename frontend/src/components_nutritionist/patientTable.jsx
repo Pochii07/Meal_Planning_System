@@ -24,6 +24,8 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
   const [editingNote, setEditingNote] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [patients, setPatients] = useState(propsPatients || []);
+  const [editingAddon, setEditingAddon] = useState(null);
+  const [addonText, setAddonText] = useState("");
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const meals = ["breakfast", "lunch", "dinner"];
@@ -185,14 +187,48 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
     }
   };
 
-  useEffect(() => {
-    if (expandedPatientId && expandRef.current) {
-      expandRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'nearest' 
-      });
+  const handleAddAddon = async (patientId, day, meal) => {
+    try {
+      if (!addonText.trim()) return;
+      
+      const response = await patientService.addMealAddon(patientId, day, meal, addonText);
+      
+      if (response.success) {
+        // Update the local patients array
+        const updatedPatients = patients.map(p => 
+          p._id === patientId 
+            ? { ...p, mealAddons: response.mealAddons } 
+            : p
+        );
+        
+        setPatients(updatedPatients);
+        setEditingAddon(null);
+        setAddonText('');
+      }
+    } catch (error) {
+      console.error("Error adding meal addon:", error);
     }
-  }, [expandedPatientId]);
+  };
+
+  const handleRemoveAddon = async (patientId, day, meal, addonIndex) => {
+    try {
+      // Call your API to remove the addon
+      const response = await patientService.removeMealAddon(patientId, day, meal, addonIndex);
+      
+      if (response.success) {
+        // Update the local patients array
+        const updatedPatients = patients.map(p => 
+          p._id === patientId 
+            ? { ...p, mealAddons: response.mealAddons } 
+            : p
+        );
+        
+        setPatients(updatedPatients);
+      }
+    } catch (error) {
+      console.error("Error removing meal addon:", error);
+    }
+  };
 
   return (
     <div className="patient-table-container bg-white">
@@ -469,6 +505,73 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                                           )}
                                         </div>
                                       )}
+                                      {/* Meal addons section */}
+                                      <div className="mt-2">
+                                        {patient.prediction?.[day]?.[meal] && (
+                                          <div>
+                                            {/* Display existing addons */}
+                                            {patient.mealAddons?.[day]?.[meal]?.map((addon, idx) => (
+                                              <div key={idx} className="flex items-center gap-1 text-xs my-1 bg-blue-50 p-1.5 rounded">
+                                                {addon.skipped}
+                                                {addon.completed && !addon.skipped && (
+                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                  </svg>
+                                                )}
+                                                <span className={`flex-grow truncate ${addon.skipped ? 'line-through text-red-600' : addon.completed ? 'text-green-600' : ''}`}>
+                                                  {addon.text}
+                                                </span>
+                                                <button className="text-red-600 hover:text-red-800 ml-1 flex-shrink-0"
+                                                  onClick={() => handleRemoveAddon(patient._id, day, meal, idx)}>
+                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                  </svg>
+                                                </button>
+                                              </div>
+                                            ))}
+                                            
+                                            {/* Add new addon */}
+                                            {editingAddon === `${patient._id}-${day}-${meal}` ? (
+                                              <div className="flex flex-col mt-2 gap-2">
+                                                <input
+                                                  type="text"
+                                                  className="w-full text-xs p-1.5 border rounded"
+                                                  value={addonText}
+                                                  onChange={(e) => setAddonText(e.target.value)}
+                                                  placeholder="Enter addon instructions..."
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                  <button 
+                                                    className="px-2 py-1 text-xs bg-gray-300 rounded hover:bg-gray-400"
+                                                    onClick={() => setEditingAddon(null)}
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                  <button 
+                                                    className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                                                    onClick={() => handleAddAddon(patient._id, day, meal)}
+                                                  >
+                                                    Add
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <button 
+                                                className="text-xs text-blue-600 hover:text-blue-800 mt-1 flex items-center"
+                                                onClick={() => {
+                                                  setEditingAddon(`${patient._id}-${day}-${meal}`);
+                                                  setAddonText('');
+                                                }}
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                Add meal addon
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                   );

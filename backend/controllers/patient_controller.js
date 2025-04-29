@@ -341,36 +341,27 @@ const verifyAccessCode = async (req, res) => {
 const getPatientDataByAccessCode = async (req, res) => {
     try {
         const { accessCode } = req.params;
-      
+        
         const patient = await NutritionistPatient.findOne({ accessCode });
-      
+        
         if (!patient) {
             return res.status(404).json({ error: 'Invalid access code' });
         }
-      
-        // Make sure prediction data is properly structured
-        let predictionData = patient.prediction;
-        if (typeof predictionData === 'string') {
-            try {
-                predictionData = JSON.parse(predictionData.replace(/'/g, '"'));
-            } catch (parseError) {
-                console.error('Error parsing prediction data:', parseError);
-            }
-        }
-      
-        // Return relevant patient data
+        
         res.status(200).json({
             _id: patient._id,
             firstName: patient.firstName,
             lastName: patient.lastName,
-            prediction: predictionData,
-            progress: patient.progress || {},
-            skippedMeals: patient.skippedMeals || {},
-            mealNotes: patient.mealNotes || {},
-            nutritionistNotes: patient.nutritionistNotes || {} // Add this line
+            prediction: patient.prediction,
+            progress: patient.progress,
+            skippedMeals: patient.skippedMeals,
+            mealNotes: patient.mealNotes,
+            nutritionistNotes: patient.nutritionistNotes,
+            mealAddons: patient.mealAddons // Make sure this line is included
         });
+        
     } catch (error) {
-        console.error('Error retrieving data by access code:', error);
+        console.error('Error getting patient data by access code:', error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -478,6 +469,46 @@ const updateMealNotesByAccessCode = async (req, res) => {
     }
 };
 
+// Update addon status by access code
+const updateAddonStatusByAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.params;
+        const { day, meal, addonIndex, completed, skipped } = req.body;
+        
+        console.log(`Updating addon status for accessCode ${accessCode}: day=${day}, meal=${meal}, addonIndex=${addonIndex}`);
+        
+        // Find patient by access code
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Invalid access code' });
+        }
+        
+        if (!patient.mealAddons?.[day]?.[meal]?.[addonIndex]) {
+            return res.status(404).json({ error: 'Addon not found' });
+        }
+
+        // Update the addon status
+        if (completed !== undefined) {
+            patient.mealAddons[day][meal][addonIndex].completed = completed;
+        }
+        
+        if (skipped !== undefined) {
+            patient.mealAddons[day][meal][addonIndex].skipped = skipped;
+        }
+
+        await patient.save();
+        
+        res.status(200).json({
+            success: true,
+            mealAddons: patient.mealAddons
+        });
+    } catch (error) {
+        console.error('Error updating addon status by access code:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllPatients,
     getPatient,
@@ -493,6 +524,7 @@ module.exports = {
     getPatientDataByAccessCode,
     updateProgressByAccessCode,
     updateMealStatusByAccessCode,
-    updateMealNotesByAccessCode
+    updateMealNotesByAccessCode,
+    updateAddonStatusByAccessCode
 };
 

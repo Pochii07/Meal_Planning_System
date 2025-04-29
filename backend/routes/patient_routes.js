@@ -14,8 +14,8 @@ const {
     updateProgressByAccessCode,
     updateMealNotes,
     updateMealStatusByAccessCode,
-    updateMealNotesByAccessCode
-
+    updateMealNotesByAccessCode,
+    updateAddonStatusByAccessCode
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -54,6 +54,9 @@ router.get('/access-code-data/:accessCode', getPatientDataByAccessCode);
 router.patch('/update-progress/:accessCode', updateProgressByAccessCode);
 router.patch('/update-meal-status/:accessCode', updateMealStatusByAccessCode);
 router.patch('/update-meal-notes/:accessCode', updateMealNotesByAccessCode);
+
+// Update addon status for guest meal tracker
+router.patch('/update-addon-status/:accessCode', updateAddonStatusByAccessCode);
 
 // Add this new route for meal notes
 router.patch('/:id/meal-notes', verifyToken, updateMealNotes)
