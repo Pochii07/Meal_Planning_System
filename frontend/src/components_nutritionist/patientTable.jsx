@@ -6,6 +6,13 @@ import CopyButton from './clipboard.jsx';
 import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
 import { patientService } from '../services/patientService';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+
 
 const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog }) => {
   // Existing state
@@ -26,6 +33,8 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
   const [patients, setPatients] = useState(propsPatients || []);
   const [editingAddon, setEditingAddon] = useState(null);
   const [addonText, setAddonText] = useState("");
+  const [openRegenerateDialog, setOpenRegenerateDialog] = useState(false);
+  const [regeneratingPatientId, setRegeneratingPatientId] = useState(null);
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const meals = ["breakfast", "lunch", "dinner"];
@@ -76,9 +85,14 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
   }, [expandedPatientId, mealPlanVersion]);
 
   const handleRegenerateMealPlanClick = useCallback((patientId) => {
-    console.log("Regenerating meal plan for patient:", patientId);
+    setRegeneratingPatientId(patientId);
+    setOpenRegenerateDialog(true);
+  }, []);
+
+  const handleConfirmRegenerate = useCallback(() => {
+    console.log("Regenerating meal plan for patient:", regeneratingPatientId);
     
-    onRegenerateMealPlan(patientId).then((updatedData) => {
+    onRegenerateMealPlan(regeneratingPatientId).then((updatedData) => {
       console.log("Meal plan regenerated successfully:", updatedData);
       
       setMealCalories({});
@@ -89,8 +103,19 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
         forceUpdate();
         console.log("Forced update after timeout");
       }, 500);
+      
+      // Show success message
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+      successToast.innerHTML = '<span class="mr-2">✅</span> Meal plan regenerated successfully!';
+      document.body.appendChild(successToast);
+      setTimeout(() => successToast.remove(), 3000);
     });
-  }, [onRegenerateMealPlan, forceUpdate]);
+    
+    // Close dialog
+    setOpenRegenerateDialog(false);
+    setRegeneratingPatientId(null);
+  }, [regeneratingPatientId, onRegenerateMealPlan, forceUpdate]);
 
   const handleViewHistory = async (patientId) => {
     try {
@@ -508,7 +533,7 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                                                 <button className="text-red-600 hover:text-red-800 ml-1 flex-shrink-0"
                                                   onClick={() => handleRemoveAddon(patient._id, day, meal, idx)}>
                                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414-1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                                   </svg>
                                                 </button>
                                               </div>
@@ -599,6 +624,41 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
         history={selectedPatientHistory}
         patient={patients?.find(p => p._id === selectedPatientId)}
     />
+    {/* Regenerate confirmation dialog */}
+    <Dialog
+      open={openRegenerateDialog}
+      onClose={() => {
+        setOpenRegenerateDialog(false);
+        setRegeneratingPatientId(null);
+      }}
+      aria-labelledby="regenerate-meal-plan-dialog-title"
+    >
+      <DialogTitle id="regenerate-meal-plan-dialog-title">
+        Regenerate Meal Plan
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Are you sure you want to regenerate this patient's meal plan? This will replace their current plan with a new one.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button 
+          onClick={() => {
+            setOpenRegenerateDialog(false);
+            setRegeneratingPatientId(null);
+          }}
+          color="primary"
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleConfirmRegenerate}
+          style={{ backgroundColor: '#16a34a', color: 'white' }}
+        >
+          Regenerate
+        </Button>
+      </DialogActions>
+    </Dialog>
     </div>
   );
 };
