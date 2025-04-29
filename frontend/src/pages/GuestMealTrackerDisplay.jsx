@@ -24,11 +24,12 @@ const GuestMealTrackerDisplay = () => {
         const response = await fetch(`${PATIENT_API}/access-code-data/${accessCode}`);
         const data = await response.json();
         if (response.ok) {
-          console.log("Received nutritionist notes:", data.nutritionistNotes);
+          console.log("Received data:", data);
           setMealPlan({
             _id: data._id,
             prediction: data.prediction,
             progress: data.progress || {},
+            mealAddons: data.mealAddons || {} // Include meal addons
           });
           setProgress(data.progress || {});
           setPatientData({
@@ -284,6 +285,38 @@ const GuestMealTrackerDisplay = () => {
     }
   };
 
+  const handleAddonStatusChange = async (day, meal, addonIndex, completed, skipped) => {
+    try {
+      const response = await fetch(`${PATIENT_API}/update-addon-status/${accessCode}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          day,
+          meal,
+          addonIndex,
+          completed,
+          skipped
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the local state with new addon status
+        const updatedMealPlan = {...mealPlan};
+        updatedMealPlan.mealAddons = data.mealAddons;
+        setMealPlan(updatedMealPlan);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to update addon status');
+      }
+    } catch (error) {
+      console.error('Error updating addon status:', error);
+      setError('Failed to update addon status');
+    }
+  };
+
   if (!mealPlan) return <div>Loading...</div>;
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -354,6 +387,37 @@ const GuestMealTrackerDisplay = () => {
                         Nutritionist Note:
                       </span>
                       <p className="text-gray-800">{nutritionistNotes[day][meal]}</p>
+                    </div>
+                  )}
+                  
+                  {/* Meal Addons Section */}
+                  {mealPlan.mealAddons?.[day]?.[meal]?.length > 0 && (
+                    <div className="meal-addons mt-3">
+                      <h4 className="text-sm font-medium">Additional Items:</h4>
+                      {mealPlan.mealAddons[day][meal].map((addon, idx) => (
+                        <div key={idx} className="flex items-center mt-2 p-2 bg-gray-50 rounded">
+                          <input
+                            type="checkbox"
+                            checked={addon.completed}
+                            onChange={() => handleAddonStatusChange(day, meal, idx, !addon.completed, addon.skipped)}
+                            disabled={addon.skipped}
+                            className="mr-2"
+                          />
+                          <span className={`flex-grow ${addon.skipped ? 'line-through text-gray-400' : addon.completed ? 'text-green-600' : ''}`}>
+                            {addon.text}
+                          </span>
+                          <button 
+                            className={`text-xs px-2 py-1 rounded ${
+                              addon.skipped 
+                                ? 'bg-gray-300 hover:bg-gray-400' 
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
+                            onClick={() => handleAddonStatusChange(day, meal, idx, addon.completed, !addon.skipped)}
+                          >
+                            {addon.skipped ? 'Unskip' : 'Skip'}
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                   

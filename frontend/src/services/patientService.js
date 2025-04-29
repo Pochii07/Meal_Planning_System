@@ -60,5 +60,47 @@ export const patientService = {
     
     // Make sure we're returning the data from the response
     return data;
+  },
+
+  addMealAddon: async (patientId, day, meal, addonText) => {
+    try {
+      const response = await fetch(`${NUTRITIONIST_API}/${patientId}/addon`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          day,
+          meal,
+          addonText
+        })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding meal addon:', error);
+      throw error;
+    }
+  },
+
+  removeMealAddon: async (patientId, day, meal, addonIndex) => {
+    try {
+      const response = await fetch(`${NUTRITIONIST_API}/${patientId}/addon`, {
+        method: 'DELETE',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          day,
+          meal,
+          addonIndex
+        })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error removing meal addon:', error);
+      throw error;
+    }
   }
 };

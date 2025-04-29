@@ -27,6 +27,25 @@ const MealNotesSchema = new Schema({
     dinner: { type: String, default: '' }
 });
 
+// Add this schema for meal addons
+const MealAddonsSchema = new Schema({
+    breakfast: [{ 
+        text: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+        skipped: { type: Boolean, default: false }
+    }],
+    lunch: [{ 
+        text: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+        skipped: { type: Boolean, default: false }
+    }],
+    dinner: [{ 
+        text: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+        skipped: { type: Boolean, default: false }
+    }]
+});
+
 // Add this schema for meal plan history
 const MealPlanHistorySchema = new Schema({
     date: {
@@ -169,6 +188,15 @@ const NutritionistPatientSchema = new Schema({
         Friday: MealNotesSchema,
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
+    },
+    mealAddons: {
+        Monday: MealAddonsSchema,
+        Tuesday: MealAddonsSchema,
+        Wednesday: MealAddonsSchema,
+        Thursday: MealAddonsSchema,
+        Friday: MealAddonsSchema,
+        Saturday: MealAddonsSchema,
+        Sunday: MealAddonsSchema
     },
     mealPlanHistory: [MealPlanHistorySchema],
     nutritionistId: {
