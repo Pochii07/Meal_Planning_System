@@ -149,6 +149,26 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
+  const calculateCompletedTotal = (progress, skippedMeals) => {
+    if (!progress) return { completed: 0, total: 0 };
+    
+    let completed = 0;
+    let total = 0;
+    
+    days.forEach(day => {
+      meals.forEach(meal => {
+        if (!skippedMeals?.[day]?.[meal]) {
+          if (progress[day]?.[meal]) {
+            completed++;
+          }
+          total++;
+        }
+      });
+    });
+    
+    return { completed, total };
+  };
+
   const handleRemovePatient = (patientId) => {
     if (onRemove) {
       onRemove(patientId);
@@ -290,14 +310,25 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                       <div className="text-sm text-gray-900">{patient.BMI}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="flex flex-col">
                         {patient.progress ? (
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-green-600 h-2.5 rounded-full"
-                              style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
-                            />
-                          </div>
+                          <>
+                            <div className="flex justify-between items-center mb-1 text-xs">
+                              <span className="font-medium">
+                                {calculateCompletedTotal(patient.progress, patient.skippedMeals).completed}/
+                                {calculateCompletedTotal(patient.progress, patient.skippedMeals).total} finished
+                              </span>
+                              <span className="font-medium text-gray-700">
+                                {calculateProgress(patient.progress, patient.skippedMeals)}%
+                              </span>
+                            </div>
+                            <div className="bg-gray-200 rounded-full h-2.5 w-full">
+                              <div 
+                                className="bg-green-600 h-2.5 rounded-full"
+                                style={{ width: `${calculateProgress(patient.progress, patient.skippedMeals)}%` }}
+                              />
+                            </div>
+                          </>
                         ) : (
                           <span className="text-gray-500">No progress yet</span>
                         )}

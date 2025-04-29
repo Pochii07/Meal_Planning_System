@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { patientService } from '../services/patientService';
+import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context';
 
 const ArchivedPatientTable = () => {
   const [archivedPatients, setArchivedPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { dispatch } = useNutritionistPatientContext();
 
   useEffect(() => {
     const fetchArchivedPatients = async () => {
       try {
         setLoading(true);
         const patients = await patientService.fetchArchivedPatients();
-        // Make sure patients is an array before setting state
         setArchivedPatients(Array.isArray(patients) ? patients : []);
       } catch (err) {
         console.error('Error fetching archived patients:', err);
         setError('Failed to load archived patients');
-        setArchivedPatients([]); // Ensure it's always an array
+        setArchivedPatients([]);
       } finally {
         setLoading(false);
       }
@@ -27,10 +28,11 @@ const ArchivedPatientTable = () => {
 
   const handleRestore = async (patientId) => {
     try {
-      await patientService.restorePatient(patientId);
+      const restoredPatient = await patientService.restorePatient(patientId);
+
       setArchivedPatients(archivedPatients.filter(patient => patient._id !== patientId));
-      
-      // Show success message
+      dispatch({ type: 'RESTORE_PATIENT', payload: restoredPatient });
+
       const successToast = document.createElement('div');
       successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
       successToast.innerHTML = '<span class="mr-2">✅</span> Patient restored successfully!';
