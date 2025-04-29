@@ -1,4 +1,3 @@
-// backend/routes/nutritionist_patient_routes.js
 const express = require('express')
 const {
     getNutritionistPatients,
@@ -6,7 +5,9 @@ const {
     createNutritionistPatient,
     updateNutritionistPatient,
     deleteNutritionistPatient,
-    regenerateMealPlan  // Add this import
+    regenerateMealPlan,  // Add this import
+    getMealPlanHistory,  // Add this import
+    updateNutritionistNotes // Add this import
 } = require('../controllers/nutritionist_patient_controller')
 const { verifyToken } = require('../middleware/verifyToken')
 
@@ -31,6 +32,12 @@ router.patch('/:id', updateNutritionistPatient)
 router.delete('/:id', deleteNutritionistPatient)
 
 // Regenerate meal plan for a patient
-router.post('/:id/regenerate-meal-plan', verifyToken, regenerateMealPlan)  // Fix this line
+router.post('/:id/regenerate-meal-plan', verifyToken, regenerateMealPlan)
+
+// Get meal plan history for a patient
+router.get('/:id/meal-plan-history', verifyToken, getMealPlanHistory)
+
+// Update nutritionist notes for a patient
+router.patch('/:id/nutritionist-notes', verifyToken, updateNutritionistNotes)
 
 module.exports = router

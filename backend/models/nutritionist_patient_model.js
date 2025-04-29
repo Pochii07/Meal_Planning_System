@@ -5,7 +5,8 @@ const Schema = mongoose.Schema;
 const MealSchema = new Schema({
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
-    dinner: { type: String, default: '' }
+    dinner: { type: String, default: '' },
+    date: { type: Date }  // Add this line
 });
 
 const ProgressSchema = new Schema({
@@ -24,6 +25,55 @@ const MealNotesSchema = new Schema({
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
     dinner: { type: String, default: '' }
+});
+
+// Add this schema for meal plan history
+const MealPlanHistorySchema = new Schema({
+    date: {
+        type: Date,
+        default: Date.now
+    },
+    prediction: {
+        type: Schema.Types.Mixed,
+        required: true
+    },
+    progress: {
+        Monday: ProgressSchema,
+        Tuesday: ProgressSchema,
+        Wednesday: ProgressSchema,
+        Thursday: ProgressSchema,
+        Friday: ProgressSchema,
+        Saturday: ProgressSchema,
+        Sunday: ProgressSchema
+    },
+    skippedMeals: {
+        Monday: SkippedMealsSchema,
+        Tuesday: SkippedMealsSchema,
+        Wednesday: SkippedMealsSchema,
+        Thursday: SkippedMealsSchema,
+        Friday: SkippedMealsSchema,
+        Saturday: SkippedMealsSchema,
+        Sunday: SkippedMealsSchema
+    },
+    mealNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    },
+    // Add this block to include nutritionist notes in the history schema
+    nutritionistNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    }
 });
 
 const NutritionistPatientSchema = new Schema({
@@ -111,6 +161,16 @@ const NutritionistPatientSchema = new Schema({
         Saturday: MealNotesSchema,
         Sunday: MealNotesSchema
     },
+    nutritionistNotes: {
+        Monday: MealNotesSchema,
+        Tuesday: MealNotesSchema,
+        Wednesday: MealNotesSchema,
+        Thursday: MealNotesSchema,
+        Friday: MealNotesSchema,
+        Saturday: MealNotesSchema,
+        Sunday: MealNotesSchema
+    },
+    mealPlanHistory: [MealPlanHistorySchema],
     nutritionistId: {
         type: String,
         ref: 'User',

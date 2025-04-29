@@ -72,7 +72,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=10, n_init='auto')
+        kmeans = KMeans(n_clusters=50, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -330,11 +330,37 @@ def predict_meal_plan():
             halal_or_kosher='halal' in dietary_restrictions or 'kosher' in dietary_restrictions
         )
         
+        # Get current date for the meal plan
+        from datetime import datetime, timedelta
+        
+        # Find the next Monday to start the week
+        today = datetime.now()
+        days_ahead = 0 - today.weekday()  # 0 = Monday
+        if days_ahead <= 0:  # Target day already happened this week
+            days_ahead += 7
+        
+        next_monday = today + timedelta(days=days_ahead)
+        
         # Generate weekly meal plan
         weekly_plan = planner.generate_weekly_plan(tdee, preferences)
         
-        # Return the result directly as JSON (no double encoding)
-        return jsonify({'predicted_meal_plan': weekly_plan})
+        # Add dates to the meal plan
+        dated_weekly_plan = {}
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        for i, day in enumerate(days_of_week):
+            current_date = next_monday + timedelta(days=i)
+            date_string = current_date.strftime('%Y-%m-%d')
+            
+            # Add the date to the plan
+            dated_weekly_plan[day] = {
+                'date': date_string,
+                'meals': weekly_plan[day]
+            }
+        
+        # Return the result with dates
+        return jsonify({'predicted_meal_plan': dated_weekly_plan})
+        
     except Exception as e:
         # Debugging: Print the error
         print(f"Error: {str(e)}")

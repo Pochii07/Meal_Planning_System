@@ -10,6 +10,7 @@ const GuestMealTrackerDisplay = () => {
   const [patientData, setPatientData] = useState(null);
   const [skippedMeals, setSkippedMeals] = useState({});
   const [mealNotes, setMealNotes] = useState({});
+  const [nutritionistNotes, setNutritionistNotes] = useState({});
   const [editingNote, setEditingNote] = useState(null);
   const [originalNote, setOriginalNote] = useState('');
   const [pendingSkip, setPendingSkip] = useState(null);
@@ -23,6 +24,7 @@ const GuestMealTrackerDisplay = () => {
         const response = await fetch(`${PATIENT_API}/access-code-data/${accessCode}`);
         const data = await response.json();
         if (response.ok) {
+          console.log("Received nutritionist notes:", data.nutritionistNotes);
           setMealPlan({
             _id: data._id,
             prediction: data.prediction,
@@ -35,6 +37,7 @@ const GuestMealTrackerDisplay = () => {
           });
           setSkippedMeals(data.skippedMeals || {});
           setMealNotes(data.mealNotes || {});
+          setNutritionistNotes(data.nutritionistNotes || {});
         } else {
           setError(data.error || 'Failed to fetch meal plan');
         }
@@ -298,7 +301,14 @@ const GuestMealTrackerDisplay = () => {
         <div className="meal-grid">
           {days.map((day) => (
             <div key={day} className="day-card">
-              <h3>{day}</h3>
+              <h3>
+                {day}
+                {mealPlan.prediction[day]?.date && (
+                  <span className="ml-2 text-sm text-gray-500">
+                    {new Date(mealPlan.prediction[day].date).toLocaleDateString()}
+                  </span>
+                )}
+              </h3>
               {meals.map((meal) => (
                 <div key={`${day}-${meal}`} className="meal-item">
                   <div className="meal-controls">
@@ -333,6 +343,19 @@ const GuestMealTrackerDisplay = () => {
                     {mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip}
 
                   </div>
+                  
+                  {/* Nutritionist Notes Section */}
+                  {nutritionistNotes[day]?.[meal] && (
+                    <div className="mt-2 p-3 text-sm bg-green-50 border border-green-100 rounded-lg shadow-sm">
+                      <span className="flex items-center text-xs font-semibold text-green-800 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Nutritionist Note:
+                      </span>
+                      <p className="text-gray-800">{nutritionistNotes[day][meal]}</p>
+                    </div>
+                  )}
                   
                   <button 
                     className={`skip-button ${skippedMeals[day]?.[meal] ? 'skipped' : ''} ${pendingSkip?.day === day && pendingSkip?.meal === meal ? 'pending' : ''}`}
@@ -381,7 +404,14 @@ const GuestMealTrackerDisplay = () => {
       )}
       {error && <div className="error">{error}</div>}
       {recipeModalOpen && selectedRecipe && (
-        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setRecipeModalOpen(false);
+            }
+          }}
+        >
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 relative max-h-[80vh] overflow-y-auto">
             <button 
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"

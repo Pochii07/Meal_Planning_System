@@ -61,7 +61,8 @@ const NutritionistDashboard = () => {
             prediction: response.prediction,
             progress: response.progress || {},
             skippedMeals: response.skippedMeals || {},
-            mealNotes: response.mealNotes || {}
+            mealNotes: response.mealNotes || {},
+            nutritionistNotes: response.nutritionistNotes || {}
           } : p
         );
         
@@ -199,7 +200,13 @@ const NutritionistDashboard = () => {
       )}
       {/* Patients Table */}
       <PatientTable 
-        patients={filteredPatients.length > 0 || currSearchText ? filteredPatients : patients}
+        patients={filteredPatients} 
+        onUpdatePatient={(updatedPatient) => {
+          const updatedPatients = patients.map(p => 
+            p._id === updatedPatient._id ? updatedPatient : p
+          );
+          dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+        }}
         onRemove={handleRemovePatient}
         onRegenerateMealPlan={handleRegenerateMealPlan}
         openRemoveDialog={openRemoveDialog}

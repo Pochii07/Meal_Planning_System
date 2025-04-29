@@ -3,8 +3,17 @@ import React from 'react';
 const RecipeModal = ({ recipe, isOpen, onClose }) => {
   if (!isOpen || !recipe) return null;
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+      onClick={handleOverlayClick}
+    >
       <div className="bg-white rounded-lg max-w-3xl w-full p-6 relative max-h-[80vh] overflow-y-auto">
         <button 
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"

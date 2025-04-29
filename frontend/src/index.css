@@ -542,3 +542,11 @@ input[type="number"]:focus.border-red-500 {
   animation: fadeIn 0.3s ease-in-out;
 }
 
+.meal-tracker .meal-item .nutritionist-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(0, 128, 0, 0.05);
+  border-radius: 0.25rem;
+  border: 1px solid rgba(0, 128, 0, 0.1);
+  font-style: italic;
+}

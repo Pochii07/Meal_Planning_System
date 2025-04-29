@@ -84,15 +84,24 @@ const createNutritionistPatient = async (req, res) => {
         let prediction = {};
 
         try {
-            // Check if rawPrediction is already an object
             if (typeof rawPrediction === 'string') {
                 prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
             } else if (typeof rawPrediction === 'object') {
-                // If it's already an object, use it directly
                 prediction = rawPrediction;
-            } else {
-                console.error('Unexpected prediction format:', typeof rawPrediction);
             }
+            
+            // Transform the prediction to include dates
+            const transformedPrediction = {};
+            for (const [day, data] of Object.entries(prediction)) {
+                transformedPrediction[day] = {
+                    breakfast: data.meals.breakfast,
+                    lunch: data.meals.lunch,
+                    dinner: data.meals.dinner,
+                    date: new Date(data.date)
+                };
+            }
+            
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }
@@ -212,6 +221,24 @@ const regenerateMealPlan = async (req, res) => {
         if (!patient) {
             return res.status(404).json({ error: 'Patient not found' });
         }
+
+        // Before generating the new meal plan, save the current one to history
+        if (patient.prediction && Object.keys(patient.prediction).length > 0) {
+            // Initialize mealPlanHistory array if it doesn't exist
+            if (!patient.mealPlanHistory) {
+                patient.mealPlanHistory = [];
+            }
+            
+            // Push the current meal plan to history
+            patient.mealPlanHistory.push({
+                date: new Date(),
+                prediction: patient.prediction,
+                progress: patient.progress || {},
+                skippedMeals: patient.skippedMeals || {},
+                mealNotes: patient.mealNotes || {},
+                nutritionistNotes: patient.nutritionistNotes || {} // Add this line
+            });
+        }
         
         // Extract patient details needed for meal plan generation
         const { 
@@ -230,10 +257,7 @@ const regenerateMealPlan = async (req, res) => {
         
         // Update TDEE in patient data
         patient.TDEE = TDEE;
-        
-        // Call ML API to generate new meal plan
-        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
-        
+
         // Convert numeric activity level to string format
         let activityLevelString;
         if (activity_level <= 1.2) activityLevelString = 'sedentary';
@@ -242,6 +266,7 @@ const regenerateMealPlan = async (req, res) => {
         else if (activity_level <= 1.725) activityLevelString = 'active';
         else activityLevelString = 'very active';
 
+        const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
         const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
             age,
             height,
@@ -262,11 +287,24 @@ const regenerateMealPlan = async (req, res) => {
             } else if (typeof rawPrediction === 'object') {
                 prediction = rawPrediction;
             }
+            
+            // Transform the prediction to include dates
+            const transformedPrediction = {};
+            for (const [day, data] of Object.entries(prediction)) {
+                transformedPrediction[day] = {
+                    breakfast: data.meals.breakfast,
+                    lunch: data.meals.lunch,
+                    dinner: data.meals.dinner,
+                    date: new Date(data.date)
+                };
+            }
+            
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }
         
-        // Reset progress, skipped meals, and meal notes
+        // Reset progress, skipped meals, meal notes, and nutritionist notes
         const progress = {
             Monday: { breakfast: false, lunch: false, dinner: false },
             Tuesday: { breakfast: false, lunch: false, dinner: false },
@@ -277,11 +315,11 @@ const regenerateMealPlan = async (req, res) => {
             Sunday: { breakfast: false, lunch: false, dinner: false }
         };
         
-        // Update the patient with new meal plan and reset progress
         patient.prediction = prediction;
         patient.progress = progress;
         patient.skippedMeals = {};
         patient.mealNotes = {};
+        patient.nutritionistNotes = {};
         
         await patient.save();
         
@@ -291,10 +329,67 @@ const regenerateMealPlan = async (req, res) => {
             progress: patient.progress,
             skippedMeals: patient.skippedMeals,
             mealNotes: patient.mealNotes,
-            TDEE: patient.TDEE // Include TDEE in response
+            nutritionistNotes: patient.nutritionistNotes,
+            TDEE: patient.TDEE 
         });
     } catch (error) {
         console.error('Error regenerating meal plan:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Get meal plan history for a patient
+const getMealPlanHistory = async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findById(id);
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient.mealPlanHistory || []);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+const updateNutritionistNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { day, meal, note } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        // Initialize objects if they don't exist
+        const updateQuery = {
+            $set: {
+                [`nutritionistNotes.${day}.${meal}`]: note
+            }
+        };
+        
+        const updatedPatient = await NutritionistPatient.findByIdAndUpdate(
+            id,
+            updateQuery,
+            { new: true }
+        );
+
+        if (!updatedPatient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            nutritionistNotes: updatedPatient.nutritionistNotes
+        });
+    } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
@@ -306,5 +401,7 @@ module.exports = {
     updateNutritionistPatient,
     deleteNutritionistPatient,
     updatePatientProgress,
-    regenerateMealPlan
+    regenerateMealPlan,
+    getMealPlanHistory,
+    updateNutritionistNotes
 }
