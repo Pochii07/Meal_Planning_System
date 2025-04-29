@@ -18,8 +18,13 @@ const calculateTDEE = (BMR, activity_level) => {
 const getNutritionistPatients = async (req, res) => {
     try {
         const nutritionistId = req.userId;
-        const patients = await NutritionistPatient.find({ nutritionistId })
-            .sort({ createdAt: -1 });
+        const patients = await NutritionistPatient.find({
+            nutritionistId,
+            $or: [
+              { archived: false },
+              { archived: { $exists: false } } 
+            ]
+            }).sort({ createdAt: -1 });
         res.status(200).json(patients);
     } catch (error) {
         res.status(400).json({ error: error.message });
