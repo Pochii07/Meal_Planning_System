@@ -130,7 +130,7 @@ const createNutritionistPatient = async (req, res) => {
             weight,
             gender,
             BMI,
-            TDEE, // Add TDEE here
+            TDEE,
             activity_level,
             preference,
             restrictions,
