@@ -18,8 +18,13 @@ const calculateTDEE = (BMR, activity_level) => {
 const getNutritionistPatients = async (req, res) => {
     try {
         const nutritionistId = req.userId;
-        const patients = await NutritionistPatient.find({ nutritionistId })
-            .sort({ createdAt: -1 });
+        const patients = await NutritionistPatient.find({
+            nutritionistId,
+            $or: [
+              { archived: false },
+              { archived: { $exists: false } } 
+            ]
+            }).sort({ createdAt: -1 });
         res.status(200).json(patients);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -125,7 +130,7 @@ const createNutritionistPatient = async (req, res) => {
             weight,
             gender,
             BMI,
-            TDEE, // Add TDEE here
+            TDEE,
             activity_level,
             preference,
             restrictions,
@@ -236,7 +241,8 @@ const regenerateMealPlan = async (req, res) => {
                 progress: patient.progress || {},
                 skippedMeals: patient.skippedMeals || {},
                 mealNotes: patient.mealNotes || {},
-                nutritionistNotes: patient.nutritionistNotes || {} // Add this line
+                nutritionistNotes: patient.nutritionistNotes || {},
+                mealAddons: patient.mealAddons || {} 
             });
         }
         
@@ -320,9 +326,9 @@ const regenerateMealPlan = async (req, res) => {
         patient.skippedMeals = {};
         patient.mealNotes = {};
         patient.nutritionistNotes = {};
-        
-        await patient.save();
-        
+        patient.mealAddons = {}; 
+
+        await patient.save();    
         res.status(200).json({
             success: true,
             prediction: patient.prediction,
@@ -330,6 +336,7 @@ const regenerateMealPlan = async (req, res) => {
             skippedMeals: patient.skippedMeals,
             mealNotes: patient.mealNotes,
             nutritionistNotes: patient.nutritionistNotes,
+            mealAddons: patient.mealAddons,
             TDEE: patient.TDEE 
         });
     } catch (error) {
@@ -504,6 +511,76 @@ const removeMealAddon = async (req, res) => {
     }
 };
 
+const archiveNutritionistPatient = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findByIdAndUpdate(
+            id,
+            { 
+                archived: true,
+                archivedAt: new Date()
+            },
+            { new: true }
+        );
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Get archived patients
+const getArchivedPatients = async (req, res) => {
+    try {
+        const nutritionistId = req.userId;
+        const archivedPatients = await NutritionistPatient.find({ 
+            nutritionistId,
+            archived: true 
+        }).sort({ archivedAt: -1 });
+        
+        res.status(200).json(archivedPatients);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+}
+
+// Restore patient from archive
+const restoreNutritionistPatient = async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    try {
+        const patient = await NutritionistPatient.findByIdAndUpdate(
+            id,
+            { 
+                archived: false,
+                archivedAt: null
+            },
+            { new: true }
+        );
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found' });
+        }
+        
+        res.status(200).json(patient);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getNutritionistPatients,
     getNutritionistPatient,
@@ -516,5 +593,8 @@ module.exports = {
     updateNutritionistNotes,
     addMealAddon,
     updateAddonStatus,
-    removeMealAddon
+    removeMealAddon,
+    archiveNutritionistPatient,
+    getArchivedPatients,
+    restoreNutritionistPatient
 }

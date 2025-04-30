@@ -65,6 +65,12 @@ const newPatient = async (req, res) => {
     try {
         // Get prediction from Flask API
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
+        console.log('Sending to ML API:', {
+            age, height, weight, gender, 
+            dietary_restrictions: preference,
+            allergies: restrictions,
+            activity_level
+        });
         const response = await axios.post(`${ML_API_URL}/predict_meal_plan`,    {
             age,
             height,
@@ -75,9 +81,11 @@ const newPatient = async (req, res) => {
             activity_level
         });
 
+        console.log('Full ML API response:', response.data);
+
         // Parse and structure the meal plan data
         const rawPrediction = response.data.predicted_meal_plan;
-        const prediction = {
+        let prediction = {
             Monday: { breakfast: '', lunch: '', dinner: '' },
             Tuesday: { breakfast: '', lunch: '', dinner: '' },
             Wednesday: { breakfast: '', lunch: '', dinner: '' },
@@ -99,9 +107,17 @@ const newPatient = async (req, res) => {
                 parsedPrediction = {};
             }
             
-            Object.keys(parsedPrediction).forEach(day => {
-                prediction[day] = parsedPrediction[day];
-            });
+            // Create a new object for the transformed data
+            let transformedPrediction = {};
+            for (const [day, data] of Object.entries(parsedPrediction)) {
+                // Extract the meals from the nested structure
+                transformedPrediction[day] = {
+                    breakfast: data.meals?.breakfast || '',
+                    lunch: data.meals?.lunch || '',
+                    dinner: data.meals?.dinner || ''
+                };
+            }
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }
@@ -282,8 +298,7 @@ const generateGuestMealPlan = async (req, res) => {
         });
 
         // Parse and structure the meal plan data
-        const rawPrediction = response.data.predicted_meal_plan;
-        const prediction = {
+        let prediction = {
             Monday: { breakfast: '', lunch: '', dinner: '' },
             Tuesday: { breakfast: '', lunch: '', dinner: '' },
             Wednesday: { breakfast: '', lunch: '', dinner: '' },
@@ -304,9 +319,17 @@ const generateGuestMealPlan = async (req, res) => {
                 parsedPrediction = {};
             }
             
-            Object.keys(parsedPrediction).forEach(day => {
-                prediction[day] = parsedPrediction[day];
-            });
+            // Create a new object for the transformed data
+            let transformedPrediction = {};
+            for (const [day, data] of Object.entries(parsedPrediction)) {
+                // Extract the meals from the nested structure
+                transformedPrediction[day] = {
+                    breakfast: data.meals?.breakfast || '',
+                    lunch: data.meals?.lunch || '',
+                    dinner: data.meals?.dinner || ''
+                };
+            }
+            prediction = transformedPrediction;
         } catch (parseError) {
             console.error('Error parsing prediction:', parseError);
         }

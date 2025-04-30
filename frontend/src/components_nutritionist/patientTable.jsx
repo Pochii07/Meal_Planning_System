@@ -7,7 +7,13 @@ import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
 import { patientService } from '../services/patientService';
 
-const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan, openRemoveDialog, setOpenRemoveDialog, setRegenerateDialogOpen }) => {
+const PatientTable = ({ patients: propsPatients, 
+  onRemove, 
+  onRegenerateMealPlan, 
+  setOpenRemoveDialog, 
+  setOpenRegenerateDialog,   // Changed from setOpenRegenerateDialog
+  setRegeneratePatientId, 
+  regeneratePatientId  }) => {
   // Existing state
   const { copiedCode, copyToClipboard } = useCopyToClipboard();
   const forceUpdate = useForceUpdate();
@@ -64,7 +70,6 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
         }
       }
     }
-    
     setMealCalories(newMealCalories);
   };
 
@@ -74,23 +79,6 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
       fetchPatientMealCalories(expandedPatientId);
     }
   }, [expandedPatientId, mealPlanVersion]);
-
-  const handleRegenerateMealPlanClick = useCallback((patientId) => {
-    console.log("Regenerating meal plan for patient:", patientId);
-    
-    onRegenerateMealPlan(patientId).then((updatedData) => {
-      console.log("Meal plan regenerated successfully:", updatedData);
-      
-      setMealCalories({});
-      setMealPlanVersion(prev => prev + 1);
-      forceUpdate(); 
-      
-      setTimeout(() => {
-        forceUpdate();
-        console.log("Forced update after timeout");
-      }, 500);
-    });
-  }, [onRegenerateMealPlan, forceUpdate]);
 
   const handleViewHistory = async (patientId) => {
     try {
@@ -105,28 +93,28 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
 
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return { percent: 0, completed: 0, total: 0 };
-    
+  
     let completed = 0;
     let total = 0;
-    
-    days.forEach(day => {
-        meals.forEach(meal => {
-            if (!skippedMeals?.[day]?.[meal]) {
-                if (progress[day]?.[meal]) {
-                    completed++;
-                }
-                total++;
-            }
-        });
+  
+    days.forEach((day) => {
+      meals.forEach((meal) => {
+        if (!skippedMeals?.[day]?.[meal]) {
+          if (progress[day]?.[meal]) {
+            completed++;
+          }
+          total++;
+        }
+      });
     });
-    
+  
     return {
-        percent: total > 0 ? Math.round((completed / total) * 100) : 0,
-        completed,
-        total: total || 21
+      percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+      completed,
+      total: total || 21,
     };
   };
-
+  
   const handleRemovePatient = (patientId) => {
     if (onRemove) {
       onRemove(patientId);
@@ -157,27 +145,27 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
   const handleNoteSubmit = async (patientId, day, meal, note) => {
     try {
       const response = await patientService.updateNutritionistNotes(patientId, day, meal, note);
+  
       if (response.success) {
         // Update the local patients array
-        const updatedPatients = patients.map(p => 
-          p._id === patientId 
-            ? { ...p, nutritionistNotes: response.nutritionistNotes } 
-            : p
+        const updatedPatients = patients.map((p) =>
+          p._id === patientId ? { ...p, nutritionistNotes: response.nutritionistNotes } : p
         );
-        
+  
         // Update the patients state
         setPatients(updatedPatients);
-        
+  
         // Reset editing state
         setEditingNote(null);
         setNoteText("");
-        
+  
         // Show a temporary success toast/message
-        const successToast = document.createElement('div');
-        successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+        const successToast = document.createElement("div");
+        successToast.className =
+          "fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up";
         successToast.innerHTML = '<span class="mr-2">✅</span> Note updated successfully!';
         document.body.appendChild(successToast);
-        
+  
         setTimeout(() => {
           successToast.remove();
         }, 3000);
@@ -200,7 +188,6 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
             ? { ...p, mealAddons: response.mealAddons } 
             : p
         );
-        
         setPatients(updatedPatients);
         setEditingAddon(null);
         setAddonText('');
@@ -212,6 +199,10 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
 
   const handleRemoveAddon = async (patientId, day, meal, addonIndex) => {
     try {
+      // Add logging to see what's being sent
+      console.log('Removing addon with:', { patientId, day, meal, addonIndex });
+      // console.log('Current addons:', patient.mealAddons?.[day]?.[meal]);
+      
       // Call your API to remove the addon
       const response = await patientService.removeMealAddon(patientId, day, meal, addonIndex);
       
@@ -224,11 +215,42 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
         );
         
         setPatients(updatedPatients);
+      } else {
+        // Add error handling
+        console.error("Error from server:", response.error);
       }
     } catch (error) {
       console.error("Error removing meal addon:", error);
     }
   };
+  // Update the function to accept a patientId parameter
+  const handleConfirmRegenerate = useCallback((patientId = regeneratePatientId) => {
+    console.log("Regenerating meal plan for patient:", patientId);
+    
+    onRegenerateMealPlan(patientId).then((updatedData) => {
+      console.log("Meal plan regenerated successfully:", updatedData);
+      
+      setMealCalories({});
+      setMealPlanVersion(prev => prev + 1);
+      forceUpdate(); 
+      
+      setTimeout(() => {
+        forceUpdate();
+        console.log("Forced update after timeout");
+      }, 500);
+      
+      // Show success message
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+      successToast.innerHTML = '<span class="mr-2">✅</span> Meal plan regenerated successfully!';
+      document.body.appendChild(successToast);
+      setTimeout(() => successToast.remove(), 3000);
+    });
+    
+    // Close dialog
+    setOpenRegenerateDialog(false);
+    setRegeneratePatientId(null);
+  }, [regeneratePatientId, onRegenerateMealPlan, forceUpdate]);
 
   useEffect(() => {
     if (expandedPatientId && expandRef.current) {
@@ -277,13 +299,13 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                       <div className="text-sm text-gray-900">{patient.BMI}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="flex flex-col">
                         {patient.progress ? (
                           (() => {
                             const progress = calculateProgress(patient.progress, patient.skippedMeals);
                             return (
                               <>
-                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                <div className="w-full bg-gray-200 rounded-full h-2.5"> 
                                   <div
                                     className="bg-green-600 h-2.5 rounded-full"
                                     style={{ width: `${progress.percent}%` }}
@@ -533,7 +555,7 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                                                 <button className="text-red-600 hover:text-red-800 ml-1 flex-shrink-0"
                                                   onClick={() => handleRemoveAddon(patient._id, day, meal, idx)}>
                                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414-1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                                   </svg>
                                                 </button>
                                               </div>
@@ -597,12 +619,9 @@ const PatientTable = ({ patients: propsPatients, onRemove, onRegenerateMealPlan,
                           {patient.progress && (
                             <button
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                              onClick={() => {
-                                setSelectedPatientId(patient._id);
-                                setRegenerateDialogOpen(true);
-                              }}
+                              onClick={() => handleConfirmRegenerate(patient._id)}
                             >
-                                Regenerate Meal Plan
+                              Regenerate Meal Plan
                             </button>
                           )}
                         </div>

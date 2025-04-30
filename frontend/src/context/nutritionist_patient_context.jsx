@@ -12,9 +12,13 @@ export const nutritionistPatientReducer = (state, action) => {
       return { 
         patients: [action.payload, ...state.patients] 
       }
-    case 'DELETE_PATIENT':
-      return { 
+    case 'ARCHIVE_PATIENT':
+      return {
         patients: state.patients.filter((p) => p._id !== action.payload._id)
+      }
+    case 'RESTORE_PATIENT':
+      return {
+        patients: [action.payload, ...state.patients]
       }
     default:
       return state

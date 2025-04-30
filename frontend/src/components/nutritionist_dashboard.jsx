@@ -8,6 +8,7 @@ import { patientService } from '../services/patientService';
 import AddPatientForm from '../components_nutritionist/addPatient';
 import PatientTable from '../components_nutritionist/patientTable';
 import PatientSearchBar from '../components_nutritionist/searchbar';
+import ArchivedPatientTable from '../components_nutritionist/archivedPatientTable';
 
 import { BMI_CATEGORIES } from '../components_nutritionist/searchbar';
 import {
@@ -27,11 +28,12 @@ const NutritionistDashboard = () => {
   
   const [removingPatientId, setRemovingPatientId] = useState(null);
   const [openRemoveDialog, setOpenRemoveDialog] = useState(false);
-  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [openRegenerateDialog, setOpenRegenerateDialog] = useState(false);
   const [regeneratePatientId, setRegeneratePatientId] = useState(null);
 
   const [currSearchText, setCurrSearchText] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'archived'
 
   const {
     loading,
@@ -73,7 +75,7 @@ const NutritionistDashboard = () => {
         
         // Also do a full refresh from the backend to ensure data consistency
         setTimeout(async () => {
-          const refreshedPatients = await patientService.getAllPatients();
+          const refreshedPatients = await patientService.fetchPatients();
           if (refreshedPatients) {
             console.log("Dispatching refreshed patients:", refreshedPatients);
             dispatch({ type: 'SET_PATIENTS', payload: refreshedPatients });
@@ -87,6 +89,33 @@ const NutritionistDashboard = () => {
       return null;
     }
   }, [patients, dispatch, patientService]);
+
+  const handleArchivePatient = async (patientId) => {
+    try {
+      const archivedPatient = await patientService.archivePatient(patientId);
+      
+      // Update the patients list
+      dispatch({ 
+        type: 'ARCHIVE_PATIENT', 
+        payload: archivedPatient
+      });
+      
+      console.log("Creating toast");
+      // Toast creation code
+      console.log("Toast created and appended");
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
+      successToast.innerHTML = '<span class="mr-2">✅</span> Patient archived successfully!';
+      document.body.appendChild(successToast);
+      setTimeout(() => successToast.remove(), 4000);
+    } catch (error) {
+      console.error('Error archiving patient:', error);
+      setError('Failed to archive patient');
+    } finally {
+      setRemovingPatientId(null);
+      setOpenRemoveDialog(false);
+    }
+  };
 
   useEffect(() => {
     const fetchInitialPatients = async () => {
@@ -178,15 +207,43 @@ const NutritionistDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header with Add Patient Button */}
+      {/* Header with tabs */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Patient Management</h1>
-        <button 
-          onClick={() => setIsFormOpen(!isFormOpen)}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
-        >
-          {isFormOpen ? 'Close Form' : 'Add New Patient'}
-        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Patient Management</h1>
+          <div className="mt-4 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                className={`${
+                  activeTab === "active"
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                onClick={() => setActiveTab("active")}
+              >
+                Active Patients
+              </button>
+              <button
+                className={`${
+                  activeTab === "archived"
+                    ? "border-green-500 text-green-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                onClick={() => setActiveTab("archived")}
+              >
+                Archived Patients
+              </button>
+            </nav>
+          </div>
+        </div>
+        {activeTab === "active" && (
+          <button
+            onClick={() => setIsFormOpen(!isFormOpen)}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
+          >
+            {isFormOpen ? "Close Form" : "Add New Patient"}
+          </button>
+        )}
       </div>
       <PatientSearchBar 
         onSearchChange={handleSearch}
@@ -201,87 +258,99 @@ const NutritionistDashboard = () => {
         />
       )}
       {/* Patients Table */}
-      <PatientTable 
-        patients={filteredPatients} 
-        onUpdatePatient={(updatedPatient) => {
-          const updatedPatients = patients.map(p => 
-            p._id === updatedPatient._id ? updatedPatient : p
-          );
-          dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
-        }}
-        onRemove={handleRemovePatient}
-        onRegenerateMealPlan={handleRegenerateMealPlan}
-        openRemoveDialog={openRemoveDialog}
-        setOpenRemoveDialog={setOpenRemoveDialog}
-        regenerateDialogOpen={regenerateDialogOpen}
-        setRegenerateDialogOpen={setRegenerateDialogOpen}
-        setRegeneratePatientId={setRegeneratePatientId}
+      {activeTab === 'active' ? (
+       <PatientTable 
+          patients={filteredPatients} 
+          onUpdatePatient={(updatedPatient) => {
+            const updatedPatients = patients.map(p => 
+              p._id === updatedPatient._id ? updatedPatient : p
+            );
+            dispatch({ type: 'SET_PATIENTS', payload: updatedPatients });
+          }}
+          onRemove={(patientId) => {
+            setRemovingPatientId(patientId);
+            setOpenRemoveDialog(true);
+          }}
+          onRegenerateMealPlan={handleRegenerateMealPlan}
+          openRemoveDialog={openRemoveDialog}
+          setOpenRemoveDialog={setOpenRemoveDialog}
+          setOpenRegenerateDialog={setOpenRegenerateDialog}  
+          openRegenerateDialog={openRegenerateDialog}  
+          setRegeneratePatientId={setRegeneratePatientId}
+          regeneratePatientId={regeneratePatientId}
       />
+      ) : (
+        <ArchivedPatientTable />
+      )}
       <Dialog
-        open={openRemoveDialog}
+      open={openRemoveDialog}
+      onClose={() => {
+        setOpenRemoveDialog(false);
+        setRemovingPatientId(null);
+      }}
+      aria-labelledby="archive-patient-dialog-title"
+    >
+      <DialogTitle id="archive-patient-dialog-title">Archive Patient</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          Are you sure you want to archive this patient? You can restore them
+          from the Archive tab later.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => {
+            setOpenRemoveDialog(false);
+            setRemovingPatientId(null);
+          }}
+          color="primary"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={() => handleArchivePatient(removingPatientId)}
+          color="primary"
+          autoFocus
+        >
+          Archive Patient
+        </Button>
+      </DialogActions>
+      </Dialog>
+      <Dialog
+        open={openRegenerateDialog}
         onClose={() => {
-          setOpenRemoveDialog(false)
-          setRemovingPatientId(null);
+          setOpenRegenerateDialog(false);
+          setRegeneratePatientId(null);
         }}
-        aria-labelledby="remove-patient-dialog-title"
       >
-        <DialogTitle id="remove-patient-dialog-title">
-          Confirm Patient Removal
-        </DialogTitle>
+        <DialogTitle>Confirm Meal Plan Regeneration</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to remove this patient? This action cannot be undone.
+            Are you sure you want to regenerate this meal plan? Existing meal data
+            will be replaced.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={() => {
-              setOpenRemoveDialog(false);
-              setRemovingPatientId(null);
+              setOpenRegenerateDialog(false);
+              setRegeneratePatientId(null);
             }}
-            color="primary"
           >
             Cancel
           </Button>
-          <Button 
-            onClick={confirmRemovePatient}
-            color="error"
+          <Button
+            onClick={() => {
+              handleRegenerateMealPlan(regeneratePatientId);
+              setOpenRegenerateDialog(false);
+              setRegeneratePatientId(null);
+            }}
+            color="primary"
             autoFocus
           >
-            Remove Patient
+            Confirm
           </Button>
         </DialogActions>
-      </Dialog>
-      <Dialog 
-          open={regenerateDialogOpen} 
-          onClose={() => {
-            setRegenerateDialogOpen(false);
-            setRegeneratePatientId(null);
-          }} 
-      > 
-          <DialogTitle>Confirm Meal Plan Regeneration</DialogTitle> 
-          <DialogContent> 
-              <DialogContentText> 
-                  Are you sure you want to regenerate this meal plan? Existing meal data will be replaced. 
-              </DialogContentText> 
-          </DialogContent> 
-          <DialogActions> 
-              <Button onClick={() => {
-                setRegenerateDialogOpen(false);
-                setRegeneratePatientId(null);
-              }}>Cancel</Button> 
-              <Button 
-                  onClick={() => { 
-                      handleRegenerateMealPlan(regeneratePatientId); 
-                      setRegenerateDialogOpen(false); 
-                      setRegeneratePatientId(null);
-                  }} 
-                  color="primary" 
-                  autoFocus 
-              > 
-                  Confirm 
-              </Button> 
-          </DialogActions> 
       </Dialog>
     </div>
   )

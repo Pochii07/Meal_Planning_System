@@ -10,7 +10,11 @@ const {
     updateNutritionistNotes,
     addMealAddon,
     removeMealAddon,
-    updateAddonStatus
+    updateAddonStatus,
+    getArchivedPatients,
+    restoreNutritionistPatient,
+    archiveNutritionistPatient
+
 } = require('../controllers/nutritionist_patient_controller')
 const { verifyToken } = require('../middleware/verifyToken')
 
@@ -18,6 +22,9 @@ const router = express.Router()
 
 // All routes require authentication
 router.use(verifyToken)
+
+// Get archived patients
+router.get('/archived', verifyToken, getArchivedPatients);
 
 // Get all nutritionist's patients
 router.get('/', getNutritionistPatients)
@@ -51,5 +58,13 @@ router.delete('/:id/addon', verifyToken, removeMealAddon);
 
 // Update addon status (completed/skipped)
 router.patch('/:id/addon-status', verifyToken, updateAddonStatus);
+
+// Archive patient
+router.patch('/:id/archive', verifyToken, archiveNutritionistPatient);
+
+// Restore patient from archive
+router.patch('/:id/restore', verifyToken, restoreNutritionistPatient);
+
+
 
 module.exports = router
