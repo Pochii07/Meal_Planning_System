@@ -25,6 +25,13 @@ import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
 
 import AdminPage from './pages/Admin'
 
+import AdminPage from './pages/Admin'
+import ContactUs from './pages/ContactUs';
+import AboutUs from './pages/AboutUs';
+import LoadingScreen from './components/LoadingScreen';
+import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
+
 const ProtectedRoute = ({children}) => {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated && !user) {
