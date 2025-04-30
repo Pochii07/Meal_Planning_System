@@ -6,10 +6,12 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useTransition, a } from "@react-spring/web"
+import { useNavigate } from "react-router-dom";
 
 import "./Masonry.scss";
 
 function Masonry({ data }) {
+  const navigate = useNavigate();
   const [columns, setColumns] = useState(2);
 
   useEffect(() => {
@@ -72,11 +74,21 @@ function Masonry({ data }) {
     trail: 25,
   });
 
+  const handleImageClick = (id) => {
+    if (id === 9) {
+      navigate('/ChefitAdmin');
+    }
+  };
+
   // Render the grid
   return (
     <div ref={ref} className="masonry" style={{ height: Math.max(...heights) }}>
       {transitions((style, item) => (
-        <a.div key={item.id} style={style}>
+        <a.div 
+          key={item.id} 
+          style={style}
+          onClick={() => handleImageClick(item.id)}
+        >
           <div
             style={{
               backgroundColor: "#ffffff", // Set background if needed
@@ -94,3 +106,4 @@ function Masonry({ data }) {
 }
 
 export default Masonry;
+ 

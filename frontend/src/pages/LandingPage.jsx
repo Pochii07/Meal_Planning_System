@@ -1,5 +1,5 @@
 import React from "react";
-import { NavbarCustom } from "../components/navbar";  
+import { useNavigate } from "react-router-dom";
 import BlurText from "../components/BlurText";
 import Masonry from '../components/Masonry'
 import cooking from '../Images/cooking.png'; 
@@ -40,6 +40,13 @@ const RotatingCircle = ({ imageSrc }) => {
 };
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+
+  const handleImageClick = (id) => {
+    if (id === 9) {
+      navigate('/ChefAdmin');
+    }
+  };
   return (
     <div
       className="flex flex-col mt-12"
@@ -79,7 +86,7 @@ const LandingPage = () => {
         }}
       />
       <div className="padding-">
-        <Masonry data={data} />
+        <Masonry data={data} onImageClick={handleImageClick} />
       </div>
     </div>
   );
