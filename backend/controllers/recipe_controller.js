@@ -59,7 +59,24 @@ const searchFilteredRecipes = async (req, res) => {
     }
 };
 
-
+const updateRecipeByTitle = async (req, res) => {
+    try {
+        const decodedTitle = decodeURIComponent(req.params.title);
+        const updatedRecipe = await Recipe.findOneAndUpdate(
+            { title: decodedTitle },
+            req.body,
+            { new: true, runValidators: true }
+        );
+        
+        if (!updatedRecipe) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+        
+        res.json(updatedRecipe);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
 
 // Get all recipes
 const getAllRecipes = async (req, res) => {
@@ -186,6 +203,7 @@ const deleteRecipe = async (req, res) => {
 };
 
 module.exports = {
+    updateRecipeByTitle,
     getAllRecipes,
     getRecipe,
     createRecipe,

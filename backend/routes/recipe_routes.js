@@ -7,7 +7,8 @@ const {
     updateRecipe,
     deleteRecipe,
     getRecipeByTitle,
-    searchFilteredRecipes 
+    searchFilteredRecipes,
+    updateRecipeByTitle  // Make sure this is imported
 } = require('../controllers/recipe_controller');
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -20,6 +21,7 @@ router.get('/title/:title', getRecipeByTitle);
 router.post('/search-filtered', verifyToken, searchFilteredRecipes);
 router.post('/', verifyToken, createRecipe);
 router.patch('/:id', verifyToken, updateRecipe);
+router.patch('/title/:title', verifyToken, updateRecipeByTitle); // Fixed typo (was 'pacth')
 router.delete('/:id', verifyToken, deleteRecipe);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import { NUTRITIONIST_API } from '../config/api';
 import { getAuthHeaders } from '../utils/authHeaders';
+import { API_URL } from '../config/api';
 
 export const patientService = {
   fetchPatients: async () => {
@@ -16,6 +17,36 @@ export const patientService = {
       headers: getAuthHeaders()
     });
     return response.json();
+  },
+
+  updatePatientMeal: async (patientId, day, meal, newMeal) => {
+    try {
+      const response = await fetch(`${API_URL}/patients/${patientId}/update-meal`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({ day, meal, newMeal })
+      });
+  
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Invalid response: ${text}`);
+      }
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update meal');
+      }
+  
+      return data;
+    } catch (error) {
+      console.error('Error updating meal:', error);
+      throw error;
+    }
   },
 
   removePatient: async (patientId) => {

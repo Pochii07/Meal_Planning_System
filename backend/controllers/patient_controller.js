@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 const axios = require('axios')
 const { verify } = require('crypto')
 
+
 // get all patients
 const getAllPatients = async (req, res) => {
     const allPatients = await Patient.find({}).sort({createdAt: - 1})
@@ -477,6 +478,27 @@ const updateMealNotesByAccessCode = async (req, res) => {
     }
 };
 
+const updateMeal = async (req, res) => {
+    const { patientId } = req.params; 
+    const { day, meal, newMeal } = req.body; 
+
+    try {
+        const patient = await Patient.findById(patientId); 
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        patient.prediction[day][meal] = newMeal;
+
+        await patient.save();
+
+        res.status(200).json({ success: true, message: 'Meal updated successfully', patient });
+    } catch (error) {
+        console.error('Error updating meal:', error);
+        res.status(500).json({ message: 'Error updating meal', error: error.message });
+    }
+};
+
 module.exports = {
     getAllPatients,
     getPatient,
@@ -492,6 +514,7 @@ module.exports = {
     getPatientDataByAccessCode,
     updateProgressByAccessCode,
     updateMealStatusByAccessCode,
-    updateMealNotesByAccessCode
+    updateMealNotesByAccessCode,
+    updateMeal
 };
 

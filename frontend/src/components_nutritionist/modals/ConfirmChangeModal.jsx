@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ConfirmChangeModal = ({ currentMeal, newRecipe, onCancel, onConfirm }) => {
   return (
     <div className="space-y-4">
@@ -12,7 +10,7 @@ const ConfirmChangeModal = ({ currentMeal, newRecipe, onCancel, onConfirm }) => 
         <h4 className="font-semibold mb-2">New Recipe Details:</h4>
         <h5 className="text-lg font-medium">{newRecipe.title}</h5>
         <p className="text-sm text-gray-600 mb-2">{newRecipe.summary}</p>
-        
+
         <h5 className="font-semibold mt-3 mb-1">Ingredients:</h5>
         <ul className="list-disc list-inside mb-4 text-sm">
           {newRecipe.ingredients.split(',').map((ingredient, idx) => (
@@ -41,7 +39,10 @@ const ConfirmChangeModal = ({ currentMeal, newRecipe, onCancel, onConfirm }) => 
         </button>
         <button
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          onClick={onConfirm}
+          onClick={() => {
+            onConfirm();  // Trigger the meal change onConfirm
+            onCancel();   // Close the modal after confirming
+          }}
         >
           Confirm Change
         </button>
@@ -49,5 +50,3 @@ const ConfirmChangeModal = ({ currentMeal, newRecipe, onCancel, onConfirm }) => 
     </div>
   );
 };
-
-export default ConfirmChangeModal;

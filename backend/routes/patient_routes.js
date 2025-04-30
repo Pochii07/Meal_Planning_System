@@ -18,6 +18,7 @@ const {
 
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
+const { updateMeal } = require('../controllers/patient_controller');
 
 const router = express.Router()
 
@@ -57,6 +58,9 @@ router.patch('/update-meal-notes/:accessCode', updateMealNotesByAccessCode);
 
 // Add this new route for meal notes
 router.patch('/:id/meal-notes', verifyToken, updateMealNotes)
+
+// Updating a patient's meal
+router.patch('/:patientId/update-meal', verifyToken, updateMeal);
 
 module.exports = router
 
