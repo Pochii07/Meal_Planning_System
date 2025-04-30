@@ -1,6 +1,36 @@
 const Recipe = require('../models/recipe_model')
 const mongoose = require('mongoose')
 
+const Patient = require('../models/patient_model');
+
+const searchRecipes = async (req, res) => {
+    try {
+      const { query } = req.query; 
+  
+      if (!query) {
+        return res.status(400).json({ error: 'Search query is required' });
+      }
+  
+      const searchRegex = new RegExp(query, 'i');
+  
+      const recipes = await Recipe.find({
+        $or: [
+          { title: searchRegex },
+          { ingredients: searchRegex },
+          { summary: searchRegex }
+        ]
+      })
+      .limit(20)
+      .sort({ title: 1 });
+  
+      res.status(200).json(recipes);
+    } catch (error) {
+      console.error('Search error:', error);
+      res.status(500).json({ error: 'Failed to search recipes. Please try again.' });
+    }
+  };
+  
+
 // Get all recipes
 const getAllRecipes = async (req, res) => {
     try {
@@ -104,4 +134,5 @@ module.exports = {
     createRecipe,
     updateRecipe,
     deleteRecipe,
+    searchRecipes
 }

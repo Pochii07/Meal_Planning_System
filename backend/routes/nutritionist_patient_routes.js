@@ -67,4 +67,4 @@ router.patch('/:id/restore', verifyToken, restoreNutritionistPatient);
 
 
 
-module.exports = router
+module.exports = router;
