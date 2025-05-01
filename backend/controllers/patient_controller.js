@@ -297,6 +297,9 @@ const generateGuestMealPlan = async (req, res) => {
             activity_level
         });
 
+        console.log('Full ML API response:', response.data);
+
+        const rawPrediction = response.data.predicted_meal_plan;
         // Parse and structure the meal plan data
         let prediction = {
             Monday: { breakfast: '', lunch: '', dinner: '' },
