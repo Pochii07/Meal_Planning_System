@@ -63,51 +63,8 @@ const loginUser = async (email, password) => {
   }
 };
 
-
-
-
-const handleSubmit = async (event) => {
-  event.preventDefault();
-  
-  if (!email || !password) {
-    showDialog('Missing Information', 'All fields are required!');
-    return;
-  }
-
-  try {
-    const { success, requiresVerification, verificationToken, email: userEmail, expiresAt } = await loginUser(email, password);
-
-    if (requiresVerification) {
-      sessionStorage.setItem('pendingVerification', JSON.stringify({ email: userEmail, token: verificationToken, expiresAt }));
-
-      navigate('/verify_login', { state: { email: userEmail, fromLogin: true } });
-      return;
-    }
-
-    if (success) {
-      await checkAuth();
-      localStorage.setItem('token', data.user.token);
-      console.log('Token saved:', data.user.token);
-      navigate('/', { replace: true });
-    }
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message;
-
-    if (errorMessage.includes('Incorrect password')) {
-      showDialog('Incorrect Password', 'Wrong password. Would you like to recover your account?', {
-        text: 'Recover Account',
-        handler: () => navigate('/forgot-password')
-      });
-    } else {
-      showDialog('Login Failed', errorMessage);
-    }
-
-    sessionStorage.removeItem('pendingVerification');
-  }
-};
-
-const EmailInput = ({ label, onChange }) => {
-  const [email, setEmail] = useState("");
+const EmailInput = ({ label, onChange, value }) => {
+  const [email, setEmail] = useState(value || '');
   const [error, setError] = useState(false);
 
   const handleChange = (e) => {
@@ -244,49 +201,44 @@ export function LogIn() {
     setShowPassword(!showPassword);
   };
 
-  const handleSubmit = async (event) => { 
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
+    
     if (!email || !password) {
       showDialog('Missing Information', 'All fields are required!');
       return;
     }
-
+  
     try {
-      const { success, requiresVerification, verificationToken, email: userEmail, expiresAt } = await login(email, password);
-
-      if (requiresVerification) {
-        sessionStorage.setItem('pendingVerification', JSON.stringify({ email: userEmail, token: verificationToken, expiresAt }));
-
-        navigate('/verify_login', { state: { email: userEmail, fromLogin: true } });
+      const result = await login(email, password);
+      
+      if (result?.requiresVerification) {
+        sessionStorage.setItem('pendingVerification', JSON.stringify({ 
+          email: result.email, 
+          token: result.verificationToken, 
+          expiresAt: result.expiresAt 
+        }));
+  
+        navigate('/verify_login', { state: { email: result.email, fromLogin: true } });
         return;
       }
 
-      if (success) {
-          await checkAuth(); 
-
-          if (isAdmin()) {
-            navigate('/ChefitAdmin', { replace: true });
-          } else {
-            navigate('/', { replace: true });
-          }
+      if (result?.success) {
+        await checkAuth();
+        navigate('/', { replace: true });
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message;
-
+  
       if (errorMessage.includes('Incorrect password')) {
-        showDialog(
-          'Incorrect Password',
-          'Wrong password. Would you like to recover your account?',
-          {
-            text: 'Recover Account',
-            handler: () => navigate('/forgotPassword')
-          }
-        );
+        showDialog('Incorrect Password', 'Wrong password. Would you like to recover your account?', {
+          text: 'Recover Account',
+          handler: () => navigate('/forgotPassword')
+        });
       } else {
         showDialog('Login Failed', errorMessage);
       }
-
+  
       sessionStorage.removeItem('pendingVerification');
     }
   };
