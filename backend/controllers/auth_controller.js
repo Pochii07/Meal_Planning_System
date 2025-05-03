@@ -189,21 +189,24 @@ const forgotPassword = async (req, res) => {
     const {email} = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: 'Invalid email format'
             });
         }
-        const resetPasswordToken = crypto.randomBytes(32).toString("hex");
-        const resetPasswordTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000 // token expires at 1 hour
-
-        user.resetPasswordToken = resetPasswordToken;
-        user.resetPasswordTokenExpiresAt = resetPasswordTokenExpiresAt;
-
-        await user.save();
-        await sendPasswordResetEmail(user.email, (user.firstName).toUpperCase(), `${process.env.CLIENT_URL}/reset_password/${resetPasswordToken}`);
+        const user = await User.findOne({ email });
+        if (user) {
+            const resetPasswordToken = crypto.randomBytes(32).toString("hex");
+            const resetPasswordTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000 // token expires at 1 hour
+    
+            user.resetPasswordToken = resetPasswordToken;
+            user.resetPasswordTokenExpiresAt = resetPasswordTokenExpiresAt;
+    
+            await user.save();
+            await sendPasswordResetEmail(user.email, (user.firstName).toUpperCase(), `${process.env.CLIENT_URL}/reset_password/${resetPasswordToken}`); 
+        }    
         res.status(200).json({
             success: true,
             message: 'Password reset email sent successfully'

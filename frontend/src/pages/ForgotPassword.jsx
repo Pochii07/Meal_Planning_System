@@ -63,7 +63,8 @@ const ForgotPassword = () => {
   const errorMessage = "Please enter valid email address.";
 
   const handleSubmit = async (event) => {
-    const regex = /^((?!\.)[\w-_.]*[^.])(@\w+)(\.\w+(\.\w+)?[^.\W])$/gim;
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
     event.preventDefault();
 
     if (!regex.test(email)) {
