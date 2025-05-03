@@ -5,7 +5,23 @@ const MealSchema = new Schema({
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
     dinner: { type: String, default: '' },
-    date: { type: Date } 
+    date: { type: Date },
+    // Add meal details for calorie information
+    breakfast_details: {
+        calories: { type: Number, default: 0 },
+        servings: { type: Number, default: 1 },
+        total_calories: { type: Number, default: 0 }
+    },
+    lunch_details: {
+        calories: { type: Number, default: 0 },
+        servings: { type: Number, default: 1 },
+        total_calories: { type: Number, default: 0 }
+    },
+    dinner_details: {
+        calories: { type: Number, default: 0 },
+        servings: { type: Number, default: 1 },
+        total_calories: { type: Number, default: 0 }
+    }
 });
 
 const ProgressSchema = new Schema({

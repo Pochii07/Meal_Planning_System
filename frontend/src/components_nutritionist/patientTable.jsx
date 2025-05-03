@@ -11,7 +11,7 @@ const PatientTable = ({ patients: propsPatients,
   onRemove, 
   onRegenerateMealPlan, 
   setOpenRemoveDialog, 
-  setOpenRegenerateDialog,   // Changed from setOpenRegenerateDialog
+  setOpenRegenerateDialog,
   setRegeneratePatientId, 
   regeneratePatientId  }) => {
   // Existing state
@@ -19,7 +19,6 @@ const PatientTable = ({ patients: propsPatients,
   const forceUpdate = useForceUpdate();
   const [expandedPatientId, setExpandedPatientId] = useState(null);
   const expandRef = useRef(null);
-  const [mealCalories, setMealCalories] = useState({});
   const [mealPlanVersion, setMealPlanVersion] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
@@ -40,45 +39,6 @@ const PatientTable = ({ patients: propsPatients,
   useEffect(() => {
     setPatients(propsPatients || []);
   }, [propsPatients]);
-
-  // Function to fetch calories for a specific patient
-  const fetchPatientMealCalories = async (patientId) => {
-    if (!patientId) return;
-    
-    const patient = patients.find(p => p._id === patientId);
-    if (!patient) return;
-    
-    console.log(`Fetching meal calories for patient: ${patientId}`);
-    
-    const newMealCalories = {...mealCalories};
-    newMealCalories[patientId] = {};
-    
-    for (const day of days) {
-      newMealCalories[patientId][day] = {};
-      for (const meal of meals) {
-        const mealName = patient.prediction?.[day]?.[meal];
-        if (mealName) {
-          try {
-            const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
-            if (response.ok) {
-              const recipeData = await response.json();
-              newMealCalories[patientId][day][meal] = recipeData.calories || 0;
-            }
-          } catch (err) {
-            console.error('Error fetching meal calories:', err);
-          }
-        }
-      }
-    }
-    setMealCalories(newMealCalories);
-  };
-
-  // Effect that runs when expanded patient changes
-  useEffect(() => {
-    if (expandedPatientId) {
-      fetchPatientMealCalories(expandedPatientId);
-    }
-  }, [expandedPatientId, mealPlanVersion]);
 
   const handleViewHistory = async (patientId) => {
     try {
@@ -230,7 +190,6 @@ const PatientTable = ({ patients: propsPatients,
     onRegenerateMealPlan(patientId).then((updatedData) => {
       console.log("Meal plan regenerated successfully:", updatedData);
       
-      setMealCalories({});
       setMealPlanVersion(prev => prev + 1);
       forceUpdate(); 
       
@@ -442,9 +401,6 @@ const PatientTable = ({ patients: propsPatients,
                               </h4>
                               <div className="space-y-2">
                                 {meals.map((meal) => {
-                                  const mealName = patient.prediction?.[day]?.[meal];
-                                  const calories = mealCalories[patient._id]?.[day]?.[meal];
-                                  
                                   return (
                                   <div key={meal} className="flex items-start">
                                     <span
@@ -462,25 +418,21 @@ const PatientTable = ({ patients: propsPatients,
                                         <span className="font-semibold text-sm text-gray-700 capitalize">
                                           {meal}:
                                         </span>
-                                        <span
-                                          className={`text-sm ${
-                                            patient.skippedMeals?.[day]?.[meal] 
-                                              ? 'text-red-600 line-through' 
-                                              : 'text-gray-800'
-                                          } ${patient.prediction?.[day]?.[meal] 
-                                            ? 'cursor-pointer hover:text-green-600' 
-                                            : ''}`}
-                                          onClick={() => {
-                                            if (patient.prediction?.[day]?.[meal]) {
-                                              fetchRecipeDetails(patient.prediction[day][meal]);
-                                            }
-                                          }}
+                                        <div className="flex flex-col">
+                                        <span 
+                                          className="font-medium cursor-pointer hover:text-green-600 hover:underline"
+                                          onClick={() => fetchRecipeDetails(patient.prediction?.[day]?.[meal])}
                                         >
-                                          {mealName || 'No meal planned'}
-                                          <span className="ml-2 text-xs text-gray-500">
-                                            ({typeof calories === 'number' ? `${calories} kcal` : '...'})
-                                          </span>
+                                          {patient.prediction?.[day]?.[meal]}
                                         </span>
+                                          {patient.prediction?.[day]?.[`${meal}_details`]?.calories > 0 && (
+                                            <div className="text-xs text-gray-500">
+                                              <div>Base Calories: {patient.prediction[day][`${meal}_details`].calories} kcal</div>
+                                              <div>Prescribed Serving: {patient.prediction[day][`${meal}_details`].servings}</div>
+                                              <div>Total Calories: {patient.prediction[day][`${meal}_details`].total_calories} kcal</div>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>                                    
                                       {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
                                         <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">

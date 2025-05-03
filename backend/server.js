@@ -14,14 +14,13 @@ const nutritionistPatientRoutes = require('./routes/nutritionist_patient_routes'
 const FoodPlan = express()
 
 // Middleware
-// Update the CORS middleware in backend/server.js
 FoodPlan.use(cors({
     origin: [
         'https://chefit-livid.vercel.app', 
         'https://chefit-git-main-pochii07s-projects.vercel.app',
         'http://localhost:5173',
-        'https://chefit.live',     // Add the https version
-        'http://chefit.live'       // Add the http version if needed
+        'https://chefit.live',     
+        'http://chefit.live'       
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
