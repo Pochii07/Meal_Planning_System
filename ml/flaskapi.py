@@ -11,21 +11,23 @@ from dataclasses import dataclass
 import json
 import os
 from datetime import datetime, timedelta
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 # Helper functions for TDEE calculation
 def calculate_bmr(weight, height, age, gender):
     """
     Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor Equation.
     
-    weight: in kg
-    height: in cm
-    age: in years
-    gender: 'M' for male, 'F' for female
+    Parameters:
+    weight - in kg
+    height - in cm
+    age - in years
+    gender - 'M' for male, 'F' for female
     """
-    if gender.upper() == 'M':
-        return 10 * weight + 6.25 * height - 5 * age + 5
+    if gender.upper() == "M":
+        return (10 * weight) + (6.25 * height) - (5 * age) + 5
     else:
-        return 10 * weight + 6.25 * height - 5 * age - 161
+        return (10 * weight) + (6.25 * height) - (5 * age) - 161
 
 def calculate_tdee(bmr, activity_level):
     """
@@ -116,21 +118,25 @@ class MealPlanner:
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
-        # Track used meals to avoid repetition
-        used_breakfast_titles = set()
-        used_lunch_dinner_titles = set()
+        # Use dictionaries to track meal usage counts instead of sets
+        breakfast_meal_counts = {}
+        lunch_dinner_meal_counts = {}
         
         days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         
         for day in days:
             daily_meals = self._generate_daily_meals_with_variety(
-                filtered_data, tdee, used_breakfast_titles, used_lunch_dinner_titles
+                filtered_data, tdee, breakfast_meal_counts, lunch_dinner_meal_counts
             )
             
-            # Update used meal tracking
-            used_breakfast_titles.add(daily_meals['Breakfast']['title'])
-            used_lunch_dinner_titles.add(daily_meals['Lunch']['title'])
-            used_lunch_dinner_titles.add(daily_meals['Dinner']['title'])
+            # Update usage counters
+            breakfast_title = daily_meals['Breakfast']['title']
+            lunch_title = daily_meals['Lunch']['title']
+            dinner_title = daily_meals['Dinner']['title']
+            
+            breakfast_meal_counts[breakfast_title] = breakfast_meal_counts.get(breakfast_title, 0) + 1
+            lunch_dinner_meal_counts[lunch_title] = lunch_dinner_meal_counts.get(lunch_title, 0) + 1
+            lunch_dinner_meal_counts[dinner_title] = lunch_dinner_meal_counts.get(dinner_title, 0) + 1
             
             weekly_plan[day] = daily_meals
 
@@ -141,11 +147,11 @@ class MealPlanner:
         filtered_data = self.data.copy()
         pref_array = preferences.to_array()[0]
         
-        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
+        # Step 1: Apply critical dietary restrictions (non-negotiable ones)
         for i, column in enumerate(self.dietary_columns):
             if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
                 filtered_data = filtered_data[filtered_data[column] == True]
-        
+                
         # Step 2: Use Random Forest to select meals within appropriate calorie ranges
         target_prediction_counts = {}
         
@@ -164,19 +170,20 @@ class MealPlanner:
                 target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
         
         # Step 3: Apply preference-based filtering
-        # Using a lower value for minimum required options to allow stricter filtering
-        min_required_options = 3  # Reduced from 10 to allow stricter filtering
+        min_required_options = 10
+        
+        # Define which dietary preferences are considered "soft constraints"
+        soft_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                           'Low-Sodium', 'Lactose-free']
         
         # Try direct filtering with preferences
         temp_data = filtered_data.copy()
-        preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
-                        'Low-Sodium', 'Lactose-free']
         
         for i, column in enumerate(self.dietary_columns):
-            if pref_array[i] and column in preference_constraints:
+            if pref_array[i] and column in soft_constraints:
                 temp_data = temp_data[temp_data[column] == True]
         
-        # Always use the strictly filtered data, don't fall back to clustering
+        # Always use strictly filtered data as in test24.py
         filtered_data = temp_data
         
         # Final safety check
@@ -187,7 +194,7 @@ class MealPlanner:
 
     def _generate_daily_meals_with_variety(
             self, filtered_data: pd.DataFrame, tdee: int, 
-            used_breakfast_titles: set, used_lunch_dinner_titles: set
+            breakfast_meal_counts: dict, lunch_dinner_meal_counts: dict
         ) -> Dict:
             """Generate daily meals with variety within a day and minimizing repetition across the week."""
             adjusted_tdee = tdee - 600  # Account for rice (600 calories)
@@ -220,13 +227,17 @@ class MealPlanner:
                 if breakfast_options.empty or lunch_dinner_options.empty:
                     raise ValueError("Not enough meal options available for your preferences")
             
-            # Try to avoid previously used breakfast meals
-            new_breakfast_options = breakfast_options[~breakfast_options['title'].isin(used_breakfast_titles)]
+            # Try to avoid meals that have been used twice already
+            new_breakfast_options = breakfast_options[~breakfast_options['title'].apply(
+                lambda x: breakfast_meal_counts.get(x, 0) >= 2
+            )]
             if not new_breakfast_options.empty:
                 breakfast_options = new_breakfast_options
             
-            # Try to avoid previously used lunch/dinner meals
-            new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].isin(used_lunch_dinner_titles)]
+            # Try to avoid lunch/dinner meals that have been used twice already
+            new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].apply(
+                lambda x: lunch_dinner_meal_counts.get(x, 0) >= 2
+            )]
             if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
                 lunch_dinner_options = new_lunch_dinner_options
                 
@@ -276,101 +287,6 @@ class MealPlanner:
                 }
             }
 
-    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 10) -> Dict[str, float]:
-        """
-        Evaluate the meal planning system with more balanced success criteria.
-        """
-        total_trials = 0
-        successful_trials = 0
-        calorie_matches = 0
-        variety_matches = 0
-        preference_matches = 0
-        
-        # Adjusted calorie tolerances
-        base_calories = tdee - 600  # Account for rice
-        min_acceptable = base_calories - 150
-        max_acceptable = base_calories + 150
-
-        try:
-            for _ in range(n_trials):
-                try:
-                    weekly_plan = self.generate_weekly_plan(tdee, preferences)
-                    total_trials += 1
-                    
-                    # Track success metrics for this week
-                    week_calorie_matches = 0
-                    week_variety_matches = 0
-                    week_pref_matches = 0
-                    
-                    for day, meals in weekly_plan.items():
-                        # Use total_calories instead of calories
-                        daily_calories = sum(meal['total_calories'] for meal in meals.values())
-                        meal_titles = [meal['title'] for meal in meals.values()]
-                        
-                        # Check each criterion independently
-                        if min_acceptable <= daily_calories <= max_acceptable:
-                            calorie_matches += 1
-                            week_calorie_matches += 1
-                            
-                        if len(set(meal_titles)) == len(meal_titles):
-                            variety_matches += 1
-                            week_variety_matches += 1
-                            
-                        if all(self._verify_meal_preferences(meal['title'], preferences) 
-                              for meal in meals.values()):
-                            preference_matches += 1
-                            week_pref_matches += 1
-                    
-                    # A week is successful if it meets minimum thresholds
-                    if (week_calorie_matches >= 5 and  # Allow 2 days of deviation
-                        week_pref_matches == 7):       # Strict on preferences
-                        successful_trials += 1
-                        
-                except Exception as e:
-                    print(f"Trial failed: {str(e)}")
-                    continue
-
-            # Calculate metrics
-            total_days = total_trials * 7
-            accuracy = successful_trials / total_trials if total_trials > 0 else 0
-            precision = calorie_matches / total_days if total_days > 0 else 0
-            recall = preference_matches / total_days if total_days > 0 else 0
-            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-
-            print("\nDetailed Evaluation Metrics:")
-            print("=" * 40)
-            print(f"Total weekly plans generated: {total_trials}")
-            print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
-            print(f"Days with correct calories: {calorie_matches}/{total_days}")
-            print(f"Days meeting preferences: {preference_matches}/{total_days}")
-            print(f"Successful weekly plans: {successful_trials}/{total_trials}")
-            print("-" * 40)
-
-            return {
-                'accuracy': accuracy,
-                'precision': precision,
-                'recall': recall,
-                'f1_score': f1
-            }
-
-        except Exception as e:
-            print(f"Evaluation error: {str(e)}")
-            return {
-                'accuracy': 0,
-                'precision': 0,
-                'recall': 0,
-                'f1_score': 0
-            }
-
-    def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:
-        """Verify if a meal matches the dietary preferences"""
-        meal_data = self.data[self.data['title'] == meal_title].iloc[0]
-        pref_array = preferences.to_array()[0]
-        
-        for i, column in enumerate(self.dietary_columns):
-            if pref_array[i] and not meal_data[column]:
-                return False
-        return True
 
 @app.route('/predict_meal_plan', methods=['POST'])
 def predict_meal_plan():
@@ -429,7 +345,6 @@ def predict_meal_plan():
                     'very_active': 1.725,
                     'extra_active': 1.9
                 }
-                
                 activity_level_str = data.get('activity_level', 'moderately_active')
                 activity_level = activity_level_map.get(activity_level_str, 1.55)
                 

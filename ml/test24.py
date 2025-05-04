@@ -349,7 +349,7 @@ def main():
     )
     
     # Define tdee as a variable first
-    tdee = 2000
+    tdee = 2650
     
     try:
         weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)
