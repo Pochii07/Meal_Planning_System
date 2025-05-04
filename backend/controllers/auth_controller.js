@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { createJWTToken } = require("../utilities/createJWTToken");
 const { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } = require("../resend/email");
-
+  
 const signup = async (req, res) => {
     const generateCustomIdTemplate = () => {
         const randomId = Math.floor(Math.random() * 1000).toString().padStart(4, '0');
@@ -92,7 +92,8 @@ const signup = async (req, res) => {
 const createVerificationToken = () => Math.floor (100000 + Math.random() * 900000).toString();
 
 const login = async (req, res) => {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
+  
     try {
         const user = await User.findOne({ email });
         if (!user || !user.password) {
@@ -147,7 +148,8 @@ const login = async (req, res) => {
             message: 'An error occurred during login' // Avoid exposing error.message
         });
     }
-}
+  };
+  
 const logout = async (req, res) => {
     res.clearCookie("token");
     res.status(200).json({

@@ -14,10 +14,8 @@ import { IconButton, InputAdornment } from "@mui/material";
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import SendIcon from '@mui/icons-material/Send';
 import SignUpIMG from '../Images/SignUpIMG.jpg'; 
-
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore"; 
-
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +25,7 @@ import {
   Button,
 } from '@mui/material';
 
-{/* text field for no special characters */}
+// Custom TextField without numbers
 const TextFieldNoNum = ({ label, value, onChange, width = "100%" }) => {
   const handleChange = (e) => {
     const newValue = e.target.value;
@@ -67,7 +65,6 @@ const EmailInput = ({ label, value, onChange }) => {
     
     // Email validation regex
     setError(!regex.test(newValue) && newValue.length > 0);
-    
     onChange(e); 
   };
 
@@ -93,10 +90,9 @@ const EmailInput = ({ label, value, onChange }) => {
   );
 };
 
-{/* password validation */}
 const Password = ({ label, value, onChange, showPassword, handleShowPassword }) => {
   const [error, setError] = useState(false);
-  const [helperText, setHelperText] = useState(<><br /><br /></>);
+  const [helperText, setHelperText] = useState(" ");
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -130,7 +126,7 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
       value={value}
       onChange={handleChange}
       error={error}
-      helperText={helperText || " "}
+      helperText={helperText}
       fullWidth
       sx={{
         "& .MuiOutlinedInput-root": {
@@ -147,6 +143,7 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
             <IconButton
               aria-label="toggle password visibility"
               onClick={handleShowPassword}
+              edge="end"
             >
               {showPassword ? <Visibility /> : <VisibilityOff />}
             </IconButton>
@@ -157,11 +154,9 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
   );
 };
 
-{/*confirm password*/}
 const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handleShowConfirmPassword }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(false);
-  const [helperText, setHelperText] = useState(<><br /><br /></>);
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -185,7 +180,7 @@ const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handl
       value={confirmPassword}
       onChange={handleChange}
       error={error}
-      helperText={helperText}
+      helperText={error ? "Passwords do not match" : " "}
       fullWidth
       sx={{
         "& .MuiOutlinedInput-root": {
@@ -202,6 +197,7 @@ const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handl
             <IconButton
               aria-label="toggle password visibility"
               onClick={handleShowConfirmPassword}
+              edge="end"
             >
               {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
             </IconButton>
@@ -209,7 +205,6 @@ const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handl
         ),
       }}
     />
-    
   );
 };
 
@@ -221,10 +216,8 @@ const SignUp = () => {
   const [birthDate, setBirthDate] = useState(null);
   const [sex, setSex] = useState('');
   const [email, setEmail] = useState('');
-  
   const [password, setPassword] = useState('');
-  const [confirmPassword, checkPassword] = useState('');
-
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -232,11 +225,10 @@ const SignUp = () => {
     open: false,
     title: '',
     message: '',
-    
+    action: null
   });
 
-  // Function to show dialog
-  const showDialog = (title, message, action) => {
+  const showDialog = (title, message, action = null) => {
     setDialog({
       open: true,
       title,
@@ -311,7 +303,7 @@ const SignUp = () => {
           'This email is already registered. Would you like to recover your account?',
           {
             text: 'Recover Account',
-            handler: () => navigate('/ForgotPassword') // Or your recovery page
+            handler: () => navigate('/ForgotPassword')
           }
         );
       } else {
@@ -321,147 +313,140 @@ const SignUp = () => {
   };
   
   return (
-    <div
-      className="flex flex-col mt-12"
-      style={{
-        backgroundImage: `url(${cooking})`,
-        backgroundPosition: "93% 17%", 
-        backgroundRepeat: "no-repeat", 
-        height: "10%", 
-        backgroundSize: "10%",
-      }}
-    >
-      <div className="flex justify-center items-center">
-        <div className="w-1/2">
-          <img src={SignUpIMG} alt="SignUpIMG" style={{ width: "80%", height: "80% " }} />
-        </div>  
-        
-        {/* Form starts here */}
-        <form 
-          noValidate
-          onSubmit={handleSubmit} 
-          className="border-collapse border border-transparent w-3/4 md:w-2/5"
-        >
-          <table>
-            <tbody>
-              <tr>
-                <td className="border border-transparent p-4" colSpan="2">
-                  <p className="text-[15px] text-right">
-                    Already a member?{" "}
-                    <a className="font-semibold hover:text-[#008000]" href="/LogIn">
-                      Log In
-                    </a>
-                  </p>
-                  <p className="text-[110px] font-semibold text-left tracking-tighter">
-                    Sign Up
-                  </p>
-                  <p className="text-[15px] text-left text-[#008000] mb-8">
-                    Your healthy journey starts here.
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td className="pt-4 px-3 w-1/2">
-                  <TextFieldNoNum 
-                    label="First Name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}                 
-                  />
-                </td>
-                <td className="pt-4 px-3 w-1/2">
-                  <TextFieldNoNum 
-                    label="Last Name"
-                    value={lastName} 
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td className="p-4 w-1/2">
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <DatePicker                      
-                      label="Birth Date"
-                      value={birthDate}
-                      onChange={(newValue) => setBirthDate(newValue)}
-                      width="100%"
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": { borderColor: "gray" },
-                          "&:hover fieldset": { borderColor: "#008000" },
-                          "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
-                        },
-                        "& .MuiInputLabel-root": { color: "gray" },
-                        "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
-                      }}
-                    />
-                  </LocalizationProvider>
-                </td>
-                <td className="px-3 w-1/2">
-                  <Box width="100%">
-                    <FormControl fullWidth>
-                      <InputLabel id="demo-simple-select-label">Sex</InputLabel>
-                      <Select
-                        labelId="demo-simple-select-label"
-                        id="demo-simple-select"
-                        label="Sex"
-                        value={sex}
-                        onChange={(event) => setSex(event.target.value)}
-                      >
-                        <MenuItem value={"Male"}>Male</MenuItem>
-                        <MenuItem value={"Female"}>Female</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 w-1/2" colSpan={2}>
-                  <EmailInput 
-                    label="Email Address"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)} 
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td className="pt-2 px-4 w-1/2">
-                  <Password                 
-                    label="Password" 
-                    value={password} 
-                    showPassword={showPassword}
-                    handleShowPassword={handleShowPassword}
-                    onChange={(event) => setPassword(event.target.value)} 
-                  />
-                </td>
-                <td className="pt-2 px-4 w-1/2">
-                  <ConfirmPassword                    
-                    label="Confirm Password" 
-                    password={password}
-                    setPassword={setPassword} 
-                    showConfirmPassword={showConfirmPassword}
-                    handleShowConfirmPassword={handleShowConfirmPassword}
-                    onChange={(event) => checkPassword(event.target.value)} 
-                  />
-                </td>
-              </tr>
-              <tr>
-                <td className="pt-2 px-4 w-1/2 text-right" colSpan={2}>
-                  <Button 
-                    type="submit"
-                    disabled={isLoading}
-                    variant="contained"
-                    className="px-8 py-4 text-xl font-medium text-white bg-[#008000] border border-[#008000] rounded-full hover:bg-[#006400] hover:text-[#FEFEFA] transition duration-300 ease-in-out"
-                    endIcon={<SendIcon />}
-                  >
-                    {isLoading ? "Loading..." : "Sign Up"}                  
-                  </Button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </form>
-        {/* Form ends here */}
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      {/* Main Container */}
+      <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg overflow-hidden flex flex-col md:flex-row">
+        {/* Image Section - Hidden on small screens */}
+        <div className="hidden md:block md:w-1/2 bg-green-50">
+          <img 
+            src={SignUpIMG} 
+            alt="SignUp" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Form Section */}
+        <div className="w-full md:w-1/2 p-8 relative">
+          {/* Form Header */}
+          <div className="mb-8">
+            <p className="text-right text-sm text-gray-600 mb-2">
+              Already a member?{" "}
+              <a className="font-semibold text-green-600 hover:text-green-800" href="/LogIn">
+                Log In
+              </a>
+            </p>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
+              Sign Up
+            </h1>
+            <p className="text-green-600 text-lg">
+              Your healthy journey starts here.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextFieldNoNum 
+                label="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}                 
+              />
+              <TextFieldNoNum 
+                label="Last Name"
+                value={lastName} 
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker                      
+                  label="Birth Date"
+                  value={birthDate}
+                  onChange={(newValue) => setBirthDate(newValue)}
+                  sx={{
+                    width: '100%',
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "gray" },
+                      "&:hover fieldset": { borderColor: "#008000" },
+                      "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
+                    },
+                    "& .MuiInputLabel-root": { color: "gray" },
+                    "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
+                  }}
+                />
+              </LocalizationProvider>
+
+              <FormControl fullWidth>
+                <InputLabel>Sex</InputLabel>
+                <Select
+                  label="Sex"
+                  value={sex}
+                  onChange={(event) => setSex(event.target.value)}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "gray" },
+                      "&:hover fieldset": { borderColor: "#008000" },
+                      "&.Mui-focused fieldset": { borderColor: "#008000 !important" },
+                    },
+                    "& .MuiInputLabel-root": { color: "gray" },
+                    "& .MuiInputLabel-root.Mui-focused": { color: "#008000 !important" },
+                  }}
+                >
+                  <MenuItem value={"Male"}>Male</MenuItem>
+                  <MenuItem value={"Female"}>Female</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <EmailInput 
+              label="Email Address"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)} 
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Password                 
+                label="Password" 
+                value={password} 
+                showPassword={showPassword}
+                handleShowPassword={handleShowPassword}
+                onChange={(event) => setPassword(event.target.value)} 
+              />
+              <ConfirmPassword                    
+                label="Confirm Password" 
+                password={password}
+                showConfirmPassword={showConfirmPassword}
+                handleShowConfirmPassword={handleShowConfirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)} 
+              />
+            </div>
+
+            <div className="pt-4">
+              <Button 
+                type="submit"
+                disabled={isLoading}
+                variant="contained"
+                fullWidth
+                size="large"
+                sx={{
+                  backgroundColor: '#008000',
+                  '&:hover': { backgroundColor: '#006400' },
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  borderRadius: '50px',
+                }}
+                endIcon={<SendIcon />}
+              >
+                {isLoading ? "Loading..." : "Sign Up"}                  
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      {/* Dialog for messages */}
       <Dialog open={dialog.open} onClose={closeDialog}>
         <DialogTitle>{dialog.title}</DialogTitle>
         <DialogContent>
