@@ -2,16 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
-import json
 import os
 from datetime import datetime, timedelta
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 # Helper functions for TDEE calculation
 def calculate_bmr(weight, height, age, gender):
@@ -63,7 +61,7 @@ class DietaryPreferences:
     shellfish_allergy: bool = False
     fish_allergy: bool = False
     halal_or_kosher: bool = False
-    
+
     def to_array(self) -> np.ndarray:
         return np.array([[
             self.vegetarian, self.low_purine, self.low_fat,
@@ -102,7 +100,6 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        # Using n_init='auto' as in test24.py
         kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
         kmeans.fit(features_scaled)
 
@@ -118,7 +115,7 @@ class MealPlanner:
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
-        # Use dictionaries to track meal usage counts instead of sets
+        # Use dictionaries to track meal usage counts
         breakfast_meal_counts = {}
         lunch_dinner_meal_counts = {}
         
@@ -147,11 +144,11 @@ class MealPlanner:
         filtered_data = self.data.copy()
         pref_array = preferences.to_array()[0]
         
-        # Step 1: Apply critical dietary restrictions (non-negotiable ones)
+        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
         for i, column in enumerate(self.dietary_columns):
             if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
                 filtered_data = filtered_data[filtered_data[column] == True]
-                
+        
         # Step 2: Use Random Forest to select meals within appropriate calorie ranges
         target_prediction_counts = {}
         
@@ -170,20 +167,20 @@ class MealPlanner:
                 target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
         
         # Step 3: Apply preference-based filtering
-        min_required_options = 10
+        min_required_options = 3  # Reduced from 10 to allow stricter filtering
         
         # Define which dietary preferences are considered "soft constraints"
-        soft_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
-                           'Low-Sodium', 'Lactose-free']
+        preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                        'Low-Sodium', 'Lactose-free']
         
         # Try direct filtering with preferences
         temp_data = filtered_data.copy()
         
         for i, column in enumerate(self.dietary_columns):
-            if pref_array[i] and column in soft_constraints:
+            if pref_array[i] and column in preference_constraints:
                 temp_data = temp_data[temp_data[column] == True]
         
-        # Always use strictly filtered data as in test24.py
+        # Always use the strictly filtered data
         filtered_data = temp_data
         
         # Final safety check
@@ -193,99 +190,154 @@ class MealPlanner:
         return filtered_data
 
     def _generate_daily_meals_with_variety(
-            self, filtered_data: pd.DataFrame, tdee: int, 
-            breakfast_meal_counts: dict, lunch_dinner_meal_counts: dict
-        ) -> Dict:
-            """Generate daily meals with variety within a day and minimizing repetition across the week."""
-            adjusted_tdee = tdee - 600  # Account for rice (600 calories)
-            meal_calories = adjusted_tdee // 3
-            calorie_margin = 50  # Allow 50 calorie variation per meal
+        self, filtered_data: pd.DataFrame, tdee: int, 
+        breakfast_meal_counts: dict, lunch_dinner_meal_counts: dict
+    ) -> Dict:
+        """Generate daily meals with variety within a day and minimizing repetition across the week."""
+        rice_calories = 600  # Rice calories
+        adjusted_tdee = tdee - rice_calories  # Account for rice
+        
+        # Adjust calorie distribution by meal (40-30-30 distribution)
+        breakfast_target = int(adjusted_tdee * 0.4)
+        lunch_target = int(adjusted_tdee * 0.3)
+        dinner_target = int(adjusted_tdee * 0.3)
+        
+        # Create masks for breakfast and lunch datasets
+        breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])
+        lunch_mask = filtered_data['title'].isin(self.lunch_data['title'])
 
-            # Create masks for breakfast and lunch datasets
-            breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])
-            lunch_mask = filtered_data['title'].isin(self.lunch_data['title'])
-
-            # Filter options
-            breakfast_options = filtered_data[breakfast_mask]
-            lunch_dinner_options = filtered_data[lunch_mask]
+        # Filter options
+        breakfast_options = filtered_data[breakfast_mask]
+        lunch_dinner_options = filtered_data[lunch_mask]
+        
+        # Ensure we have options available
+        if breakfast_options.empty or lunch_dinner_options.empty:
+            raise ValueError("Not enough meal options available for your preferences")
+        
+        # Try to avoid meals that have been used twice already
+        new_breakfast_options = breakfast_options[~breakfast_options['title'].apply(
+            lambda x: breakfast_meal_counts.get(x, 0) >= 2
+        )]
+        if not new_breakfast_options.empty:
+            breakfast_options = new_breakfast_options
+        
+        # Try to avoid lunch/dinner meals that have been used twice already
+        new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].apply(
+            lambda x: lunch_dinner_meal_counts.get(x, 0) >= 2
+        )]
+        if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
+            lunch_dinner_options = new_lunch_dinner_options
             
-            # Further filter by calories
-            breakfast_options = breakfast_options[
-                (breakfast_options['calories'] >= meal_calories - calorie_margin) &
-                (breakfast_options['calories'] <= meal_calories + calorie_margin)
+        # Function to round to nearest allowed serving size
+        def round_to_serving_size(serving):
+            allowed_servings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+            return min(allowed_servings, key=lambda x: abs(x - serving))
+
+        # Function to calculate optimal serving size for target calories
+        def calculate_optimal_serving(meal, target_calories):
+            if meal['calories'] <= 0:
+                return 1.0
+            ideal_servings = target_calories / meal['calories']
+            # Limit between 0.5 and 5 servings
+            ideal_servings = max(0.5, min(5, ideal_servings))
+            return round_to_serving_size(ideal_servings)
+
+        # Sample breakfast
+        breakfast = breakfast_options.sample(n=1).iloc[0]
+        breakfast_servings = calculate_optimal_serving(breakfast, breakfast_target)
+        
+        # Sample lunch
+        lunch = lunch_dinner_options.sample(n=1).iloc[0]
+        lunch_servings = calculate_optimal_serving(lunch, lunch_target)
+        
+        # Sample dinner (ensuring it's different from lunch)
+        dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
+        if dinner_options.empty:
+            # If no other options, accept a repeated meal as last resort
+            dinner = lunch_dinner_options.sample(n=1).iloc[0]
+        else:
+            dinner = dinner_options.sample(n=1).iloc[0]
+        dinner_servings = calculate_optimal_serving(dinner, dinner_target)
+        
+        # Calculate actual total calories and adjust if needed
+        total_calories = (breakfast['calories'] * breakfast_servings + 
+                          lunch['calories'] * lunch_servings + 
+                          dinner['calories'] * dinner_servings)
+        
+        # Fine-tune to get closer to target TDEE if we're off by more than 15%
+        if abs(total_calories - adjusted_tdee) > (adjusted_tdee * 0.15):
+            # Try adjusting the largest meal first
+            meals = [
+                {"meal": breakfast, "servings": breakfast_servings, "target": breakfast_target},
+                {"meal": lunch, "servings": lunch_servings, "target": lunch_target},
+                {"meal": dinner, "servings": dinner_servings, "target": dinner_target}
             ]
-            lunch_dinner_options = lunch_dinner_options[
-                (lunch_dinner_options['calories'] >= meal_calories - calorie_margin) &
-                (lunch_dinner_options['calories'] <= meal_calories + calorie_margin)
-            ]
             
-            # Ensure we have options available
-            if breakfast_options.empty or lunch_dinner_options.empty:
-                # Fallback to original options if no meals within calorie range
-                breakfast_options = filtered_data[breakfast_mask]
-                lunch_dinner_options = filtered_data[lunch_mask]
-                if breakfast_options.empty or lunch_dinner_options.empty:
-                    raise ValueError("Not enough meal options available for your preferences")
+            # Sort by caloric contribution
+            meals.sort(key=lambda x: x["meal"]['calories'] * x["servings"], reverse=True)
             
-            # Try to avoid meals that have been used twice already
-            new_breakfast_options = breakfast_options[~breakfast_options['title'].apply(
-                lambda x: breakfast_meal_counts.get(x, 0) >= 2
-            )]
-            if not new_breakfast_options.empty:
-                breakfast_options = new_breakfast_options
-            
-            # Try to avoid lunch/dinner meals that have been used twice already
-            new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].apply(
-                lambda x: lunch_dinner_meal_counts.get(x, 0) >= 2
-            )]
-            if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
-                lunch_dinner_options = new_lunch_dinner_options
-                
-            # Function to round to nearest allowed serving size
-            def round_to_serving_size(serving):
-                allowed_servings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
-                return min(allowed_servings, key=lambda x: abs(x - serving))
-
-            # Sample breakfast
-            breakfast = breakfast_options.sample(n=1).iloc[0]
-            ideal_breakfast_servings = meal_calories / breakfast['calories'] if breakfast['calories'] > 0 else 1
-            breakfast_servings = round_to_serving_size(ideal_breakfast_servings)
-            
-            # Sample lunch
-            lunch = lunch_dinner_options.sample(n=1).iloc[0]
-            ideal_lunch_servings = meal_calories / lunch['calories'] if lunch['calories'] > 0 else 1
-            lunch_servings = round_to_serving_size(ideal_lunch_servings)
-            
-            # Sample dinner (ensuring it's different from lunch)
-            dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
-            if dinner_options.empty:
-                # If no other options, accept a repeated meal as last resort
-                dinner = lunch_dinner_options.sample(n=1).iloc[0]
+            # Adjust the meal with highest contribution
+            if total_calories > adjusted_tdee:
+                # Need to reduce calories
+                new_servings = max(0.5, meals[0]["servings"] - 0.5)
+                if meals[0]["meal"] is breakfast:
+                    breakfast_servings = new_servings
+                elif meals[0]["meal"] is lunch:
+                    lunch_servings = new_servings
+                else:
+                    dinner_servings = new_servings
             else:
-                dinner = dinner_options.sample(n=1).iloc[0]
-            ideal_dinner_servings = meal_calories / dinner['calories'] if dinner['calories'] > 0 else 1
-            dinner_servings = round_to_serving_size(ideal_dinner_servings)
+                # Need to increase calories
+                new_servings = min(5.0, meals[0]["servings"] + 0.5)
+                if meals[0]["meal"] is breakfast:
+                    breakfast_servings = new_servings
+                elif meals[0]["meal"] is lunch:
+                    lunch_servings = new_servings
+                else:
+                    dinner_servings = new_servings
 
-            return {
-                'Breakfast': {
-                    'title': breakfast['title'], 
-                    'calories': breakfast['calories'],
-                    'servings': breakfast_servings,
-                    'total_calories': breakfast['calories'] * breakfast_servings
-                },
-                'Lunch': {
-                    'title': lunch['title'], 
-                    'calories': lunch['calories'],
-                    'servings': lunch_servings,
-                    'total_calories': lunch['calories'] * lunch_servings
-                },
-                'Dinner': {
-                    'title': dinner['title'], 
-                    'calories': dinner['calories'],
-                    'servings': dinner_servings,
-                    'total_calories': dinner['calories'] * dinner_servings
-                }
+        return {
+            'Breakfast': {
+                'title': breakfast['title'], 
+                'calories': breakfast['calories'],
+                'servings': breakfast_servings,
+                'total_calories': breakfast['calories'] * breakfast_servings
+            },
+            'Lunch': {
+                'title': lunch['title'], 
+                'calories': lunch['calories'],
+                'servings': lunch_servings,
+                'total_calories': lunch['calories'] * lunch_servings
+            },
+            'Dinner': {
+                'title': dinner['title'], 
+                'calories': dinner['calories'],
+                'servings': dinner_servings,
+                'total_calories': dinner['calories'] * dinner_servings
+            },
+            'Rice': {
+                'title': 'Rice',
+                'calories': rice_calories,
+                'servings': 1,
+                'total_calories': rice_calories
+            },
+            'Daily_Total': {
+                'calories': (breakfast['calories'] * breakfast_servings + 
+                            lunch['calories'] * lunch_servings + 
+                            dinner['calories'] * dinner_servings + 
+                            rice_calories)
             }
+        }
+
+    def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:
+        """Verify if a meal matches the dietary preferences"""
+        meal_data = self.data[self.data['title'] == meal_title].iloc[0]
+        pref_array = preferences.to_array()[0]
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and not meal_data[column]:
+                return False
+        return True
 
 
 @app.route('/predict_meal_plan', methods=['POST'])
