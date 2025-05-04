@@ -85,7 +85,7 @@ const ForgotPassword = () => {
     }
   };
 
-  return (
+  return ( 
     <div
       className="flex flex-col mt-12"
       style={{
