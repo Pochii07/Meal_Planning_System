@@ -58,7 +58,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=50, n_init='auto')
+        kmeans = KMeans(n_clusters=22, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -95,14 +95,53 @@ class MealPlanner:
         return weekly_plan
 
     def _filter_by_preferences(self, preferences: DietaryPreferences) -> pd.DataFrame:
+        """Filter meals using an integrated multi-stage filtering approach"""
+        # Start with all data
         filtered_data = self.data.copy()
-        pref_array = preferences.to_array()
+        pref_array = preferences.to_array()[0]
         
-        user_pref_scaled = self.scaler.transform(pref_array)
-        user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
+                filtered_data = filtered_data[filtered_data[column] == True]
         
-        cluster_mask = self.kmeans_model.labels_ == user_cluster
-        return filtered_data[cluster_mask]
+        # Step 2: Apply preference-based filtering
+        min_required_options = 10
+        
+        # Try direct filtering for preferences
+        temp_data = filtered_data.copy()
+        soft_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                           'Low-Sodium', 'Lactose-free']
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and column in soft_constraints:
+                temp_data = temp_data[temp_data[column] == True]
+        
+        # Apply direct filtering if it yields enough options
+        if len(temp_data) >= min_required_options:
+            filtered_data = temp_data
+        else:
+            # Apply similarity-based filtering using clustering
+            # Get features for currently filtered data
+            features = filtered_data[self.dietary_columns].values
+            filtered_features_scaled = self.scaler.transform(features)
+            
+            # Get user cluster
+            user_pref_scaled = self.scaler.transform(preferences.to_array())
+            user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+            
+            # Calculate cluster assignments for filtered subset
+            filtered_clusters = self.kmeans_model.predict(filtered_features_scaled)
+            
+            # Apply cluster filtering
+            cluster_mask = filtered_clusters == user_cluster
+            filtered_data = filtered_data.iloc[cluster_mask]
+        
+        # Final safety check
+        if filtered_data.empty:
+            raise ValueError("Cannot find any meals matching your dietary requirements")
+            
+        return filtered_data
 
     def _generate_daily_meals_with_variety(
         self, filtered_data: pd.DataFrame, tdee: int, 
@@ -293,8 +332,8 @@ class MealPlanner:
 
 def main():
     planner = MealPlanner(
-        breakfast_path='./ml/bf.csv',
-        lunch_path='./ml/lunch.csv'
+        breakfast_path='bf_final_updated_recipes_1.csv',
+        lunch_path='lunch_final_updated_recipes_1.csv'
     )
     
     preferences = DietaryPreferences(
@@ -303,15 +342,15 @@ def main():
         # low_fat = True,
         # low_sodium= True,
         # lactose_free= True,
-        # peanut_allergy= True,
-        # shellfish_allergy= True,
-        # fish_allergy= True,
-        # halal_or_kosher= True
+        peanut_allergy= True,
+        shellfish_allergy= True,
+        fish_allergy= True,
+        halal_or_kosher= True
 
     )
     
     # Define tdee as a variable first
-    tdee = 2000
+    tdee = 2560
     
     try:
         weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)

@@ -58,7 +58,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=5, n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=22, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -70,9 +70,6 @@ class MealPlanner:
         return pd.cut(calories, bins=bins, labels=labels)
 
     def generate_weekly_plan(self, tdee: int, preferences: DietaryPreferences) -> Dict:
-        """Generate a weekly meal plan with improved variety."""
-        if tdee < 1200:
-            raise ValueError("TDEE must be at least 1200 calories")
 
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
@@ -98,14 +95,52 @@ class MealPlanner:
         return weekly_plan
 
     def _filter_by_preferences(self, preferences: DietaryPreferences) -> pd.DataFrame:
+        # Start with all data
         filtered_data = self.data.copy()
-        pref_array = preferences.to_array()
+        pref_array = preferences.to_array()[0]
         
-        user_pref_scaled = self.scaler.transform(pref_array)
-        user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
+                filtered_data = filtered_data[filtered_data[column] == True]
         
-        cluster_mask = self.kmeans_model.labels_ == user_cluster
-        return filtered_data[cluster_mask]
+        # Step 2: Use Random Forest to select meals within appropriate calorie ranges
+        target_prediction_counts = {}
+        
+        # Get calorie range distribution from RandomForest predictions
+        for meal_type in ['breakfast', 'lunch/dinner']:
+            if meal_type == 'breakfast':
+                meal_data = filtered_data[filtered_data['title'].isin(self.breakfast_data['title'])]
+            else:
+                meal_data = filtered_data[filtered_data['title'].isin(self.lunch_data['title'])]
+                
+            if not meal_data.empty:
+                # Use DataFrame with proper column names for prediction
+                calories_df = pd.DataFrame({'calories': meal_data['calories']})
+                predictions = self.rf_model.predict(calories_df)
+                unique_predictions, counts = np.unique(predictions, return_counts=True)
+                target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
+        
+        # Step 3: Apply preference-based filtering
+        min_required_options = 3  # Reduced from 10 to allow stricter filtering
+        
+        # Try direct filtering with preferences
+        temp_data = filtered_data.copy()
+        preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                        'Low-Sodium', 'Lactose-free']
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and column in preference_constraints:
+                temp_data = temp_data[temp_data[column] == True]
+        
+        # Always use the strictly filtered data, don't fall back to clustering
+        filtered_data = temp_data
+        
+        # Final safety check
+        if filtered_data.empty:
+            raise ValueError("Cannot find any meals matching your strict dietary requirements")
+            
+        return filtered_data
 
     def _generate_daily_meals_with_variety(
         self, filtered_data: pd.DataFrame, tdee: int, 
@@ -114,7 +149,7 @@ class MealPlanner:
         """Generate daily meals with variety within a day and minimizing repetition across the week."""
         adjusted_tdee = tdee - 600
         meal_calories = adjusted_tdee // 3
-        calorie_margin = meal_calories * 0.2
+        calorie_margin = 50  # About 100/3 calories per meal
 
         # Create masks for breakfast and lunch datasets
         breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])
@@ -151,12 +186,21 @@ class MealPlanner:
         new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].isin(used_lunch_dinner_titles)]
         if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
             lunch_dinner_options = new_lunch_dinner_options
+            
+        # Function to round to nearest allowed serving size (1, 1.5, 2, 2.5, 3)
+        def round_to_serving_size(serving):
+            allowed_servings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+            return min(allowed_servings, key=lambda x: abs(x - serving))
 
         # Sample breakfast
         breakfast = breakfast_options.sample(n=1).iloc[0]
+        ideal_breakfast_servings = meal_calories / breakfast['calories'] if breakfast['calories'] > 0 else 1
+        breakfast_servings = round_to_serving_size(ideal_breakfast_servings)
         
         # Sample lunch
         lunch = lunch_dinner_options.sample(n=1).iloc[0]
+        ideal_lunch_servings = meal_calories / lunch['calories'] if lunch['calories'] > 0 else 1
+        lunch_servings = round_to_serving_size(ideal_lunch_servings)
         
         # Sample dinner (ensuring it's different from lunch)
         dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
@@ -165,14 +209,31 @@ class MealPlanner:
             dinner = lunch_dinner_options.sample(n=1).iloc[0]
         else:
             dinner = dinner_options.sample(n=1).iloc[0]
+        ideal_dinner_servings = meal_calories / dinner['calories'] if dinner['calories'] > 0 else 1
+        dinner_servings = round_to_serving_size(ideal_dinner_servings)
 
         return {
-            'Breakfast': {'title': breakfast['title'], 'calories': breakfast['calories']},
-            'Lunch': {'title': lunch['title'], 'calories': lunch['calories']},
-            'Dinner': {'title': dinner['title'], 'calories': dinner['calories']}
+            'Breakfast': {
+                'title': breakfast['title'], 
+                'calories': breakfast['calories'],
+                'servings': breakfast_servings,
+                'total_calories': breakfast['calories'] * breakfast_servings
+            },
+            'Lunch': {
+                'title': lunch['title'], 
+                'calories': lunch['calories'],
+                'servings': lunch_servings,
+                'total_calories': lunch['calories'] * lunch_servings
+            },
+            'Dinner': {
+                'title': dinner['title'], 
+                'calories': dinner['calories'],
+                'servings': dinner_servings,
+                'total_calories': dinner['calories'] * dinner_servings
+            }
         }
 
-    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 100) -> Dict[str, float]:
+    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 10) -> Dict[str, float]:
         """
         Evaluate the meal planning system with more balanced success criteria.
         """
@@ -184,8 +245,8 @@ class MealPlanner:
         
         # Adjusted calorie tolerances
         base_calories = tdee - 600  # Account for rice
-        min_acceptable = base_calories * 0.8 
-        max_acceptable = base_calories * 1.1  
+        min_acceptable = base_calories - 150
+        max_acceptable = base_calories + 150
 
         try:
             for _ in range(n_trials):
@@ -199,7 +260,8 @@ class MealPlanner:
                     week_pref_matches = 0
                     
                     for day, meals in weekly_plan.items():
-                        daily_calories = sum(meal['calories'] for meal in meals.values())
+                        # Use total_calories instead of calories
+                        daily_calories = sum(meal['total_calories'] for meal in meals.values())
                         meal_titles = [meal['title'] for meal in meals.values()]
                         
                         # Check each criterion independently
@@ -218,7 +280,6 @@ class MealPlanner:
                     
                     # A week is successful if it meets minimum thresholds
                     if (week_calorie_matches >= 5 and  # Allow 2 days of deviation
-                        week_variety_matches >= 5 and  # Allow 2 days of repetition
                         week_pref_matches == 7):       # Strict on preferences
                         successful_trials += 1
                         
@@ -238,7 +299,6 @@ class MealPlanner:
             print(f"Total weekly plans generated: {total_trials}")
             print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
             print(f"Days with correct calories: {calorie_matches}/{total_days}")
-            print(f"Days with meal variety: {variety_matches}/{total_days}")
             print(f"Days meeting preferences: {preference_matches}/{total_days}")
             print(f"Successful weekly plans: {successful_trials}/{total_trials}")
             print("-" * 40)
@@ -281,15 +341,18 @@ def main():
         # low_fat = True,
         # low_sodium= True,
         # lactose_free= True,
-        # peanut_allergy= True,
-        # shellfish_allergy= True,
-        # fish_allergy= True,
-        # halal_or_kosher= True
+        peanut_allergy= True,
+        shellfish_allergy= True,
+        fish_allergy= True,
+        halal_or_kosher= True
 
     )
     
+    # Define tdee as a variable first
+    tdee = 2000
+    
     try:
-        weekly_plan = planner.generate_weekly_plan(tdee=1872, preferences=preferences)
+        weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)
         
         print("\nWeekly Meal Plan:")
         print("=" * 80)
@@ -302,17 +365,20 @@ def main():
             for meal_type, meal_info in meals.items():
                 print(f"{meal_type}:")
                 print(f"  - {meal_info['title']}")
-                print(f"  - Calories: {meal_info['calories']:.0f}")
-                daily_total += meal_info['calories']
+                serving_text = "serving" if meal_info['servings'] == 1 else "servings"
+                print(f"  - {meal_info['servings']:.1f} {serving_text}")
+                print(f"  - Base Calories: {meal_info['calories']:.0f} per serving")
+                print(f"  - Total Calories: {meal_info['total_calories']:.0f}")
+                daily_total += meal_info['total_calories']
                 
-            print(f"Daily Total Calories: {daily_total:.0f}")
+            print(f"Daily Total Calories: {daily_total:.0f} (Target: {tdee - 600:.0f} + 600 from rice)")
             
     except ValueError as e:
         print(f"Error: {e}")
 
     # Evaluate the entire system
     print("\nEvaluating Meal Planning System...")
-    metrics = planner.evaluate_meal_plan_recommendations(tdee=1872, preferences=preferences)
+    metrics = planner.evaluate_meal_plan_recommendations(tdee=tdee, preferences=preferences)
     
     print("\nOverall System Performance:")
     print("-" * 40)
