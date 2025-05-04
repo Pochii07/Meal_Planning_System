@@ -293,8 +293,8 @@ class MealPlanner:
 
 def main():
     planner = MealPlanner(
-        breakfast_path='new model/bf.csv',
-        lunch_path='new model/lunch.csv'
+        breakfast_path='./ml/bf.csv',
+        lunch_path='./ml/lunch.csv'
     )
     
     preferences = DietaryPreferences(
@@ -311,7 +311,7 @@ def main():
     )
     
     # Define tdee as a variable first
-    tdee = 1500
+    tdee = 2000
     
     try:
         weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)
