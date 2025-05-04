@@ -339,13 +339,20 @@ const GuestMealTrackerDisplay = () => {
               <h3 className="text-sm font-semibold mb-2">
                 {day}
                 {mealPlan.prediction[day]?.date && (
-                  <span className="ml-1 text-xs text-gray-500 font-normal">
+                  <span className="ml-1 text-xs font-normal">
                     {new Date(mealPlan.prediction[day].date).toLocaleDateString()}
                   </span>
                 )}
               </h3>
               {meals.map((meal) => (
-                <div key={`${day}-${meal}`} className="meal-item">
+                <div 
+                  key={`${day}-${meal}`} 
+                  className={`meal-item ${
+                    mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip 
+                      ? "group cursor-pointer" 
+                      : ""
+                  }`}
+                >
                   <div className="meal-controls">
                     <input
                       type="checkbox"
@@ -357,26 +364,45 @@ const GuestMealTrackerDisplay = () => {
                   </div>
                   
                   <div 
-                    className="meal-desc flex items-center"
+                    className={`meal-desc flex flex-col bg-white p-3 rounded-lg shadow-sm border border-gray-100 ${
+                      mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip 
+                        ? "group-hover:bg-green-50 group-hover:border-green-200" 
+                        : ""
+                    }`}
                     onClick={() => {
-                      if (mealPlan.prediction[day]?.[meal] && 
-                        !skippedMeals[day]?.[meal] && 
-                        !pendingSkip) {
+                      if (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) {
                         fetchRecipeDetails(mealPlan.prediction[day][meal]);
                       }
                     }}
-                    style={{ 
-                      cursor: (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) ? 'pointer' : 'default' 
-                    }}
-                  >
-                    <span className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
-                      "text-green-600 hover:text-green-800 hover:underline transition-colors flex-grow" : 
-                      "text-gray-600 flex-grow"
-                    }>
+                  > 
+                    <span 
+                      className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
+                        "text-green-600 w-full group-hover:text-green-700 transition-colors" : 
+                        "text-gray-600 w-full"
+                      }
+                    >
                       {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
                     </span>
-                    {mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip}
-
+                    
+                    {/* Meal details moved below title */}
+                    {mealPlan.prediction[day]?.[`${meal}_details`] && (
+                      <div className="text-sm text-gray-600">
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Base Calories</span>
+                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].calories} kcal</span>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Prescribed serving</span>
+                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].servings}</span>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Total Calories</span>
+                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].total_calories} kcal</span>
+                            </div>
+                          </div>
+                        </div>
+                    )}
                   </div>
                   
                   {/* Nutritionist Notes Section */}

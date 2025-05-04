@@ -4,6 +4,56 @@ const mongoose = require('mongoose')
 const axios = require('axios')
 const { verify } = require('crypto')
 
+// Add this at the top of patient_controller.js
+const processMealPlanData = (rawPrediction) => {
+    let processedPrediction = {};
+    
+    try {
+        // Parse prediction if it's a string
+        let prediction = rawPrediction;
+        if (typeof rawPrediction === 'string') {
+            prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+        }
+
+        // Loop through each day in the prediction
+        for (const day in prediction) {
+            if (prediction.hasOwnProperty(day)) {
+                const dayData = prediction[day];
+                
+                // Create basic meal plan structure for compatibility
+                processedPrediction[day] = {
+                    date: dayData.date,
+                    breakfast: dayData.breakfast || dayData.meals?.breakfast?.title,
+                    lunch: dayData.lunch || dayData.meals?.lunch?.title,
+                    dinner: dayData.dinner || dayData.meals?.dinner?.title,
+                    
+                    // Store detailed meal information
+                    breakfast_details: {
+                        calories: dayData.meals?.breakfast?.calories || 0,
+                        servings: dayData.meals?.breakfast?.servings || 1,
+                        total_calories: dayData.meals?.breakfast?.total_calories || 0
+                    },
+                    lunch_details: {
+                        calories: dayData.meals?.lunch?.calories || 0,
+                        servings: dayData.meals?.lunch?.servings || 1,
+                        total_calories: dayData.meals?.lunch?.total_calories || 0
+                    },
+                    dinner_details: {
+                        calories: dayData.meals?.dinner?.calories || 0,
+                        servings: dayData.meals?.dinner?.servings || 1,
+                        total_calories: dayData.meals?.dinner?.total_calories || 0
+                    }
+                };
+            }
+        }
+        
+        return processedPrediction;
+    } catch (error) {
+        console.error("Error processing meal plan data:", error);
+        throw new Error("Error processing meal plan data");
+    }
+};
+
 // get all patients
 const getAllPatients = async (req, res) => {
     const allPatients = await Patient.find({}).sort({createdAt: - 1})
@@ -30,8 +80,8 @@ const getPatient = async (req, res) => {
             return res.status(404).json({ error: 'No patient found' })
         }
 
-        const { progress, ...details } = patient._doc // Separate details and progress
-        res.status(200).json({ ...details, progress }) // Reorder: details first, then progress
+        const { progress, ...details } = patient._doc
+        res.status(200).json({ ...details, progress })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -71,55 +121,35 @@ const newPatient = async (req, res) => {
             allergies: restrictions,
             activity_level
         });
-        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`,    {
+        
+        // Convert numeric activity level to string format (like in nutritionist controller)
+        let activityLevelString;
+        if (activity_level <= 1.2) activityLevelString = 'sedentary';
+        else if (activity_level <= 1.375) activityLevelString = 'light';
+        else if (activity_level <= 1.55) activityLevelString = 'moderate';
+        else if (activity_level <= 1.725) activityLevelString = 'active';
+        else activityLevelString = 'very active';
+        
+        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
             age,
             height,
             weight,
             gender,
             dietary_restrictions: preference,
             allergies: restrictions,
-            activity_level
+            activity_level: activityLevelString // Send string instead of number
         });
 
         console.log('Full ML API response:', response.data);
 
-        // Parse and structure the meal plan data
         const rawPrediction = response.data.predicted_meal_plan;
-        let prediction = {
-            Monday: { breakfast: '', lunch: '', dinner: '' },
-            Tuesday: { breakfast: '', lunch: '', dinner: '' },
-            Wednesday: { breakfast: '', lunch: '', dinner: '' },
-            Thursday: { breakfast: '', lunch: '', dinner: '' },
-            Friday: { breakfast: '', lunch: '', dinner: '' },
-            Saturday: { breakfast: '', lunch: '', dinner: '' },
-            Sunday: { breakfast: '', lunch: '', dinner: '' }
-        };
-
-        // Parse the raw prediction and assign to structured format
+        
+        let prediction;
         try {
-            let parsedPrediction;
-            if (typeof rawPrediction === 'string') {
-                parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
-            } else if (typeof rawPrediction === 'object') {
-                parsedPrediction = rawPrediction;
-            } else {
-                console.error('Unexpected prediction format:', typeof rawPrediction);
-                parsedPrediction = {};
-            }
-            
-            // Create a new object for the transformed data
-            let transformedPrediction = {};
-            for (const [day, data] of Object.entries(parsedPrediction)) {
-                // Extract the meals from the nested structure
-                transformedPrediction[day] = {
-                    breakfast: data.meals?.breakfast || '',
-                    lunch: data.meals?.lunch || '',
-                    dinner: data.meals?.dinner || ''
-                };
-            }
-            prediction = transformedPrediction;
-        } catch (parseError) {
-            console.error('Error parsing prediction:', parseError);
+            prediction = processMealPlanData(rawPrediction);
+        } catch (error) {
+            console.error("Error processing meal plan data:", error);
+            return res.status(500).json({ error: "Error processing meal plan data" });
         }
 
         const BMI = calculateBMI(weight, height);
@@ -137,13 +167,22 @@ const newPatient = async (req, res) => {
             activity_level,
             preference,
             restrictions,
-            prediction, // Now properly structured
+            prediction,
             userId
         });
 
         res.status(200).json(new_patient);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error("ML API Error:", error.response?.data || error.message);
+        
+        let errorMessage = "Failed to generate meal plan";
+        if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+        }
+        
+        res.status(400).json({ error: errorMessage });
     }
 };
 
@@ -285,6 +324,14 @@ const generateGuestMealPlan = async (req, res) => {
     const {age, height, weight, gender, activity_level, preference, restrictions} = req.body;
 
     try {
+        // Convert numeric activity level to string format
+        let activityLevelString;
+        if (activity_level <= 1.2) activityLevelString = 'sedentary';
+        else if (activity_level <= 1.375) activityLevelString = 'light';
+        else if (activity_level <= 1.55) activityLevelString = 'moderate';
+        else if (activity_level <= 1.725) activityLevelString = 'active';
+        else activityLevelString = 'very active';
+        
         // Call Flask API for prediction
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
         const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
@@ -294,51 +341,33 @@ const generateGuestMealPlan = async (req, res) => {
             gender,
             dietary_restrictions: preference,
             allergies: restrictions,
-            activity_level
+            activity_level: activityLevelString
         });
-
-        // Parse and structure the meal plan data
-        let prediction = {
-            Monday: { breakfast: '', lunch: '', dinner: '' },
-            Tuesday: { breakfast: '', lunch: '', dinner: '' },
-            Wednesday: { breakfast: '', lunch: '', dinner: '' },
-            Thursday: { breakfast: '', lunch: '', dinner: '' },
-            Friday: { breakfast: '', lunch: '', dinner: '' },
-            Saturday: { breakfast: '', lunch: '', dinner: '' },
-            Sunday: { breakfast: '', lunch: '', dinner: '' }
-        };
-
+        
+        console.log('Full ML API response:', response.data);
+        const rawPrediction = response.data.predicted_meal_plan;
+        
+        let prediction;
         try {
-            let parsedPrediction;
-            if (typeof rawPrediction === 'string') {
-                parsedPrediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
-            } else if (typeof rawPrediction === 'object') {
-                parsedPrediction = rawPrediction;
-            } else {
-                console.error('Unexpected prediction format:', typeof rawPrediction);
-                parsedPrediction = {};
-            }
-            
-            // Create a new object for the transformed data
-            let transformedPrediction = {};
-            for (const [day, data] of Object.entries(parsedPrediction)) {
-                // Extract the meals from the nested structure
-                transformedPrediction[day] = {
-                    breakfast: data.meals?.breakfast || '',
-                    lunch: data.meals?.lunch || '',
-                    dinner: data.meals?.dinner || ''
-                };
-            }
-            prediction = transformedPrediction;
-        } catch (parseError) {
-            console.error('Error parsing prediction:', parseError);
+            prediction = processMealPlanData(rawPrediction);
+        } catch (error) {
+            console.error("Error processing meal plan data:", error);
+            return res.status(500).json({ error: "Error processing meal plan data" });
         }
 
         // Only return the prediction without saving to database
         res.status(200).json({ prediction });
-
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error("ML API Error:", error.response?.data || error.message);
+        
+        let errorMessage = "Failed to generate meal plan";
+        if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+        }
+        
+        res.status(400).json({ error: errorMessage });
     }
 };
 
