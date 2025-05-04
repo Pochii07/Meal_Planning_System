@@ -438,39 +438,51 @@ const PatientForm = () => {
           Your Weekly Meal Plan
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(mealPlan).map(([day, meals]) => (
+          {Object.entries(mealPlan).map(([day, dayData]) => (
             <div
               key={day}
               className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
             >
               <h4 className="text-2xl font-semibold text-green-600 mb-6 border-b border-gray-200 pb-2 text-center">
                 {day}
+                {dayData.date && (
+                  <div className="text-sm text-gray-500 font-normal">
+                    {new Date(dayData.date).toLocaleDateString()}
+                  </div>
+                )}
               </h4>
-              <div className="space-y-4">
-                <div>
-                  <h5 className="text-lg font-semibold text-green-600 mb-2">
-                    Breakfast
-                  </h5>
-                  <p className="text-gray-700 bg-white p-4 rounded-md shadow-sm">
-                    {meals.breakfast}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="text-lg font-semibold text-green-600 mb-2">
-                    Lunch
-                  </h5>
-                  <p className="text-gray-700 bg-white p-4 rounded-md shadow-sm">
-                    {meals.lunch}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="text-lg font-semibold text-green-600 mb-2">
-                    Dinner
-                  </h5>
-                  <p className="text-gray-700 bg-white p-4 rounded-md shadow-sm">
-                    {meals.dinner}
-                  </p>
-                </div>
+              <div className="space-y-6">
+                {['breakfast', 'lunch', 'dinner'].map(meal => (
+                  <div key={meal} className="bg-white p-4 rounded-md shadow-sm">
+                    <h5 className="text-lg font-semibold text-green-600 mb-2 capitalize">
+                      {meal}
+                    </h5>
+                    <div className="text-gray-700">
+                      <p className="font-medium hover:text-green-600 cursor-pointer">
+                        {dayData[meal] || 'No meal planned'}
+                      </p>
+                      
+                      {dayData[`${meal}_details`] && (
+                        <div className="mt-2 text-sm text-gray-600">
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Base Calories</span>
+                              <span className="font-medium">{dayData[`${meal}_details`].calories} kcal</span>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Servings</span>
+                              <span className="font-medium">{dayData[`${meal}_details`].servings}</span>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded">
+                              <span className="block text-xs text-gray-500">Total Calories</span>
+                              <span className="font-medium">{dayData[`${meal}_details`].total_calories} kcal</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
