@@ -2,14 +2,48 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
-import json
 import os
+from datetime import datetime, timedelta
+
+# Helper functions for TDEE calculation
+def calculate_bmr(weight, height, age, gender):
+    """
+    Calculate Basal Metabolic Rate (BMR) using the Mifflin-St Jeor Equation.
+    
+    Parameters:
+    weight - in kg
+    height - in cm
+    age - in years
+    gender - 'M' for male, 'F' for female
+    """
+    if gender.upper() == "M":
+        return (10 * weight) + (6.25 * height) - (5 * age) + 5
+    else:
+        return (10 * weight) + (6.25 * height) - (5 * age) - 161
+
+def calculate_tdee(bmr, activity_level):
+    """
+    Calculate Total Daily Energy Expenditure (TDEE) by multiplying BMR by activity level factor.
+    """
+    return bmr * activity_level
+
+def convert_numpy_types(obj):
+    """Convert numpy types to native Python types for JSON serialization"""
+    import numpy as np
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -27,19 +61,13 @@ class DietaryPreferences:
     shellfish_allergy: bool = False
     fish_allergy: bool = False
     halal_or_kosher: bool = False
-    
+
     def to_array(self) -> np.ndarray:
         return np.array([[
-            int(self.vegetarian),
-            int(self.low_purine),
-            int(self.low_fat),
-            int(self.low_sodium),
-            int(self.lactose_free),
-            int(self.peanut_allergy),
-            int(self.shellfish_allergy),
-            int(self.fish_allergy),
-            int(self.halal_or_kosher)
-        ]])
+            self.vegetarian, self.low_purine, self.low_fat,
+            self.low_sodium, self.lactose_free, self.peanut_allergy,
+            self.shellfish_allergy, self.fish_allergy, self.halal_or_kosher
+        ]], dtype=float)
 
 class MealPlanner:
     def __init__(self, breakfast_path: str, lunch_path: str):
@@ -72,7 +100,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=50, n_init='auto')
+        kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -87,44 +115,93 @@ class MealPlanner:
         filtered_data = self._filter_by_preferences(preferences)
         weekly_plan = {}
         
-        # Track used meals to avoid repetition
-        used_breakfast_titles = set()
-        used_lunch_dinner_titles = set()
+        # Use dictionaries to track meal usage counts
+        breakfast_meal_counts = {}
+        lunch_dinner_meal_counts = {}
         
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        for day in days:
             daily_meals = self._generate_daily_meals_with_variety(
-                filtered_data, tdee, used_breakfast_titles, used_lunch_dinner_titles
+                filtered_data, tdee, breakfast_meal_counts, lunch_dinner_meal_counts
             )
             
-            # Track used titles for variety
-            used_breakfast_titles.add(daily_meals['breakfast'])
-            used_lunch_dinner_titles.add(daily_meals['lunch'])
-            used_lunch_dinner_titles.add(daily_meals['dinner'])
+            # Update usage counters
+            breakfast_title = daily_meals['Breakfast']['title']
+            lunch_title = daily_meals['Lunch']['title']
+            dinner_title = daily_meals['Dinner']['title']
+            
+            breakfast_meal_counts[breakfast_title] = breakfast_meal_counts.get(breakfast_title, 0) + 1
+            lunch_dinner_meal_counts[lunch_title] = lunch_dinner_meal_counts.get(lunch_title, 0) + 1
+            lunch_dinner_meal_counts[dinner_title] = lunch_dinner_meal_counts.get(dinner_title, 0) + 1
             
             weekly_plan[day] = daily_meals
 
         return weekly_plan
 
     def _filter_by_preferences(self, preferences: DietaryPreferences) -> pd.DataFrame:
+        # Start with all data
         filtered_data = self.data.copy()
-        pref_array = preferences.to_array()
+        pref_array = preferences.to_array()[0]
         
-        user_pref_scaled = self.scaler.transform(pref_array)
-        user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
+                filtered_data = filtered_data[filtered_data[column] == True]
         
-        cluster_mask = self.kmeans_model.labels_ == user_cluster
-        return filtered_data[cluster_mask]
+        # Step 2: Use Random Forest to select meals within appropriate calorie ranges
+        target_prediction_counts = {}
+        
+        # Get calorie range distribution from RandomForest predictions
+        for meal_type in ['breakfast', 'lunch/dinner']:
+            if meal_type == 'breakfast':
+                meal_data = filtered_data[filtered_data['title'].isin(self.breakfast_data['title'])]
+            else:
+                meal_data = filtered_data[filtered_data['title'].isin(self.lunch_data['title'])]
+                
+            if not meal_data.empty:
+                # Use DataFrame with proper column names for prediction
+                calories_df = pd.DataFrame({'calories': meal_data['calories']})
+                predictions = self.rf_model.predict(calories_df)
+                unique_predictions, counts = np.unique(predictions, return_counts=True)
+                target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
+        
+        # Step 3: Apply preference-based filtering
+        min_required_options = 3  # Reduced from 10 to allow stricter filtering
+        
+        # Define which dietary preferences are considered "soft constraints"
+        preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                        'Low-Sodium', 'Lactose-free']
+        
+        # Try direct filtering with preferences
+        temp_data = filtered_data.copy()
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and column in preference_constraints:
+                temp_data = temp_data[temp_data[column] == True]
+        
+        # Always use the strictly filtered data
+        filtered_data = temp_data
+        
+        # Final safety check
+        if filtered_data.empty:
+            raise ValueError("Cannot find any meals matching your strict dietary requirements")
+            
+        return filtered_data
 
     def _generate_daily_meals_with_variety(
         self, filtered_data: pd.DataFrame, tdee: int, 
-        used_breakfast_titles: set, used_lunch_dinner_titles: set
+        breakfast_meal_counts: dict, lunch_dinner_meal_counts: dict
     ) -> Dict:
         """Generate daily meals with variety within a day and minimizing repetition across the week."""
-        adjusted_tdee = tdee - 600
-        meal_calories = adjusted_tdee // 3
-        # Allow 20% deviation from target calories
-        calorie_margin = meal_calories - 100
-
+        rice_calories = 600  # Rice calories
+        adjusted_tdee = tdee - rice_calories  # Account for rice
+        
+        # Adjust calorie distribution by meal (40-30-30 distribution)
+        breakfast_target = int(adjusted_tdee * 0.4)
+        lunch_target = int(adjusted_tdee * 0.3)
+        dinner_target = int(adjusted_tdee * 0.3)
+        
         # Create masks for breakfast and lunch datasets
         breakfast_mask = filtered_data['title'].isin(self.breakfast_data['title'])
         lunch_mask = filtered_data['title'].isin(self.lunch_data['title'])
@@ -133,50 +210,123 @@ class MealPlanner:
         breakfast_options = filtered_data[breakfast_mask]
         lunch_dinner_options = filtered_data[lunch_mask]
         
-        # Further filter by calories
-        breakfast_options = breakfast_options[
-            (breakfast_options['calories'] >= meal_calories - calorie_margin) &
-            (breakfast_options['calories'] <= meal_calories + calorie_margin)
-        ]
-        lunch_dinner_options = lunch_dinner_options[
-            (lunch_dinner_options['calories'] >= meal_calories - calorie_margin) &
-            (lunch_dinner_options['calories'] <= meal_calories + calorie_margin)
-        ]
-        
         # Ensure we have options available
         if breakfast_options.empty or lunch_dinner_options.empty:
-            # Fallback to original options if no meals within calorie range
-            breakfast_options = filtered_data[breakfast_mask]
-            lunch_dinner_options = filtered_data[lunch_mask]
-            if breakfast_options.empty or lunch_dinner_options.empty:
-                raise ValueError("Not enough meal options available for your preferences")
-
-        # Filter out previously used meals if possible
-        unique_breakfast_options = breakfast_options[~breakfast_options['title'].isin(used_breakfast_titles)]
-        if not unique_breakfast_options.empty:
-            breakfast_options = unique_breakfast_options
+            raise ValueError("Not enough meal options available for your preferences")
+        
+        # Try to avoid meals that have been used twice already
+        new_breakfast_options = breakfast_options[~breakfast_options['title'].apply(
+            lambda x: breakfast_meal_counts.get(x, 0) >= 2
+        )]
+        if not new_breakfast_options.empty:
+            breakfast_options = new_breakfast_options
+        
+        # Try to avoid lunch/dinner meals that have been used twice already
+        new_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].apply(
+            lambda x: lunch_dinner_meal_counts.get(x, 0) >= 2
+        )]
+        if not new_lunch_dinner_options.empty and len(new_lunch_dinner_options) >= 2:
+            lunch_dinner_options = new_lunch_dinner_options
             
-        unique_lunch_dinner_options = lunch_dinner_options[~lunch_dinner_options['title'].isin(used_lunch_dinner_titles)]
-        if not unique_lunch_dinner_options.empty:
-            lunch_dinner_options = unique_lunch_dinner_options
+        # Function to round to nearest allowed serving size
+        def round_to_serving_size(serving):
+            allowed_servings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+            return min(allowed_servings, key=lambda x: abs(x - serving))
 
-        # Sample different meals for breakfast, lunch, and dinner
+        # Function to calculate optimal serving size for target calories
+        def calculate_optimal_serving(meal, target_calories):
+            if meal['calories'] <= 0:
+                return 1.0
+            ideal_servings = target_calories / meal['calories']
+            # Limit between 0.5 and 5 servings
+            ideal_servings = max(0.5, min(5, ideal_servings))
+            return round_to_serving_size(ideal_servings)
+
+        # Sample breakfast
         breakfast = breakfast_options.sample(n=1).iloc[0]
+        breakfast_servings = calculate_optimal_serving(breakfast, breakfast_target)
         
-        # For lunch and dinner, ensure they're different from each other
+        # Sample lunch
         lunch = lunch_dinner_options.sample(n=1).iloc[0]
-        dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
+        lunch_servings = calculate_optimal_serving(lunch, lunch_target)
         
-        # If no different dinner options available, use original options
+        # Sample dinner (ensuring it's different from lunch)
+        dinner_options = lunch_dinner_options[lunch_dinner_options['title'] != lunch['title']]
         if dinner_options.empty:
+            # If no other options, accept a repeated meal as last resort
             dinner = lunch_dinner_options.sample(n=1).iloc[0]
         else:
             dinner = dinner_options.sample(n=1).iloc[0]
+        dinner_servings = calculate_optimal_serving(dinner, dinner_target)
+        
+        # Calculate actual total calories and adjust if needed
+        total_calories = (breakfast['calories'] * breakfast_servings + 
+                          lunch['calories'] * lunch_servings + 
+                          dinner['calories'] * dinner_servings)
+        
+        # Fine-tune to get closer to target TDEE if we're off by more than 15%
+        if abs(total_calories - adjusted_tdee) > (adjusted_tdee * 0.15):
+            # Try adjusting the largest meal first
+            meals = [
+                {"meal": breakfast, "servings": breakfast_servings, "target": breakfast_target},
+                {"meal": lunch, "servings": lunch_servings, "target": lunch_target},
+                {"meal": dinner, "servings": dinner_servings, "target": dinner_target}
+            ]
+            
+            # Sort by caloric contribution
+            meals.sort(key=lambda x: x["meal"]['calories'] * x["servings"], reverse=True)
+            
+            # Adjust the meal with highest contribution
+            if total_calories > adjusted_tdee:
+                # Need to reduce calories
+                new_servings = max(0.5, meals[0]["servings"] - 0.5)
+                if meals[0]["meal"] is breakfast:
+                    breakfast_servings = new_servings
+                elif meals[0]["meal"] is lunch:
+                    lunch_servings = new_servings
+                else:
+                    dinner_servings = new_servings
+            else:
+                # Need to increase calories
+                new_servings = min(5.0, meals[0]["servings"] + 0.5)
+                if meals[0]["meal"] is breakfast:
+                    breakfast_servings = new_servings
+                elif meals[0]["meal"] is lunch:
+                    lunch_servings = new_servings
+                else:
+                    dinner_servings = new_servings
 
         return {
-            'breakfast': breakfast['title'],
-            'lunch': lunch['title'],
-            'dinner': dinner['title']
+            'Breakfast': {
+                'title': breakfast['title'], 
+                'calories': breakfast['calories'],
+                'servings': breakfast_servings,
+                'total_calories': breakfast['calories'] * breakfast_servings
+            },
+            'Lunch': {
+                'title': lunch['title'], 
+                'calories': lunch['calories'],
+                'servings': lunch_servings,
+                'total_calories': lunch['calories'] * lunch_servings
+            },
+            'Dinner': {
+                'title': dinner['title'], 
+                'calories': dinner['calories'],
+                'servings': dinner_servings,
+                'total_calories': dinner['calories'] * dinner_servings
+            },
+            'Rice': {
+                'title': 'Rice',
+                'calories': rice_calories,
+                'servings': 1,
+                'total_calories': rice_calories
+            },
+            'Daily_Total': {
+                'calories': (breakfast['calories'] * breakfast_servings + 
+                            lunch['calories'] * lunch_servings + 
+                            dinner['calories'] * dinner_servings + 
+                            rice_calories)
+            }
         }
 
     def _verify_meal_preferences(self, meal_title: str, preferences: DietaryPreferences) -> bool:
@@ -189,220 +339,137 @@ class MealPlanner:
                 return False
         return True
 
-    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 100) -> Dict[str, float]:
-        """
-        Evaluate the meal planning system with more balanced success criteria.
-        """
-        try:
-            total_trials = 0
-            successful_trials = 0
-            total_days = 0
-            calorie_matches = 0
-            variety_matches = 0
-            preference_matches = 0
-            
-            min_acceptable = tdee * 0.99
-            max_acceptable = tdee * 1.01
-            
-            tp, tn, fp, fn = 0, 0, 0, 0
-            
-            for _ in range(n_trials):
-                total_trials += 1
-                trial_success = True
-                
-                try:
-                    weekly_plan = self.generate_weekly_plan(tdee, preferences)
-                    
-                    for day, meals in weekly_plan.items():
-                        total_days += 1
-                        
-                        # Check meal variety within the day
-                        day_meals = [meals['breakfast'], meals['lunch'], meals['dinner']]
-                        if len(set(day_meals)) == len(day_meals):
-                            variety_matches += 1
-                        else:
-                            trial_success = False
-                        
-                        # Check preferences
-                        day_pref_match = all(self._verify_meal_preferences(meal, preferences) for meal in day_meals)
-                        if day_pref_match:
-                            preference_matches += 1
-                        else:
-                            trial_success = False
-                            
-                        for meal_type, meal_title in meals.items():
-                            meets_preferences = self._verify_meal_preferences(meal_title, preferences)
-                            
-                            if meets_preferences:
-                                tp += 1  # Meal matches preferences
-                            else:
-                                fp += 1  # Meal doesn't match preferences
-                                
-                    if trial_success:
-                        successful_trials += 1
-                except Exception:
-                    fn += 1  # Failed to generate a plan that should have been possible
-            
-            # Calculate metrics
-            accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-            print("\nDetailed Evaluation Metrics:")
-            print("=" * 40)
-            print(f"Total weekly plans generated: {total_trials}")
-            print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
-            print(f"Days with correct calories: {calorie_matches}/{total_days}")
-            print(f"Days with meal variety: {variety_matches}/{total_days}")
-            print(f"Days meeting preferences: {preference_matches}/{total_days}")
-            print(f"Successful weekly plans: {successful_trials}/{total_trials}")
-            print("-" * 40)
-            
-            return {
-                'accuracy': accuracy,
-                'precision': precision,
-                'recall': recall,
-                'f1_score': f1
-            }
-
-        except Exception as e:
-            print(f"Evaluation error: {str(e)}")
-            return {
-                'accuracy': 0,
-                'precision': 0,
-                'recall': 0,
-                'f1_score': 0
-            }
-
-# Initialize the meal planner
-planner = MealPlanner(
-    breakfast_path='bf.csv',
-    lunch_path='lunch.csv'
-)
-
-# Define a route to predict meal plans
 @app.route('/predict_meal_plan', methods=['POST'])
 def predict_meal_plan():
     try:
-        # Parse the JSON request data
-        data = request.json
+        data = request.get_json()
+        print(f"Received request data: {data}")
         
-        # Extract necessary inputs for the meal planner
-        age = float(data.get('age', 30))
-        height = float(data.get('height', 170))
-        weight = float(data.get('weight', 70))
-        gender = data.get('gender', 'Male')
-        activity_level = data.get('activity_level', 'Moderate')
+        # Extract dietary preferences from request format
+        dietary_restrictions = data.get('dietary_restrictions', [])
+        allergies = data.get('allergies', [])
         
-        # Calculate TDEE (Total Daily Energy Expenditure) based on inputs
-        bmr = 0
-        # Using Mifflin-St Jeor equation for consistency with frontend
-        if gender.lower() == 'male':
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        # Handle different formats of dietary_restrictions
+        if isinstance(dietary_restrictions, dict):
+            diet_list = [k for k, v in dietary_restrictions.items() if v]
+        elif isinstance(dietary_restrictions, list):
+            diet_list = dietary_restrictions
+        elif isinstance(dietary_restrictions, str):
+            diet_list = [r.strip() for r in dietary_restrictions.split(',')]
         else:
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
-        # Activity multiplier
-        activity_multipliers = {
-            'sedentary': 1.2,
-            'light': 1.375,
-            'moderate': 1.55,
-            'active': 1.725,
-            'very active': 1.9
-        }
-        multiplier = activity_multipliers.get(activity_level.lower(), 1.55)
-        tdee = int(bmr * multiplier)
+            diet_list = []
+            
+        # Handle allergies string format
+        if isinstance(allergies, str):
+            allergies = [r.strip() for r in allergies.split(',')]
+            
+        # Convert all to lowercase for case-insensitive matching
+        diet_list = [d.lower() for d in diet_list if d]
+        allergies = [a.lower() for a in allergies if a]
         
-        # Parse dietary preferences
-        dietary_restrictions = data.get('dietary_restrictions', '').lower()
-        allergies = data.get('allergies', '').lower()
-        
-        # Create dietary preferences object
+        # Create preferences object
         preferences = DietaryPreferences(
-            vegetarian='vegetarian' in dietary_restrictions,
-            low_purine='low purine' in dietary_restrictions,
-            low_fat='low fat' in dietary_restrictions or 'heart healthy' in dietary_restrictions,
-            low_sodium='low sodium' in dietary_restrictions,
-            lactose_free='lactose free' in dietary_restrictions or 'lactose intolerant' in dietary_restrictions,
-            peanut_allergy='peanut' in allergies,
-            shellfish_allergy='shellfish' in allergies,
-            fish_allergy='fish' in allergies,
-            halal_or_kosher='halal' in dietary_restrictions or 'kosher' in dietary_restrictions
+            vegetarian='vegetarian' in diet_list,
+            low_purine='low purine' in diet_list or 'low-purine' in diet_list,
+            low_fat='low fat' in diet_list or 'low-fat' in diet_list or 'heart healthy' in diet_list,
+            low_sodium='low sodium' in diet_list or 'low-sodium' in diet_list,
+            lactose_free='lactose free' in diet_list or 'lactose-free' in diet_list or 'lactose intolerant' in diet_list,
+            peanut_allergy=any('peanut' in a.lower() for a in allergies),
+            shellfish_allergy=any('shellfish' in a.lower() for a in allergies),
+            fish_allergy=any('fish' in a.lower() for a in allergies) and not any('shellfish' in a.lower() for a in allergies),
+            halal_or_kosher='halal' in diet_list or 'kosher' in diet_list
         )
         
-        # Get current date for the meal plan
-        from datetime import datetime, timedelta
+        # Calculate or use provided TDEE
+        try:
+            tdee = int(data.get('tdee', 0))
+            if tdee <= 0:
+                weight = float(data.get('weight', 70))
+                height = float(data.get('height', 170))
+                age = int(data.get('age', 30))
+                gender = data.get('gender', 'M')
+                
+                activity_level_map = {
+                    'sedentary': 1.2,
+                    'lightly_active': 1.375,
+                    'moderately_active': 1.55,
+                    'very_active': 1.725,
+                    'extra_active': 1.9
+                }
+                activity_level_str = data.get('activity_level', 'moderately_active')
+                activity_level = activity_level_map.get(activity_level_str, 1.55)
+                
+                bmr = calculate_bmr(weight, height, age, gender)
+                tdee = int(calculate_tdee(bmr, activity_level))
+        except Exception as e:
+            print(f"Error calculating TDEE: {e}, using default")
+            tdee = 2000
+            
+        # Initialize meal planner and generate weekly plan
+        planner = MealPlanner(
+            breakfast_path='bf_final_updated_recipes_1.csv',
+            lunch_path='lunch_final_updated_recipes_1.csv'
+        )
         
-        # Find the next Monday to start the week
-        today = datetime.now()
-        days_ahead = 0 - today.weekday()  # 0 = Monday
-        if days_ahead <= 0:  # Target day already happened this week
-            days_ahead += 7
+        try:
+            weekly_plan = planner.generate_weekly_plan(tdee, preferences)
+        except ValueError as e:
+            return jsonify({
+                'error': str(e),
+                'message': 'Unable to generate meal plan with current preferences. Please try with fewer dietary restrictions.'
+            }), 400
         
-        next_monday = today + timedelta(days=days_ahead)
-        
-        # Generate weekly meal plan
-        weekly_plan = planner.generate_weekly_plan(tdee, preferences)
-        
-        # Add dates to the meal plan
+        # Format plan with dates
         dated_weekly_plan = {}
         days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        today = datetime.now().date()
+        days_until_monday = (7 - today.weekday()) % 7
+        if days_until_monday == 0:
+            days_until_monday = 7
+        next_monday = today + timedelta(days=days_until_monday)
         
         for i, day in enumerate(days_of_week):
             current_date = next_monday + timedelta(days=i)
             date_string = current_date.strftime('%Y-%m-%d')
             
-            # Add the date to the plan
             dated_weekly_plan[day] = {
                 'date': date_string,
-                'meals': weekly_plan[day]
+                'breakfast': weekly_plan[day]['Breakfast']['title'],
+                'lunch': weekly_plan[day]['Lunch']['title'],
+                'dinner': weekly_plan[day]['Dinner']['title'],
+                'meals': {
+                    'breakfast': {
+                        'title': weekly_plan[day]['Breakfast']['title'],
+                        'calories': convert_numpy_types(weekly_plan[day]['Breakfast']['calories']),
+                        'servings': convert_numpy_types(weekly_plan[day]['Breakfast']['servings']),
+                        'total_calories': convert_numpy_types(weekly_plan[day]['Breakfast']['total_calories'])
+                    },
+                    'lunch': {
+                        'title': weekly_plan[day]['Lunch']['title'],
+                        'calories': convert_numpy_types(weekly_plan[day]['Lunch']['calories']),
+                        'servings': convert_numpy_types(weekly_plan[day]['Lunch']['servings']),
+                        'total_calories': convert_numpy_types(weekly_plan[day]['Lunch']['total_calories'])
+                    },
+                    'dinner': {
+                        'title': weekly_plan[day]['Dinner']['title'],
+                        'calories': convert_numpy_types(weekly_plan[day]['Dinner']['calories']),
+                        'servings': convert_numpy_types(weekly_plan[day]['Dinner']['servings']),
+                        'total_calories': convert_numpy_types(weekly_plan[day]['Dinner']['total_calories'])
+                    }
+                }
             }
         
-        # Return the result with dates
         return jsonify({'predicted_meal_plan': dated_weekly_plan})
         
     except Exception as e:
-        # Debugging: Print the error
-        print(f"Error: {str(e)}")
-        print(f"Request data: {request.json}")
-        return jsonify({'error': str(e)})
+        print(f"Error in predict_meal_plan: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
-# Add a new route below your existing predict_meal_plan route
-@app.route('/evaluate_meal_planner', methods=['POST'])
-def evaluate_meal_planner():
-    try:
-        # Parse the JSON request data
-        data = request.json
-        
-        # Extract necessary inputs for evaluation
-        tdee = int(data.get('tdee', 1872))
-        n_trials = int(data.get('n_trials', 100))
-        
-        # Extract dietary preferences
-        dietary_restrictions = data.get('dietary_restrictions', '').lower()
-        allergies = data.get('allergies', '').lower()
-        
-        # Create dietary preferences object
-        preferences = DietaryPreferences(
-            vegetarian='vegetarian' in dietary_restrictions,
-            low_purine='low purine' in dietary_restrictions,
-            low_fat='low fat' in dietary_restrictions or 'heart healthy' in dietary_restrictions,
-            low_sodium='low sodium' in dietary_restrictions,
-            lactose_free='lactose free' in dietary_restrictions or 'lactose intolerant' in dietary_restrictions,
-            peanut_allergy='peanut' in allergies,
-            shellfish_allergy='shellfish' in allergies,
-            fish_allergy='fish' in allergies,
-            halal_or_kosher='halal' in dietary_restrictions or 'kosher' in dietary_restrictions
-        )
-        
-        # Run evaluation
-        metrics = planner.evaluate_meal_plan_recommendations(tdee, preferences, n_trials)
-        
-        # Return the evaluation metrics as JSON
-        return jsonify(metrics)
-    except Exception as e:
-        print(f"Evaluation error: {str(e)}")
-        return jsonify({'error': str(e)})
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy'})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -14,6 +14,55 @@ const calculateTDEE = (BMR, activity_level) => {
     return (BMR * activity_level);
 };
 
+const processMealPlanData = (rawPrediction) => {
+    let processedPrediction = {};
+    
+    try {
+        // Parse prediction if it's a string
+        let prediction = rawPrediction;
+        if (typeof rawPrediction === 'string') {
+            prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
+        }
+
+        // Loop through each day in the prediction
+        for (const day in prediction) {
+            if (prediction.hasOwnProperty(day)) {
+                const dayData = prediction[day];
+                
+                // Create basic meal plan structure for compatibility
+                processedPrediction[day] = {
+                    date: dayData.date,
+                    breakfast: dayData.breakfast || dayData.meals?.breakfast?.title,
+                    lunch: dayData.lunch || dayData.meals?.lunch?.title,
+                    dinner: dayData.dinner || dayData.meals?.dinner?.title,
+                    
+                    // Store detailed meal information
+                    breakfast_details: {
+                        calories: dayData.meals?.breakfast?.calories || 0,
+                        servings: dayData.meals?.breakfast?.servings || 1,
+                        total_calories: dayData.meals?.breakfast?.total_calories || 0
+                    },
+                    lunch_details: {
+                        calories: dayData.meals?.lunch?.calories || 0,
+                        servings: dayData.meals?.lunch?.servings || 1,
+                        total_calories: dayData.meals?.lunch?.total_calories || 0
+                    },
+                    dinner_details: {
+                        calories: dayData.meals?.dinner?.calories || 0,
+                        servings: dayData.meals?.dinner?.servings || 1,
+                        total_calories: dayData.meals?.dinner?.total_calories || 0
+                    }
+                };
+            }
+        }
+        
+        return processedPrediction;
+    } catch (error) {
+        console.error("Error processing meal plan data:", error);
+        throw new Error("Error processing meal plan data");
+    }
+};
+
 // Get all patients for a nutritionist
 const getNutritionistPatients = async (req, res) => {
     try {
@@ -79,37 +128,21 @@ const createNutritionistPatient = async (req, res) => {
             activity_level
         });
 
+        const rawPrediction = response.data.predicted_meal_plan;
+
+        let prediction;
+        try {
+            prediction = processMealPlanData(rawPrediction);
+        } catch (error) {
+            console.error("Error processing meal plan data:", error);
+            return res.status(500).json({ error: "Error processing meal plan data" });
+        }
+
         const BMI = (weight / ((height / 100) ** 2)).toFixed(2);
         
         // Calculate BMR and TDEE
         const BMR = calculateBMR(weight, height, age, gender);
         const TDEE = calculateTDEE(BMR, activity_level);
-
-        const rawPrediction = response.data.predicted_meal_plan;
-        let prediction = {};
-
-        try {
-            if (typeof rawPrediction === 'string') {
-                prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
-            } else if (typeof rawPrediction === 'object') {
-                prediction = rawPrediction;
-            }
-            
-            // Transform the prediction to include dates
-            const transformedPrediction = {};
-            for (const [day, data] of Object.entries(prediction)) {
-                transformedPrediction[day] = {
-                    breakfast: data.meals.breakfast,
-                    lunch: data.meals.lunch,
-                    dinner: data.meals.dinner,
-                    date: new Date(data.date)
-                };
-            }
-            
-            prediction = transformedPrediction;
-        } catch (parseError) {
-            console.error('Error parsing prediction:', parseError);
-        }
 
         // Initialize progress structure
         const progress = {
@@ -141,7 +174,16 @@ const createNutritionistPatient = async (req, res) => {
 
         res.status(200).json(newPatient);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error("ML API Error:", error.response?.data || error.message);
+        
+        let errorMessage = "Failed to generate meal plan";
+        if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+        }
+        
+        return res.status(400).json({ error: errorMessage });
     }
 }
 
@@ -285,29 +327,13 @@ const regenerateMealPlan = async (req, res) => {
         
         // Parse the prediction
         const rawPrediction = response.data.predicted_meal_plan;
-        let prediction = {};
-        
+
+        let prediction;
         try {
-            if (typeof rawPrediction === 'string') {
-                prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
-            } else if (typeof rawPrediction === 'object') {
-                prediction = rawPrediction;
-            }
-            
-            // Transform the prediction to include dates
-            const transformedPrediction = {};
-            for (const [day, data] of Object.entries(prediction)) {
-                transformedPrediction[day] = {
-                    breakfast: data.meals.breakfast,
-                    lunch: data.meals.lunch,
-                    dinner: data.meals.dinner,
-                    date: new Date(data.date)
-                };
-            }
-            
-            prediction = transformedPrediction;
-        } catch (parseError) {
-            console.error('Error parsing prediction:', parseError);
+            prediction = processMealPlanData(rawPrediction);
+        } catch (error) {
+            console.error("Error processing meal plan data:", error);
+            return res.status(500).json({ error: "Error processing meal plan data" });
         }
         
         // Reset progress, skipped meals, meal notes, and nutritionist notes
@@ -340,8 +366,16 @@ const regenerateMealPlan = async (req, res) => {
             TDEE: patient.TDEE 
         });
     } catch (error) {
-        console.error('Error regenerating meal plan:', error);
-        res.status(400).json({ error: error.message });
+        console.error("ML API Error:", error.response?.data || error.message);
+        
+        let errorMessage = "Failed to generate meal plan";
+        if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+            errorMessage = error.response.data.error;
+        }
+        
+        return res.status(400).json({ error: errorMessage });
     }
 };
 
