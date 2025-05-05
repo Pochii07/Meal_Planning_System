@@ -223,17 +223,6 @@ const UserManagement = () => {
           <h3 className="font-medium text-lg">Add Users</h3>
           <p className="text-gray-500">Create new user accounts</p>
         </div>
-        <div 
-          className="p-4 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
-          onClick={() => setActiveSection('manageRoles')}
-        >
-          <h3 className="font-medium text-lg">Manage Roles</h3>
-          <p className="text-gray-500">Assign and modify user roles</p>
-        </div>
-        <div className="p-4 border rounded-md hover:bg-gray-50">
-          <h3 className="font-medium text-lg">User Activity</h3>
-          <p className="text-gray-500">View user login history</p>
-        </div>
       </div>
     </>
   );

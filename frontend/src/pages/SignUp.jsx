@@ -156,6 +156,7 @@ const Password = ({ label, value, onChange, showPassword, handleShowPassword }) 
 
 const ConfirmPassword = ({ label, password, onChange, showConfirmPassword, handleShowConfirmPassword }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [helperText, setHelperText] = useState(" ");
   const [error, setError] = useState(false);
 
   const handleChange = (e) => {

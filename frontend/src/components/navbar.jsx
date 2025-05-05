@@ -66,7 +66,7 @@ export function NavbarCustom() {
             <div className="flex items-center rounded-md shadow-xs -space-x-1 ml-6" role="group">
               {isAuthenticated ? (
                 <>
-                  <Link to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} className="px-4 py-2 text-sm font-medium text-[#008000] hover:text-green-700 cursor-pointer transition-colors">
+                  <Link to={user.role === 'nutritionist' ? "#" : "#"} className="px-4 py-2 text-sm font-medium text-[#008000] hover:text-green-700 cursor-pointer transition-colors">
                     {user.firstName + ' ' + user.lastName}
                   </Link>
                   <button onClick={handleLogout} className="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]">
@@ -118,7 +118,7 @@ export function NavbarCustom() {
             <div className="pt-4 border-t border-gray-200">
               {isAuthenticated ? (
                 <div className="flex flex-col space-y-2">
-                  <Link to={user.role === 'nutritionist' ? "/NutritionistProfile" : "/GuestProfile"} className="block px-3 py-2 text-base font-medium text-[#008000] hover:text-green-700" onClick={() => setIsOpen(false)}>
+                  <Link to={user.role === 'nutritionist' ? "#" : "#"} className="block px-3 py-2 text-base font-medium text-[#008000] hover:text-green-700" onClick={() => setIsOpen(false)}>
                     {user.firstName + ' ' + user.lastName}
                   </Link>
                   <button onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full px-3 py-2 text-base font-medium text-[#008000] border border-[#008000] rounded-md hover:bg-[#008000] hover:text-[#FEFEFA]">

@@ -189,11 +189,11 @@ const PatientForm = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
           {showConfirmation ? "Confirm Details" : "Generate Meal Plan"}
         </h2>
-        <p className="text-sm text-gray-500 mt-2 text-center ">
+        <p className="text-sm text-gray-500 mt-5 text-center ">
           Please fill out all fields to proceed.
         </p>
         {showConfirmation ? (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-12">
             <div className="grid grid-cols-2 gap-4 text-gray-700">
               <div className="confirmation-item">
                 <span className="font-medium">Age:</span> {formData?.age}

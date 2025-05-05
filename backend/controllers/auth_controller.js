@@ -46,6 +46,8 @@ const signup = async (req, res) => {
         }
         if (age < 20) {
             return res.status(400).json({ message: 'You must be at least 20 years old to sign up.' });
+        } else if (age > 66){
+            return res.status(400).json({ message: 'You must be at most 65 years old to sign up.' });
         }
 
         const userAlreadyExists = await User.findOne({ email });

@@ -41,28 +41,6 @@ const fetchData = async () => {
   console.log(data); 
 };
 
-const loginUser = async (email, password) => {
-  console.log('Sending Token:', localStorage.getItem('token'));
-  const response = await fetch('http://localhost:4000/api/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await response.json();
-
-  if (data.success) {
-    localStorage.setItem('token', data.token); 
-    localStorage.setItem('user', JSON.stringify(data.user));
-
-    navigate('/'); 
-  } else {
-    alert(data.message); 
-  }
-};
-
 const EmailInput = ({ label, onChange, value }) => {
   const [email, setEmail] = useState(value || '');
   const [error, setError] = useState(false);
@@ -225,7 +203,13 @@ export function LogIn() {
 
       if (result?.success) {
         await checkAuth();
-        navigate('/', { replace: true });
+        
+        // Check if user is admin and redirect accordingly
+        if (isAdmin || result.user?.role === 'admin') {
+          navigate('/ChefitAdmin', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message;

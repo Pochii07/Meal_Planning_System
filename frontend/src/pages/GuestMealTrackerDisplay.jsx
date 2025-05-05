@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PATIENT_API, RECIPES_API } from '../config/api';
 
-import RecipeModal from '../components_nutritionist/modals/recipeModal.jsx';
+import RecipeCard from '../components/RecipeCard.jsx';
 
 const GuestMealTrackerDisplay = () => {
   const { accessCode } = useParams();
@@ -496,10 +496,10 @@ const GuestMealTrackerDisplay = () => {
       )}
       {error && <div className="error">{error}</div>}
       {recipeModalOpen && selectedRecipe && (
-        <RecipeModal 
-          recipe={selectedRecipe} 
-          isOpen={recipeModalOpen} 
-          onClose={() => setRecipeModalOpen(false)} 
+        <RecipeCard 
+          recipe={selectedRecipe}
+          initialOpen={recipeModalOpen}
+          onClose={() => setRecipeModalOpen(false)}
         />
       )}
     </div>

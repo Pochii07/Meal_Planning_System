@@ -22,7 +22,7 @@ const RecipeCard = ({ name, description, image, ingredients, instructions, nutri
 
   return (
     <>
-        <Card sx={{ width: 400, height: 450, mt: 4, display: "flex", flexDirection: "column"}}>
+      <Card sx={{ width: 400, height: 450, mt: 4, display: "flex", flexDirection: "column"}}>
         {/* Recipe Image */}
         <CardMedia
           sx={{

@@ -12,8 +12,6 @@ import ResetPassword from './pages/ResetPassword';
 import GuestMealTracker from './pages/GuestMealTracker';
 import { PatientContextProvider } from './context/patient_context';
 import MealTracker from './components/MealTracker';
-import GuestMealPlanner from './pages/GuestMealPlanner';
-import NutritionistMealPlanner from './pages/NutritionistMealPlanner';
 import NutritionistProfile from './pages/NutritionistProfile';
 import ViewPatients from './pages/ViewPatients';
 import { useAuthStore } from './store/authStore';
@@ -22,7 +20,6 @@ import { Button } from 'flowbite-react';
 import { NutritionistPatientContextProvider } from './context/nutritionist_patient_context';
 import NutritionistDashboard from './components/nutritionist_dashboard';
 import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
-
 import AdminPage from './pages/Admin'
 import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
@@ -146,9 +143,7 @@ function App() {
             }
           />
           <Route path="/ContactUs" element={<ContactUs />} />
-          <Route path="/AboutUs" element={<AboutUs />} />
-          <Route path="/GuestMealPlanner" element={<GuestMealPlanner />} />
-          <Route path="/NutritionistMealPlanner" element={<NutritionistMealPlanner />} />
+          <Route path="/AboutUs" element={<AboutUs />} />         
           <Route path="/NutritionistProfile" element={<NutritionistProfile />} />
           <Route path="/ViewPatients" element={<ViewPatients />} />
           <Route path="/GuestMealTracker" element={<GuestMealTracker />} />
@@ -182,16 +177,6 @@ function App() {
               <ProtectedRoute>
                 <NutritionistPatientContextProvider>
                   <ViewPatients />
-                </NutritionistPatientContextProvider>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/nutritionist/meal-planner"
-            element={
-              <ProtectedRoute>
-                <NutritionistPatientContextProvider>
-                  <NutritionistMealPlanner />
                 </NutritionistPatientContextProvider>
               </ProtectedRoute>
             }
