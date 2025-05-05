@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { usePatientContext } from "../hooks/use_patient_context";
 import { useAuthStore } from "../store/authStore";
-import { PATIENT_API } from '../config/api';
+import { PATIENT_API, RECIPES_API } from '../config/api';
+
+import RecipeCard from "./RecipeCard.jsx";
 
 const DIETARY_PREFERENCES = [
   "Vegetarian",
@@ -40,6 +42,10 @@ const PatientForm = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
+
   const calculateAge = (birthDate) => {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -49,6 +55,22 @@ const PatientForm = () => {
       age--;
     }
     return age.toString();
+  };
+
+  const calculateBMR = (weight, height, age, gender) => {
+    if (gender === 'M') {
+      return (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    } else {
+      return (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    }
+  };
+
+  const calculateTDEE = (bmr, activityLevel) => {
+    return bmr * parseFloat(activityLevel);
+  };
+
+  const calculateBMI = (weight, height) => {
+    return (weight / ((height / 100) ** 2)).toFixed(2);
   };
 
   useEffect(() => {
@@ -100,6 +122,10 @@ const PatientForm = () => {
         return;
       }
 
+      const bmr = calculateBMR(parseFloat(weight), parseFloat(height), parseFloat(age), gender);
+      const tdee = calculateTDEE(bmr, activityLevel);
+      const bmi = calculateBMI(parseFloat(weight), parseFloat(height));
+
       setFormData({
         age,
         weight,
@@ -107,7 +133,10 @@ const PatientForm = () => {
         gender: gender === 'M' ? 'Male' : 'Female',
         activityLevel: getActivityLevelLabel(activityLevel),
         preferences: selectedPreferences.length > 0 ? selectedPreferences : ['None selected'],
-        restrictions: selectedRestrictions.length > 0 ? selectedRestrictions : ['None selected']
+        restrictions: selectedRestrictions.length > 0 ? selectedRestrictions : ['None selected'],
+        BMR: Math.round(bmr),
+        TDEE: Math.round(tdee),
+        BMI: bmi
       });
       setShowConfirmation(true);
     } else {
@@ -181,6 +210,26 @@ const PatientForm = () => {
     }
   };
 
+  const fetchRecipeDetails = async (mealName) => {
+    if (!mealName) return;
+    
+    setLoadingRecipe(true);
+    try {
+      const response = await fetch(`${RECIPES_API}/title/${encodeURIComponent(mealName)}`);
+      if (response.ok) {
+        const recipeData = await response.json();
+        setSelectedRecipe(recipeData);
+        setRecipeModalOpen(true);
+      } else {
+        console.error('Recipe not found');
+      }
+    } catch (error) {
+      console.error('Error fetching recipe:', error);
+    } finally {
+      setLoadingRecipe(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
     {/* Form & Confirmation Form Section */}
@@ -222,6 +271,20 @@ const PatientForm = () => {
                 {formData?.restrictions.join(", ")}
               </div>
             </div>
+
+            { (!user || user.role !== 'user') && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4 rounded">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-sm text-yellow-700">
+                    <span className="font-bold">WARNING</span> <br/>
+                    The meal plan generated using this form will not be saved. To begin your meal tracking journey with us, please consider registering an account.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button
@@ -437,6 +500,40 @@ const PatientForm = () => {
         <h3 className="text-3xl font-bold text-gray-800 mb-8 text-center">
           Your Weekly Meal Plan
         </h3>
+        
+        <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">TDEE (Total Daily Energy Expenditure)</h4>
+                <p className="text-gray-600">{mealPlan.TDEE || formData?.TDEE || Math.round(calculateTDEE(calculateBMR(parseFloat(weight), parseFloat(height), parseFloat(age), gender), activityLevel))} calories per day</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">BMI (Body Mass Index)</h4>
+                <p className="text-gray-600">{mealPlan.BMI || formData?.BMI || calculateBMI(parseFloat(weight), parseFloat(height))}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 text-sm text-gray-500">
+            <p>This meal plan is designed based on your calculated energy needs and body composition.</p>
+          </div>
+        </div>
+
+        <div className="col-span-7 mb-2 text-sm italic text-gray-600 text-center mb-5">
+          Click the recipe name for more information
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Object.entries(mealPlan).map(([day, dayData]) => (
             <div
@@ -458,7 +555,10 @@ const PatientForm = () => {
                       {meal}
                     </h5>
                     <div className="text-gray-700">
-                      <p className="font-medium hover:text-green-600 cursor-pointer">
+                      <p 
+                        className="font-medium hover:text-green-600 cursor-pointer"
+                        onClick={() => fetchRecipeDetails(dayData[meal])}
+                      >
                         {dayData[meal] || 'No meal planned'}
                       </p>
                       
@@ -489,6 +589,13 @@ const PatientForm = () => {
         </div>
       </div>
     )}
+    {recipeModalOpen && selectedRecipe && (
+      <RecipeCard 
+        recipe={selectedRecipe}
+        initialOpen={true} 
+        onClose={() => setRecipeModalOpen(false)}
+      />
+    )}    
   </div>
   );
 };

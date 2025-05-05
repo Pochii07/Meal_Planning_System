@@ -194,7 +194,7 @@ const getUserMealPlans = async (req, res) => {
 
         const mealPlan = await Patient.findOne({ userId: String(userId) })
             .sort({ createdAt: -1 })
-            .select('prediction progress skippedMeals mealNotes _id')
+            .select('prediction progress skippedMeals mealNotes _id TDEE BMI')
             .lean();
 
         if (!mealPlan) {
