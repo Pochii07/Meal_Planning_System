@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import ManageRoles from "../components_admin/manage_roles";
 
 const AddUsersSection = ({ selectedRole, setSelectedRole, username, setUsername, email, setEmail, firstName, setFirstName, lastName, setLastName, sex, setSex, password, setPassword, confirmPassword, setConfirmPassword, loading, error, setError, success, setSuccess, handleSubmit, setActiveSection}) => (
   <div className="bg-white p-6 rounded-lg w-full">
