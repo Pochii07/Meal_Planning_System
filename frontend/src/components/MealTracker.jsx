@@ -636,28 +636,29 @@ const MealTracker = () => {
                     {/* Meal Description */}
                     <div 
                       className={`meal-desc flex flex-col bg-white p-3 rounded-lg shadow-sm border border-gray-100 ${
-                        mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip 
+                        mealPlan.prediction[day]?.[meal] && !pendingSkip 
                           ? "group-hover:bg-green-50 group-hover:border-green-200" 
                           : ""
                       }`}
                       onClick={() => {
-                        if (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) {
+                        if (mealPlan.prediction[day]?.[meal] && !pendingSkip) {
                           fetchRecipeDetails(mealPlan.prediction[day][meal]);
                         }
                       }}
                       style={{
-                        cursor: mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip
+                        cursor: mealPlan.prediction[day]?.[meal] && !pendingSkip
                           ? 'pointer'
                           : 'default',
                       }}
                     > 
                       <span 
-                        className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
+                        className={mealPlan.prediction[day]?.[meal] && !pendingSkip ? 
                           "text-green-600 w-full group-hover:text-green-700 transition-colors" : 
                           "text-gray-600 w-full"
                         }
                       >
                         {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
+                        {skippedMeals[day]?.[meal] && <span className="ml-2 text-red-500">(Skipped)</span>}
                       </span>
                       
                       {/* Meal nutrition details */}

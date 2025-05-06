@@ -521,59 +521,6 @@ def main():
         breakfast_path='bf_final_updated_recipes_1.csv',
         lunch_path='lunch_final_updated_recipes_1.csv'
     )
-    
-    preferences = DietaryPreferences(
-        vegetarian=True,
-        # low_purine =True,
-        # low_fat = True,
-        # low_sodium= True,
-        # lactose_free= True,
-        peanut_allergy= True,
-        shellfish_allergy= True,
-        fish_allergy= True,
-        halal_or_kosher= True
-
-    )
-    
-    # Define tdee as a variable first
-    tdee = 2650
-    
-    try:
-        weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)
-        
-        print("\nWeekly Meal Plan:")
-        print("=" * 80)
-        
-        for day, meals in weekly_plan.items():
-            print(f"\n{day}:")
-            print("-" * 40)
-            daily_total = 0
-            
-            for meal_type, meal_info in meals.items():
-                print(f"{meal_type}:")
-                print(f"  - {meal_info['title']}")
-                serving_text = "serving" if meal_info['servings'] == 1 else "servings"
-                print(f"  - {meal_info['servings']:.1f} {serving_text}")
-                print(f"  - Base Calories: {meal_info['calories']:.0f} per serving")
-                print(f"  - Total Calories: {meal_info['total_calories']:.0f}")
-                daily_total += meal_info['total_calories']
-                
-            print(f"Daily Total Calories: {daily_total:.0f} (Target: {tdee - 600:.0f} + 600 from rice)")
-            
-    except ValueError as e:
-        print(f"Error: {e}")
-
-    # Evaluate the entire system
-    print("\nEvaluating Meal Planning System...")
-    metrics = planner.evaluate_meal_plan_recommendations(tdee=tdee, preferences=preferences)
-    
-    
-    print("\nOverall System Performance:")
-    print("-" * 40)
-    print(f"Accuracy:  {metrics['accuracy']:.4f}")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall:    {metrics['recall']:.4f}")
-    print(f"F1 Score:  {metrics['f1_score']:.4f}")
 
     # Comprehensive evaluation
     print("\nRunning Comprehensive Evaluation...")
