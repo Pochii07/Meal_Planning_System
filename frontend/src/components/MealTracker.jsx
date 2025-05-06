@@ -241,11 +241,19 @@ const MealTracker = () => {
 
   const confirmSkipMeal = async (day, meal) => {
     try {
-      const updatedSkippedMeals = {...skippedMeals};
-      if (!updatedSkippedMeals[day]) {
-        updatedSkippedMeals[day] = {};
-      }
+      // Get the current text directly from the textarea element to ensure we have the latest value
+      const textareaElement = document.querySelector(`textarea[data-day="${day}"][data-meal="${meal}"]`);
+      const currentNote = textareaElement ? textareaElement.value : mealNotes[day]?.[meal] || '';
       
+      // Update local state with the current note value
+      const updatedMealNotes = {...mealNotes};
+      if (!updatedMealNotes[day]) updatedMealNotes[day] = {};
+      updatedMealNotes[day][meal] = currentNote;
+      setMealNotes(updatedMealNotes);
+      
+      // Update skipped meals state
+      const updatedSkippedMeals = {...skippedMeals};
+      if (!updatedSkippedMeals[day]) updatedSkippedMeals[day] = {};
       updatedSkippedMeals[day][meal] = true;
       
       if (progress[day]?.[meal]) {
@@ -254,7 +262,8 @@ const MealTracker = () => {
       
       setSkippedMeals(updatedSkippedMeals);
       
-      await updateMealStatus(day, meal);
+      // Pass the current note directly to updateMealStatus
+      await updateMealStatus(day, meal, currentNote);
       
       setPendingSkip(null);
       setEditingNote(null);
@@ -267,63 +276,47 @@ const MealTracker = () => {
 
   const confirmUnskipMeal = async (day, meal) => {
     try {
-        const updatedSkippedMeals = {...skippedMeals};
-        if (!updatedSkippedMeals[day]) {
-            updatedSkippedMeals[day] = {};
-        }
+      const updatedSkippedMeals = {...skippedMeals};
+      if (!updatedSkippedMeals[day]) {
+        updatedSkippedMeals[day] = {};
+      }
+      
+      updatedSkippedMeals[day][meal] = false;
+      
+      const updatedMealNotes = {...mealNotes};
+      if (updatedMealNotes[day]) {
+        updatedMealNotes[day][meal] = '';
+        setMealNotes(updatedMealNotes);
+      }
+      
+      setSkippedMeals(updatedSkippedMeals);
+      
+      // Use this endpoint pattern for logged-in users instead
+      const response = await fetch(`${PATIENT_API}/${mealPlan._id}/meal-notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          day,
+          meal,
+          note: '',
+          skipped: false
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to update meal status');
         
-        updatedSkippedMeals[day][meal] = false;
-        
-        const updatedMealNotes = {...mealNotes};
-        if (updatedMealNotes[day]) {
-            updatedMealNotes[day][meal] = '';
-            setMealNotes(updatedMealNotes);
-        }
-        
+        updatedSkippedMeals[day][meal] = true;
         setSkippedMeals(updatedSkippedMeals);
-        
-        // Use appropriate endpoint based on whether we're viewing history
-        let response;
-        if (selectedPlanIndex === 0) {
-            // Current meal plan
-            response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    day,
-                    meal,
-                    note: '',
-                    skipped: false
-                })
-            });
-        } else {
-            // Historical meal plan
-            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    day,
-                    meal,
-                    field: 'skippedMeals',
-                    skipped: false,
-                    note: ''
-                })
-            });
-        }
-        
-        if (response.ok && selectedPlanIndex !== 0) {
-            const data = await response.json();
-            // Update history record with new data
-            const updatedMealPlanHistory = [...mealPlanHistory];
-            updatedMealPlanHistory[selectedPlanIndex] = {
-                ...updatedMealPlanHistory[selectedPlanIndex],
-                ...data
-            };
-            setMealPlanHistory(updatedMealPlanHistory);
-        }
+      }
     } catch (error) {
-        console.error('Error updating meal status:', error);
-        setError('Failed to update meal status');
+      console.error('Error updating meal status:', error);
+      setError('Failed to update meal status');
     }
   };
 
@@ -388,7 +381,7 @@ const MealTracker = () => {
     }
   };
 
-  const updateMealStatus = async (day, meal) => {
+  const updateMealStatus = async (day, meal, noteOverride) => {
     try {
       if (!mealPlan?._id) {
         console.error("No meal plan ID available");
@@ -396,7 +389,7 @@ const MealTracker = () => {
       }
       
       const isSkipped = skippedMeals[day]?.[meal] || false;
-      const noteValue = isSkipped ? (mealNotes[day]?.[meal] || '') : '';
+      const noteValue = isSkipped ? (noteOverride !== undefined ? noteOverride : mealNotes[day]?.[meal] || '') : '';  
       
       const response = await fetch(`${PATIENT_API}/${mealPlan._id}/meal-notes`, {
         method: 'PATCH',
@@ -648,6 +641,8 @@ const MealTracker = () => {
                           onChange={(e) => handleNoteChange(day, meal, e.target.value)}
                           onFocus={() => !pendingSkip && startEditingNote(day, meal)}
                           className="meal-notes-input"
+                          data-day={day}
+                          data-meal={meal}
                         />
 
                         {(pendingSkip?.day === day && pendingSkip?.meal === meal) ||
