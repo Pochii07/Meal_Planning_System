@@ -342,7 +342,7 @@ const PatientTable = ({ patients: propsPatients,
                                 BMI: {patient.BMI}
                               </p>
                               <p className="text-sm text-gray-600">
-                                TDEE: {patient.TDEE - 600} calories
+                                TDEE: {patient.TDEE} calories
                               </p>
                               <p className="text-sm text-gray-600 font-semibold">
                                 Access Code:
