@@ -117,6 +117,11 @@ const PatientForm = () => {
     e.preventDefault();
     setError(null); 
 
+    if (parseInt(age) < 18) {
+      setError('You must be at least 18 years old to generate a meal plan.');
+      return;
+    }
+  
     // Calculate TDEE to validate
     const calculatedBMR = calculateBMR(parseFloat(weight), parseFloat(height), parseFloat(age), gender);
     const calculatedTDEE = calculateTDEE(calculatedBMR, parseFloat(activityLevel));

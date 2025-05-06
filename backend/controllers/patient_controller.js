@@ -354,6 +354,13 @@ const generateGuestMealPlan = async (req, res) => {
     const {age, height, weight, gender, activity_level, preference, restrictions} = req.body;
 
     try {
+        if (parseInt(age) < 18) {
+            return res.status(400).json({ 
+                error: 'Age must be at least 18 years to generate a meal plan.' 
+            });
+        }
+        
+
         const BMI = calculateBMI(weight, height);
         const BMR = calculateBMR(weight, height, age);
         const TDEE = calculateTDEE(BMR, activity_level);

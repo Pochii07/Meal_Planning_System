@@ -116,6 +116,11 @@ const createNutritionistPatient = async (req, res) => {
     const nutritionistId = req.userId;
 
     try {
+        if (parseInt(age) < 18) {
+            return res.status(400).json({ 
+                error: 'Age must be at least 18 years to generate a meal plan.' 
+            });
+        }
         // Get prediction from Flask API
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
         const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {

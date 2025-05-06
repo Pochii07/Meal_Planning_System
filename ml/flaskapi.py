@@ -166,10 +166,6 @@ class MealPlanner:
                 unique_predictions, counts = np.unique(predictions, return_counts=True)
                 target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
         
-        # Step 3: Apply preference-based filtering
-        min_required_options = 3  # Reduced from 10 to allow stricter filtering
-        
-        # Define which dietary preferences are considered "soft constraints"
         preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
                         'Low-Sodium', 'Lactose-free']
         

@@ -124,10 +124,6 @@ class MealPlanner:
                 unique_predictions, counts = np.unique(predictions, return_counts=True)
                 target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
         
-        # Step 3: Apply preference-based filtering
-        min_required_options = 3  # Reduced from 10 to allow stricter filtering
-        
-        # Try direct filtering with preferences
         temp_data = filtered_data.copy()
         preference_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
                         'Low-Sodium', 'Lactose-free']
@@ -174,7 +170,6 @@ class MealPlanner:
         
         # Ensure we have options available
         if breakfast_options.empty or lunch_dinner_options.empty:
-            # Fallback to original options if no meals within calorie range
             breakfast_options = filtered_data[breakfast_mask]
             lunch_dinner_options = filtered_data[lunch_mask]
             if breakfast_options.empty or lunch_dinner_options.empty:
@@ -297,15 +292,18 @@ class MealPlanner:
                     print(f"Trial failed: {str(e)}")
                     continue
 
-            # Calculate metrics
-            total_days = total_trials * 7
+            # Calculate total days evaluated
+            total_days = 7 * total_trials  # 7 days per trial
+            
+            # Define true positives, false positives, etc.
+            true_positives = preference_matches  # Meals that correctly matched preferences
+            false_positives = total_days - calorie_matches  # Meals within calorie range but wrong preferences
+            false_negatives = total_days - preference_matches  # Meals that missed preference targets
+
+            # Standard formulas
             accuracy = successful_trials / total_trials if total_trials > 0 else 0
-            
-            # Improved precision calculation - now based on weighted days rather than strict count
-            precision = (calorie_matches / total_days) * 1.1 if total_days > 0 else 0
-            precision = min(precision, 1.0)  # Cap at 1.0
-            
-            recall = preference_matches / total_days if total_days > 0 else 0
+            precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+            recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
             print("\nDetailed Evaluation Metrics:")
