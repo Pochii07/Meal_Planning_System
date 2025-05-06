@@ -433,26 +433,37 @@ const MealTracker = () => {
     <div className="meal-tracker">
         <h2>Weekly Meal Tracker</h2>
 
-        {/* Add History Selection UI */}
-        {mealPlanHistory.length > 1 && (
+        {/* Meal Plan History Dropdown */}
+        {mealPlanHistory.length > 0 && (
           <div className="meal-history-controls mb-6">
-            <h3 className="text-lg font-semibold mb-2">Meal Plan History</h3>
-            <div className="flex flex-wrap gap-2">
-              {mealPlanHistory.map((plan, index) => (
-                <button
-                  key={plan._id}
-                  onClick={() => switchMealPlan(index)}
-                  className={`px-3 py-2 rounded-md text-sm ${
-                    selectedPlanIndex === index
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
+            <div className="flex items-center">
+              <label htmlFor="history-select" className="mr-2 font-medium text-gray-700">
+                Meal Plan History:
+              </label>
+              <div className="relative inline-block w-64">
+                <select
+                  id="history-select"
+                  value={selectedPlanIndex}
+                  onChange={(e) => switchMealPlan(parseInt(e.target.value))}
+                  className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:border-green-500"
                 >
-                  {formatDate(plan.createdAt)}
-                </button>
-              ))}
+                  {mealPlanHistory.map((plan, index) => {
+                    // Format date with time
+                    const createdAt = new Date(plan.createdAt);
+                    const formattedDate = createdAt.toLocaleDateString();
+                    const formattedTime = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    return (
+                      <option key={plan._id} value={index}>
+                        {formattedDate} at {formattedTime}
+                      </option>
+                    );
+                  })}
+                </select>
+                </div>
+              </div>
             </div>
-          </div>
+
         )}
         
         <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-200"> 
@@ -558,6 +569,26 @@ const MealTracker = () => {
                         {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
                       </span>
                     </div>
+
+                    {/* Meal nutrition details */}
+                    {mealPlan.prediction[day]?.[`${meal}_details`] && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Base Calories</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].calories} kcal</span>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Servings</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].servings}</span>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Total Calories</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].total_calories} kcal</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Skip Button */}
                     <button
