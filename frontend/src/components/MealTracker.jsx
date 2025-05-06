@@ -267,27 +267,63 @@ const MealTracker = () => {
 
   const confirmUnskipMeal = async (day, meal) => {
     try {
-      const updatedSkippedMeals = {...skippedMeals};
-      if (!updatedSkippedMeals[day]) {
-        updatedSkippedMeals[day] = {};
-      }
-      
-      updatedSkippedMeals[day][meal] = false;
-      
-      const updatedMealNotes = {...mealNotes};
-      if (updatedMealNotes[day]) {
-        updatedMealNotes[day][meal] = '';
-        setMealNotes(updatedMealNotes);
-      }
-      
-      setSkippedMeals(updatedSkippedMeals);
-      
-      await updateMealStatus(day, meal);
-      
-      setPendingSkip(null);
+        const updatedSkippedMeals = {...skippedMeals};
+        if (!updatedSkippedMeals[day]) {
+            updatedSkippedMeals[day] = {};
+        }
+        
+        updatedSkippedMeals[day][meal] = false;
+        
+        const updatedMealNotes = {...mealNotes};
+        if (updatedMealNotes[day]) {
+            updatedMealNotes[day][meal] = '';
+            setMealNotes(updatedMealNotes);
+        }
+        
+        setSkippedMeals(updatedSkippedMeals);
+        
+        // Use appropriate endpoint based on whether we're viewing history
+        let response;
+        if (selectedPlanIndex === 0) {
+            // Current meal plan
+            response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    note: '',
+                    skipped: false
+                })
+            });
+        } else {
+            // Historical meal plan
+            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    field: 'skippedMeals',
+                    skipped: false,
+                    note: ''
+                })
+            });
+        }
+        
+        if (response.ok && selectedPlanIndex !== 0) {
+            const data = await response.json();
+            // Update history record with new data
+            const updatedMealPlanHistory = [...mealPlanHistory];
+            updatedMealPlanHistory[selectedPlanIndex] = {
+                ...updatedMealPlanHistory[selectedPlanIndex],
+                ...data
+            };
+            setMealPlanHistory(updatedMealPlanHistory);
+        }
     } catch (error) {
-      console.error('Error updating meal status:', error);
-      setError('Failed to update meal status');
+        console.error('Error updating meal status:', error);
+        setError('Failed to update meal status');
     }
   };
 

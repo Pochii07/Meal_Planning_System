@@ -135,36 +135,67 @@ const GuestMealTrackerDisplay = () => {
 
   const handleCheckMeal = async (day, meal) => {
     try {
-      if (skippedMeals[day]?.[meal]) {
-        return;
-      }
-      
-      const currentProgress = progress[day]?.[meal] || false;
+        if (skippedMeals[day]?.[meal]) {
+            return;
+        }
+        
+        const currentProgress = progress[day]?.[meal] || false;
+        const mealPlanId = mealPlan._id;
+        
+        let response;
+        if (selectedPlanIndex === 0) {
+            // Update current plan
+            response = await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    value: !currentProgress,
+                }),
+            });
+        } else {
+            // Update historical plan
+            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlanId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    field: 'progress',
+                    value: !currentProgress,
+                }),
+            });
+        }
 
-      const response = await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          day,
-          meal,
-          value: !currentProgress,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProgress(data.progress);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update progress');
-      }
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (selectedPlanIndex === 0) {
+                setProgress(data.progress);
+            } else {
+                // Update the mealPlanHistory array with the updated data
+                const updatedMealPlanHistory = [...mealPlanHistory];
+                updatedMealPlanHistory[selectedPlanIndex] = {
+                    ...updatedMealPlanHistory[selectedPlanIndex],
+                    ...data
+                };
+                setMealPlanHistory(updatedMealPlanHistory);
+                setProgress(data.progress);
+            }
+        } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'Failed to update progress');
+        }
     } catch (error) {
-      console.error('Error updating meal progress:', error);
-      setError('Failed to update progress');
+        console.error('Error updating meal progress:', error);
+        setError('Failed to update progress');
     }
-  };
+};
 
   const handleSkipMeal = (day, meal) => {
     if (skippedMeals[day]?.[meal]) {
@@ -187,61 +218,94 @@ const GuestMealTrackerDisplay = () => {
 
   const confirmSkipMeal = async (day, meal) => {
     try {
-      const updatedSkippedMeals = {...skippedMeals};
-      if (!updatedSkippedMeals[day]) {
-        updatedSkippedMeals[day] = {};
-      }
-      
-      updatedSkippedMeals[day][meal] = true;
-      
-      if (progress[day]?.[meal]) {
-        const response = await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            day,
-            meal,
-            value: false,
-          }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setProgress(data.progress);
+        const updatedSkippedMeals = {...skippedMeals};
+        if (!updatedSkippedMeals[day]) {
+            updatedSkippedMeals[day] = {};
         }
-      }
-      
-      setSkippedMeals(updatedSkippedMeals);
-      
-      const response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          day,
-          meal,
-          note: mealNotes[day]?.[meal] || '',
-          skipped: true
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update meal status');
         
-        updatedSkippedMeals[day][meal] = false;
+        updatedSkippedMeals[day][meal] = true;
+        
+        // If meal was previously marked as completed, uncomplete it
+        if (progress[day]?.[meal]) {
+            // Use the appropriate endpoint based on whether we're viewing history
+            if (selectedPlanIndex === 0) {
+                // Current meal plan
+                await fetch(`${PATIENT_API}/update-progress/${accessCode}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({day, meal, value: false})
+                });
+            } else {
+                // Historical meal plan
+                await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        day, 
+                        meal, 
+                        field: 'progress',
+                        value: false
+                    })
+                });
+            }
+        }
+        
         setSkippedMeals(updatedSkippedMeals);
-      }
-      
-      setPendingSkip(null);
-      setEditingNote(null);
+        
+        // Use appropriate endpoint based on whether we're viewing history
+        let response;
+        if (selectedPlanIndex === 0) {
+            // Current meal plan
+            response = await fetch(`${PATIENT_API}/update-meal-status/${accessCode}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    note: mealNotes[day]?.[meal] || '',
+                    skipped: true
+                })
+            });
+        } else {
+            // Historical meal plan
+            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    field: 'skippedMeals',
+                    skipped: true,
+                    note: mealNotes[day]?.[meal] || ''
+                })
+            });
+        }
+        
+        // Update UI based on response
+        if (response.ok) {
+            const data = await response.json();
+            if (selectedPlanIndex !== 0) {
+                // Update history record with new data
+                const updatedMealPlanHistory = [...mealPlanHistory];
+                updatedMealPlanHistory[selectedPlanIndex] = {
+                    ...updatedMealPlanHistory[selectedPlanIndex],
+                    ...data
+                };
+                setMealPlanHistory(updatedMealPlanHistory);
+            }
+        } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'Failed to update meal status');
+            updatedSkippedMeals[day][meal] = false;
+            setSkippedMeals(updatedSkippedMeals);
+        }
+        
+        setPendingSkip(null);
+        setEditingNote(null);
     } catch (error) {
-      console.error('Error updating meal status:', error);
-      setError('Failed to update meal status');
-      setPendingSkip(null);
+        console.error('Error updating meal status:', error);
+        setError('Failed to update meal status');
+        setPendingSkip(null);
     }
   };
 
@@ -324,28 +388,53 @@ const GuestMealTrackerDisplay = () => {
 
   const saveNote = async (day, meal) => {
     try {
-      const response = await fetch(`${PATIENT_API}/update-meal-notes/${accessCode}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          day,
-          meal,
-          note: mealNotes[day]?.[meal] || '',
-          skipped: skippedMeals[day]?.[meal] || false
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to save note');
-      }
+        let response;
+        if (selectedPlanIndex === 0) {
+            // Current meal plan
+            response = await fetch(`${PATIENT_API}/update-meal-notes/${accessCode}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    note: mealNotes[day]?.[meal] || '',
+                    skipped: skippedMeals[day]?.[meal] || false
+                })
+            });
+        } else {
+            // Historical meal plan
+            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    field: 'mealNotes',
+                    note: mealNotes[day]?.[meal] || ''
+                })
+            });
+        }
+        
+        if (response.ok && selectedPlanIndex !== 0) {
+            const data = await response.json();
+            // Update history record with new data
+            const updatedMealPlanHistory = [...mealPlanHistory];
+            updatedMealPlanHistory[selectedPlanIndex] = {
+                ...updatedMealPlanHistory[selectedPlanIndex],
+                ...data
+            };
+            setMealPlanHistory(updatedMealPlanHistory);
+        } else if (!response.ok) {
+            const errorData = await response.json();
+            setError(errorData.error || 'Failed to save note');
+        }
     } catch (error) {
-      console.error('Error saving note:', error);
-      setError('Failed to save note');
+        console.error('Error saving note:', error);
+        setError('Failed to save note');
     }
-  };
+};
 
   const fetchRecipeDetails = async (mealName) => {
     if (!mealName) return;
@@ -369,35 +458,69 @@ const GuestMealTrackerDisplay = () => {
 
   const handleAddonStatusChange = async (day, meal, addonIndex, completed, skipped) => {
     try {
-      const response = await fetch(`${PATIENT_API}/update-addon-status/${accessCode}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          day,
-          meal,
-          addonIndex,
-          completed,
-          skipped
-        })
-      });
+        let response;
+        if (selectedPlanIndex === 0) {
+            // Current meal plan
+            response = await fetch(`${PATIENT_API}/update-addon-status/${accessCode}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    addonIndex,
+                    completed,
+                    skipped
+                })
+            });
+        } else {
+            // Historical meal plan
+            response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    day,
+                    meal,
+                    field: 'addonStatus',
+                    addonIndex,
+                    completed,
+                    skipped
+                })
+            });
+        }
 
-      if (response.ok) {
-        const data = await response.json();
-        // Update the local state with new addon status
-        const updatedMealPlan = {...mealPlan};
-        updatedMealPlan.mealAddons = data.mealAddons;
-        setMealPlan(updatedMealPlan);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update addon status');
-      }
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (selectedPlanIndex === 0) {
+                // Update current meal plan
+                const updatedMealPlan = {...mealPlan};
+                updatedMealPlan.mealAddons = data.mealAddons;
+                setMealPlan(updatedMealPlan);
+            } else {
+                // Update history record with new data
+                const updatedMealPlanHistory = [...mealPlanHistory];
+                updatedMealPlanHistory[selectedPlanIndex] = {
+                    ...updatedMealPlanHistory[selectedPlanIndex],
+                    ...data
+                };
+                setMealPlanHistory(updatedMealPlanHistory);
+                
+                // Also update the current view
+                const updatedMealPlan = {...mealPlan};
+                updatedMealPlan.mealAddons = data.mealAddons;
+                setMealPlan(updatedMealPlan);
+            }
+        } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'Failed to update addon status');
+        }
     } catch (error) {
-      console.error('Error updating addon status:', error);
-      setError('Failed to update addon status');
+        console.error('Error updating addon status:', error);
+        setError('Failed to update addon status');
     }
-  };
+};
 
   if (!mealPlan) return <div>Loading...</div>;
 

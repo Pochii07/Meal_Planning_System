@@ -660,6 +660,133 @@ const getMealPlanHistoryByAccessCode = async (req, res) => {
     }
 };
 
+// Update historical meal plan by access code and meal plan ID
+const updateHistoricalMealPlan = async (req, res) => {
+    try {
+        const { accessCode, mealPlanId } = req.params;
+        const { day, meal, field, value, note, skipped, completed, addonIndex } = req.body;
+        
+        if (!accessCode || !mealPlanId) {
+            return res.status(400).json({ error: 'Access code and meal plan ID are required' });
+        }
+        
+        // Find the patient by access code
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found with this access code' });
+        }
+        
+        // Find the specific meal plan in the history array
+        const mealPlanIndex = patient.mealPlanHistory.findIndex(
+            plan => plan._id.toString() === mealPlanId
+        );
+        
+        if (mealPlanIndex === -1) {
+            return res.status(404).json({ error: 'Meal plan not found in history' });
+        }
+
+        // Determine what to update based on the field
+        switch(field) {
+            case 'progress':
+                // Initialize objects if they don't exist
+                if (!patient.mealPlanHistory[mealPlanIndex].progress) {
+                    patient.mealPlanHistory[mealPlanIndex].progress = {};
+                }
+                if (!patient.mealPlanHistory[mealPlanIndex].progress[day]) {
+                    patient.mealPlanHistory[mealPlanIndex].progress[day] = {};
+                }
+                patient.mealPlanHistory[mealPlanIndex].progress[day][meal] = value;
+                break;
+                
+            case 'skippedMeals':
+                // Initialize objects if they don't exist
+                if (!patient.mealPlanHistory[mealPlanIndex].skippedMeals) {
+                    patient.mealPlanHistory[mealPlanIndex].skippedMeals = {};
+                }
+                if (!patient.mealPlanHistory[mealPlanIndex].skippedMeals[day]) {
+                    patient.mealPlanHistory[mealPlanIndex].skippedMeals[day] = {};
+                }
+                patient.mealPlanHistory[mealPlanIndex].skippedMeals[day][meal] = skipped;
+                
+                // Update notes if the meal is skipped and a note is provided
+                if (note !== undefined) {
+                    if (!patient.mealPlanHistory[mealPlanIndex].mealNotes) {
+                        patient.mealPlanHistory[mealPlanIndex].mealNotes = {};
+                    }
+                    if (!patient.mealPlanHistory[mealPlanIndex].mealNotes[day]) {
+                        patient.mealPlanHistory[mealPlanIndex].mealNotes[day] = {};
+                    }
+                    patient.mealPlanHistory[mealPlanIndex].mealNotes[day][meal] = note;
+                }
+                break;
+                
+            case 'mealNotes':
+                // Initialize objects if they don't exist
+                if (!patient.mealPlanHistory[mealPlanIndex].mealNotes) {
+                    patient.mealPlanHistory[mealPlanIndex].mealNotes = {};
+                }
+                if (!patient.mealPlanHistory[mealPlanIndex].mealNotes[day]) {
+                    patient.mealPlanHistory[mealPlanIndex].mealNotes[day] = {};
+                }
+                patient.mealPlanHistory[mealPlanIndex].mealNotes[day][meal] = note;
+                break;
+                
+            case 'addonStatus':
+                // Check if the addon exists
+                if (!patient.mealPlanHistory[mealPlanIndex].mealAddons) {
+                    patient.mealPlanHistory[mealPlanIndex].mealAddons = {};
+                }
+                
+                if (!patient.mealPlanHistory[mealPlanIndex].mealAddons[day]) {
+                    patient.mealPlanHistory[mealPlanIndex].mealAddons[day] = {};
+                }
+                
+                if (!patient.mealPlanHistory[mealPlanIndex].mealAddons[day][meal]) {
+                    patient.mealPlanHistory[mealPlanIndex].mealAddons[day][meal] = [];
+                }
+                
+                if (!patient.mealPlanHistory[mealPlanIndex].mealAddons[day][meal][addonIndex]) {
+                    return res.status(404).json({ error: 'Addon not found' });
+                }
+                
+                // Update the addon status
+                if (completed !== undefined) {
+                    patient.mealPlanHistory[mealPlanIndex].mealAddons[day][meal][addonIndex].completed = completed;
+                }
+                
+                if (skipped !== undefined) {
+                    patient.mealPlanHistory[mealPlanIndex].mealAddons[day][meal][addonIndex].skipped = skipped;
+                }
+                break;
+                
+            default:
+                return res.status(400).json({ error: 'Invalid update field' });
+        }
+        
+        // Save the updated patient document
+        await patient.save();
+        
+        // Return the updated meal plan
+        const updatedMealPlan = {
+            _id: patient.mealPlanHistory[mealPlanIndex]._id,
+            prediction: patient.mealPlanHistory[mealPlanIndex].prediction || {},
+            progress: patient.mealPlanHistory[mealPlanIndex].progress || {},
+            skippedMeals: patient.mealPlanHistory[mealPlanIndex].skippedMeals || {},
+            mealNotes: patient.mealPlanHistory[mealPlanIndex].mealNotes || {},
+            nutritionistNotes: patient.mealPlanHistory[mealPlanIndex].nutritionistNotes || {},
+            mealAddons: patient.mealPlanHistory[mealPlanIndex].mealAddons || {},
+            date: patient.mealPlanHistory[mealPlanIndex].date,
+            createdAt: patient.mealPlanHistory[mealPlanIndex].createdAt || patient.mealPlanHistory[mealPlanIndex].date
+        };
+        
+        res.status(200).json(updatedMealPlan);
+    } catch (error) {
+        console.error("Error updating historical meal plan:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllPatients,
     getPatient,
@@ -678,6 +805,7 @@ module.exports = {
     updateMealStatusByAccessCode,
     updateMealNotesByAccessCode,
     updateAddonStatusByAccessCode,
-    getMealPlanHistoryByAccessCode
+    getMealPlanHistoryByAccessCode,
+    updateHistoricalMealPlan
 };
 

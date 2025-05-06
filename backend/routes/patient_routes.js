@@ -17,7 +17,8 @@ const {
     updateMealStatusByAccessCode,
     updateMealNotesByAccessCode,
     updateAddonStatusByAccessCode,
-    getMealPlanHistoryByAccessCode
+    getMealPlanHistoryByAccessCode,
+    updateHistoricalMealPlan
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -68,6 +69,7 @@ router.patch('/:id/meal-notes', verifyToken, updateMealNotes)
 
 // Add this with your other routes
 router.get('/access-code-history/:accessCode', getMealPlanHistoryByAccessCode);
+router.patch('/update-historical-meal-plan/:accessCode/:mealPlanId', updateHistoricalMealPlan);
 
 module.exports = router
 
