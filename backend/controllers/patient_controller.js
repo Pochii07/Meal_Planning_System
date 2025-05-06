@@ -201,7 +201,7 @@ const getUserMealPlansHistory = async (req, res) => {
 
         const mealPlans = await Patient.find({ userId: String(userId) })
             .sort({ createdAt: -1 })
-            .select('prediction progress skippedMeals mealNotes _id TDEE BMI createdAt')
+            .select('prediction progress skippedMeals mealNotes _id TDEE BMI createdAt age height weight gender activity_level preference restrictions')
             .lean();
 
         if (!mealPlans || mealPlans.length === 0) {
@@ -224,7 +224,7 @@ const getUserMealPlans = async (req, res) => {
 
         const mealPlan = await Patient.findOne({ userId: String(userId) })
             .sort({ createdAt: -1 })
-            .select('prediction progress skippedMeals mealNotes _id TDEE BMI')
+            .select('prediction progress skippedMeals mealNotes _id TDEE BMI createdAt age height weight gender activity_level preference restrictions')
             .lean();
 
         if (!mealPlan) {
