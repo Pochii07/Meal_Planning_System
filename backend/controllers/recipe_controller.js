@@ -62,14 +62,13 @@ const getRecipe = async (req, res) => {
 const getRecipeByTitle = async (req, res) => {
     try {
         const { title } = req.params
-
+        
+        // Escape special regex characters
+        const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
         const recipe = await Recipe.findOne({
-            title: { $regex: new RegExp(`^${title}$`, 'i') }
+            title: { $regex: new RegExp(`^${escapedTitle}$`, 'i') }
         })
-
-        if (!recipe) {
-            return res.status(404).json({ error: 'Recipe not found' })
-        }
 
         res.status(200).json(recipe)
     } catch (error) {

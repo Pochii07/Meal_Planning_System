@@ -58,10 +58,10 @@ const RecipeCard = ({ recipe, initialOpen, onClose }) => {
 
             <div className="mb-3 py-4"> 
               <h3 className="text-md font-semibold mb-1">Nutrition Information</h3> 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2"> 
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2"> 
                 <div className="bg-green-200 p-2 rounded"> 
                   <span className="block text-xs text-gray-500">Calories</span> 
-                  <span className="font-medium text-sm">{recipe.calories}</span> 
+                  <span className="font-medium text-sm">{recipe.calories} kcal</span> 
                 </div> 
                 <div className="bg-green-200 p-2 rounded"> 
                   <span className="block text-xs text-gray-500">Carbohydrates</span> 
@@ -74,9 +74,13 @@ const RecipeCard = ({ recipe, initialOpen, onClose }) => {
                 <div className="bg-green-200 p-2 rounded">  
                   <span className="block text-xs text-gray-500">Fat</span> 
                   <span className="font-medium text-sm">{recipe.fat}g</span> 
+                </div>
+                <div className="bg-green-200 p-2 rounded">  
+                  <span className="block text-xs text-gray-500">Sodium</span> 
+                  <span className="font-medium text-sm">{recipe.sodium}mg</span> 
                 </div> 
               </div> 
-            </div> 
+            </div>
              
             <div className="mb-3"> 
               <h3 className="text-md font-semibold mb-1">Ingredients</h3> 

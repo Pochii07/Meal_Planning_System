@@ -65,25 +65,26 @@ const RecipeModal = ({ recipe, isOpen, onClose }) => {
           </div>
         </div>
         
-        <div className="mb-3">
-          <h3 className="text-md font-semibold mb-1">Nutrition Information</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="block text-xs text-gray-500">Calories</span>
-              <span className="font-medium text-sm">{recipe.calories}</span>
-            </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="block text-xs text-gray-500">Carbs</span>
-              <span className="font-medium text-sm">{recipe.carbohydrates}g</span>
-            </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="block text-xs text-gray-500">Protein</span>
-              <span className="font-medium text-sm">{recipe.protein}g</span>
-            </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="block text-xs text-gray-500">Fat</span>
-              <span className="font-medium text-sm">{recipe.fat}g</span>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="bg-gray-50 p-2 rounded">
+            <span className="block text-xs text-gray-500">Calories</span>
+            <span className="font-medium text-sm">{recipe.calories} kcal</span>
+          </div>
+          <div className="bg-gray-50 p-2 rounded">
+            <span className="block text-xs text-gray-500">Carbs</span>
+            <span className="font-medium text-sm">{recipe.carbohydrates}g</span>
+          </div>
+          <div className="bg-gray-50 p-2 rounded">
+            <span className="block text-xs text-gray-500">Protein</span>
+            <span className="font-medium text-sm">{recipe.protein}g</span>
+          </div>
+          <div className="bg-gray-50 p-2 rounded">
+            <span className="block text-xs text-gray-500">Fat</span>
+            <span className="font-medium text-sm">{recipe.fat}g</span>
+          </div>
+          <div className="bg-gray-50 p-2 rounded">
+            <span className="block text-xs text-gray-500">Sodium</span>
+            <span className="font-medium text-sm">{recipe.sodium}mg</span>
           </div>
         </div>
         
