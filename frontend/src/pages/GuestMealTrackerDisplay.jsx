@@ -608,23 +608,31 @@ const GuestMealTrackerDisplay = () => {
                   
                   <div 
                     className={`meal-desc flex flex-col bg-white p-3 rounded-lg shadow-sm border border-gray-100 ${
-                      mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip 
+                      mealPlan.prediction[day]?.[meal] && !pendingSkip 
                         ? "group-hover:bg-green-50 group-hover:border-green-200" 
                         : ""
                     }`}
                     onClick={() => {
-                      if (mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip) {
+                      // Remove the skippedMeals condition to allow viewing recipe even if skipped
+                      if (mealPlan.prediction[day]?.[meal] && !pendingSkip) {
                         fetchRecipeDetails(mealPlan.prediction[day][meal]);
                       }
                     }}
+                    style={{
+                      cursor: mealPlan.prediction[day]?.[meal] && !pendingSkip
+                        ? 'pointer'
+                        : 'default',
+                    }}
                   > 
                     <span 
-                      className={mealPlan.prediction[day]?.[meal] && !skippedMeals[day]?.[meal] && !pendingSkip ? 
+                      className={mealPlan.prediction[day]?.[meal] && !pendingSkip ? 
                         "text-green-600 w-full group-hover:text-green-700 transition-colors" : 
                         "text-gray-600 w-full"
                       }
                     >
+                      {/* For skipped meals, you could add an indicator but still show the meal name */}
                       {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
+                      {skippedMeals[day]?.[meal] && <span className="ml-2 text-red-500">(Skipped)</span>}
                     </span>
                     
                     {/* Meal details moved below title */}
