@@ -251,6 +251,11 @@ const PatientForm = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
     {/* Form & Confirmation Form Section */}
@@ -523,6 +528,12 @@ const PatientForm = () => {
         </h3>
         
         <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-200">
+          {/* Display current meal plan date */}
+          {mealPlan?.createdAt && (
+            <div className="text-sm text-gray-600 mb-3">
+              Created on: {formatDate(mealPlan.createdAt)}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-full mr-3">
@@ -544,6 +555,56 @@ const PatientForm = () => {
               <div>
                 <h4 className="text-lg font-semibold text-gray-800">BMI (Body Mass Index)</h4>
                 <p className="text-gray-600">{mealPlan.BMI || formData?.BMI || calculateBMI(parseFloat(weight), parseFloat(height))}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Personal Information</h4>
+                <p className="text-gray-600">Age: {mealPlan.age || formData?.age || age} years</p>
+                <p className="text-gray-600">Height: {mealPlan.height || formData?.height || height} cm</p>
+                <p className="text-gray-600">Weight: {mealPlan.weight || formData?.weight || weight} kg</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Activity Level</h4>
+                <p className="text-gray-600">{mealPlan.activityLevel || formData?.activityLevel || getActivityLevelLabel(activityLevel)}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Dietary Preferences</h4>
+                <p className="text-gray-600">{mealPlan.preference || (formData?.preferences && formData.preferences.join(', ')) || (selectedPreferences.length > 0 ? selectedPreferences.join(', ') : 'None')}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Dietary Restrictions</h4>
+                <p className="text-gray-600">{mealPlan.restrictions || (formData?.restrictions && formData.restrictions.join(', ')) || (selectedRestrictions.length > 0 ? selectedRestrictions.join(', ') : 'None')}</p>
               </div>
             </div>
           </div>

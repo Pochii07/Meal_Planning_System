@@ -61,7 +61,13 @@ const MealTracker = () => {
                       prediction: parsedPrediction,
                       progress: latestPlan.progress || {},
                       TDEE: latestPlan.TDEE,
-                      BMI: latestPlan.BMI
+                      BMI: latestPlan.BMI,
+                      age: latestPlan.age,
+                      height: latestPlan.height,
+                      weight: latestPlan.weight,
+                      activityLevel: latestPlan.activity_level,
+                      preference: latestPlan.preference,
+                      restrictions: latestPlan.restrictions
                   });
 
                   setProgress(latestPlan.progress || {});
@@ -121,6 +127,12 @@ const MealTracker = () => {
             _id: latestPlan._id,
             prediction: parsedPrediction,
             progress: latestPlan.progress || {},
+            age: latestPlan.age,
+            height: latestPlan.height,
+            weight: latestPlan.weight,
+            activityLevel: latestPlan.activity_level,
+            preference: latestPlan.preference,
+            restrictions: latestPlan.restrictions,
             TDEE: latestPlan.TDEE,
             BMI: latestPlan.BMI,
             createdAt: latestPlan.createdAt
@@ -155,7 +167,13 @@ const MealTracker = () => {
         progress: selectedPlan.progress || {},
         TDEE: selectedPlan.TDEE,
         BMI: selectedPlan.BMI,
-        createdAt: selectedPlan.createdAt
+        createdAt: selectedPlan.createdAt,
+        age: selectedPlan.age,
+        height: selectedPlan.height,
+        weight: selectedPlan.weight,
+        activityLevel: selectedPlan.activity_level,
+        preference: selectedPlan.preference,
+        restrictions: selectedPlan.restrictions
       });
       
       setProgress(selectedPlan.progress || {});
@@ -528,7 +546,57 @@ const MealTracker = () => {
                   {mealPlan?.BMI || "Not available"}
                 </p>
               </div> 
-            </div> 
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Personal Information</h4>
+                <p className="text-gray-600">Age: {mealPlan?.age || "Not available"} years</p>
+                <p className="text-gray-600">Height: {mealPlan?.height || "Not available"} cm</p>
+                <p className="text-gray-600">Weight: {mealPlan?.weight || "Not available"} kg</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Activity Level</h4>
+                <p className="text-gray-600">{mealPlan?.activityLevel || "Not available"}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Dietary Preferences</h4>
+                <p className="text-gray-600">{mealPlan?.preference || "Not available"}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="bg-green-100 p-3 rounded-full mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800">Dietary Restrictions</h4>
+                <p className="text-gray-600">{mealPlan?.restrictions || "Not available"}</p>
+              </div>
+            </div>
           </div> 
           <div className="mt-3 text-sm text-gray-500"> 
             <p>This meal plan is designed based on your calculated energy needs and body composition.</p> 
