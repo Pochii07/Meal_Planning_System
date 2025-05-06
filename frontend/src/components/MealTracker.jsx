@@ -23,6 +23,11 @@ const MealTracker = () => {
   const [gender, setGender] = useState('male');
   const [activityLevel, setActivityLevel] = useState(1.2);
 
+  // New state variables for history functionality
+  const [mealPlanHistory, setMealPlanHistory] = useState([]);
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   useEffect(() => {
     const fetchMealPlan = async () => {
         if (!user) {
@@ -83,6 +88,98 @@ const MealTracker = () => {
       console.log("Current mealPlan:", mealPlan);
       console.log("Current progress:", progress);
   }, [mealPlan, progress]);
+
+  // New function to fetch meal plan history
+  const fetchMealPlanHistory = async () => {
+    if (!user) return;
+    
+    setLoadingHistory(true);
+    try {
+      const response = await fetch(`${PATIENT_API}/user-meal-plans/history`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && Array.isArray(data)) {
+        console.log("Meal plan history:", data);
+        setMealPlanHistory(data);
+        
+        // If we have history and no current plan selected, set the most recent one
+        if (data.length > 0 && !mealPlan) {
+          const latestPlan = data[0];
+          
+          const parsedPrediction = typeof latestPlan.prediction === 'string' 
+            ? JSON.parse(latestPlan.prediction.replace(/'/g, '"')) 
+            : latestPlan.prediction;
+            
+          setMealPlan({
+            _id: latestPlan._id,
+            prediction: parsedPrediction,
+            progress: latestPlan.progress || {},
+            TDEE: latestPlan.TDEE,
+            BMI: latestPlan.BMI,
+            createdAt: latestPlan.createdAt
+          });
+          
+          setProgress(latestPlan.progress || {});
+          setSkippedMeals(latestPlan.skippedMeals || {});
+          setMealNotes(latestPlan.mealNotes || {});
+        }
+      } else {
+        console.error("Error fetching meal plan history:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching meal plan history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Function to switch between meal plans in history
+  const switchMealPlan = (index) => {
+    if (index >= 0 && index < mealPlanHistory.length) {
+      const selectedPlan = mealPlanHistory[index];
+      
+      const parsedPrediction = typeof selectedPlan.prediction === 'string' 
+        ? JSON.parse(selectedPlan.prediction.replace(/'/g, '"')) 
+        : selectedPlan.prediction;
+        
+      setMealPlan({
+        _id: selectedPlan._id,
+        prediction: parsedPrediction,
+        progress: selectedPlan.progress || {},
+        TDEE: selectedPlan.TDEE,
+        BMI: selectedPlan.BMI,
+        createdAt: selectedPlan.createdAt
+      });
+      
+      setProgress(selectedPlan.progress || {});
+      setSkippedMeals(selectedPlan.skippedMeals || {});
+      setMealNotes(selectedPlan.mealNotes || {});
+      setSelectedPlanIndex(index);
+    }
+  };
+
+  // Call fetchMealPlanHistory in useEffect hook
+  useEffect(() => {
+    fetchMealPlanHistory();
+  }, [user]);
+
+  // Format date for displaying meal plan creation date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }).format(date);
+  };
 
   const handleCheckMeal = async (day, meal) => {
     try {
@@ -335,8 +432,36 @@ const MealTracker = () => {
   return (
     <div className="meal-tracker">
         <h2>Weekly Meal Tracker</h2>
+
+        {/* Add History Selection UI */}
+        {mealPlanHistory.length > 1 && (
+          <div className="meal-history-controls mb-6">
+            <h3 className="text-lg font-semibold mb-2">Meal Plan History</h3>
+            <div className="flex flex-wrap gap-2">
+              {mealPlanHistory.map((plan, index) => (
+                <button
+                  key={plan._id}
+                  onClick={() => switchMealPlan(index)}
+                  className={`px-3 py-2 rounded-md text-sm ${
+                    selectedPlanIndex === index
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {formatDate(plan.createdAt)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-200"> 
+          {/* Display current meal plan date */}
+          {mealPlan?.createdAt && (
+            <div className="text-sm text-gray-600 mb-3">
+              Created on: {formatDate(mealPlan.createdAt)}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
             <div className="flex items-center"> 
               <div className="bg-green-100 p-3 rounded-full mr-3"> 

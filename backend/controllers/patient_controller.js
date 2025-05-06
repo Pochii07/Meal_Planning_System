@@ -186,6 +186,29 @@ const newPatient = async (req, res) => {
     }
 };
 
+// Get all meal plans for a user
+const getUserMealPlansHistory = async (req, res) => {
+    try {
+        const userId = req.userId;
+        console.log("Finding all meal plans for user:", userId);
+
+        const mealPlans = await Patient.find({ userId: String(userId) })
+            .sort({ createdAt: -1 })
+            .select('prediction progress skippedMeals mealNotes _id TDEE BMI createdAt')
+            .lean();
+
+        if (!mealPlans || mealPlans.length === 0) {
+            return res.status(404).json({ error: 'No meal plans found' });
+        }
+
+        console.log(`Found ${mealPlans.length} meal plans`);
+        res.status(200).json(mealPlans);
+    } catch (error) {
+        console.error("Error finding meal plans:", error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 // get user's meal plans
 const getUserMealPlans = async (req, res) => {
     try {
@@ -570,6 +593,7 @@ module.exports = {
     updateMealProgress,
     updateMealNotes,
     getWeeklyProgress,
+    getUserMealPlansHistory,
     getUserMealPlans,
     generateGuestMealPlan,
     verifyAccessCode,

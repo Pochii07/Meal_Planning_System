@@ -90,9 +90,9 @@ class MealPlanner:
         # Train Random Forest
         X = self.data[['calories']]
         y = self.data['calorie_range']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         
-        rf = RandomForestClassifier(n_estimators=50, random_state=42)
+        rf = RandomForestClassifier(n_estimators=50)
         rf.fit(X_train, y_train)
 
         # Train K-means
@@ -100,7 +100,7 @@ class MealPlanner:
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=22, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler

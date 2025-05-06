@@ -8,6 +8,7 @@ const {
     updateMealProgress,
     getWeeklyProgress,
     getUserMealPlans,
+    getUserMealPlansHistory,
     generateGuestMealPlan,
     verifyAccessCode,
     getPatientDataByAccessCode,
@@ -23,6 +24,9 @@ const router = express.Router()
 
 // Get user meal plans
 router.get('/user-meal-plans', verifyToken, getUserMealPlans)
+
+// Get user meal plans history
+router.get('/user-meal-plans/history', verifyToken, getUserMealPlansHistory);
 
 // Get all cases
 router.get('/', getAllPatients)
