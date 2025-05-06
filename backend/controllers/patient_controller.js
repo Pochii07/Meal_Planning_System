@@ -584,6 +584,82 @@ const updateAddonStatusByAccessCode = async (req, res) => {
     }
 };
 
+// Get meal plan history by access code
+const getMealPlanHistoryByAccessCode = async (req, res) => {
+    try {
+        const { accessCode } = req.params;
+        
+        if (!accessCode) {
+            return res.status(400).json({ error: 'Access code is required' });
+        }
+        
+        // Find the patient by access code in the NutritionistPatient collection
+        const patient = await NutritionistPatient.findOne({ accessCode });
+        
+        if (!patient) {
+            return res.status(404).json({ error: 'Patient not found with this access code' });
+        }
+        
+        // Return the meal plan history array from the patient document
+        if (!patient.mealPlanHistory || patient.mealPlanHistory.length === 0) {
+            return res.status(404).json({ error: 'No meal plan history found for this patient' });
+        }
+        
+        // Create a deep copy of the current patient's active data
+        const currentMealPlan = {
+            _id: patient._id.toString(),
+            date: new Date(),
+            createdAt: patient.createdAt || new Date(),
+            prediction: patient.prediction || {},
+            progress: patient.progress || {},
+            skippedMeals: patient.skippedMeals || {},
+            mealNotes: patient.mealNotes || {},
+            nutritionistNotes: patient.nutritionistNotes || {},
+            mealAddons: patient.mealAddons || {}
+        };
+        
+        // Format all meal plan histories + add current as the first item
+        const allMealPlans = [currentMealPlan, ...patient.mealPlanHistory].map(plan => {
+            // Create a plain object that can be properly serialized
+            const plainPlan = plan.toObject ? plan.toObject() : {...plan};
+            
+            // Ensure the date is a proper ISO string
+            if (plainPlan.date) {
+                plainPlan.date = new Date(plainPlan.date).toISOString();
+            }
+            
+            // Add a properly formatted createdAt if it doesn't exist
+            if (!plainPlan.createdAt) {
+                plainPlan.createdAt = plainPlan.date || new Date().toISOString();
+            } else {
+                plainPlan.createdAt = new Date(plainPlan.createdAt).toISOString();
+            }
+            
+            // Make sure all expected properties exist
+            return {
+                ...plainPlan,
+                progress: plainPlan.progress || {},
+                skippedMeals: plainPlan.skippedMeals || {},
+                mealNotes: plainPlan.mealNotes || {},
+                nutritionistNotes: plainPlan.nutritionistNotes || {},
+                mealAddons: plainPlan.mealAddons || {}
+            };
+        });
+        
+        // Sort meal plan history by date in descending order (newest first)
+        allMealPlans.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
+            const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
+            return dateB - dateA;
+        });
+        
+        res.status(200).json(allMealPlans);
+    } catch (error) {
+        console.error("Error fetching meal plan history by access code:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllPatients,
     getPatient,
@@ -601,6 +677,7 @@ module.exports = {
     updateProgressByAccessCode,
     updateMealStatusByAccessCode,
     updateMealNotesByAccessCode,
-    updateAddonStatusByAccessCode
+    updateAddonStatusByAccessCode,
+    getMealPlanHistoryByAccessCode
 };
 

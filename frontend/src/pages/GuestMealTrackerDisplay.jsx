@@ -19,6 +19,19 @@ const GuestMealTrackerDisplay = () => {
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(false);
+  const [mealPlanHistory, setMealPlanHistory] = useState([]);
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }).format(date);
+  };
 
   useEffect(() => {
     const fetchMealPlan = async () => {
@@ -52,6 +65,73 @@ const GuestMealTrackerDisplay = () => {
 
     fetchMealPlan();
   }, [accessCode]);
+
+  useEffect(() => {
+    fetchMealPlanHistory();
+  }, [accessCode]);
+
+  const fetchMealPlanHistory = async () => {
+    if (!accessCode) return;
+    
+    setLoadingHistory(true);
+    try {
+      const response = await fetch(`${PATIENT_API}/access-code-history/${accessCode}`);
+      const data = await response.json();
+      
+      if (response.ok && Array.isArray(data)) {
+        console.log("Meal plan history:", data);
+        setMealPlanHistory(data);
+        
+        // If we have history and no current plan selected, set the most recent one
+        if (data.length > 0 && !mealPlan) {
+          const latestPlan = data[0];
+          
+          setMealPlan({
+            _id: latestPlan._id,
+            prediction: latestPlan.prediction,
+            progress: latestPlan.progress || {},
+            mealAddons: latestPlan.mealAddons || {}
+          });
+          
+          setProgress(latestPlan.progress || {});
+          setSkippedMeals(latestPlan.skippedMeals || {});
+          setMealNotes(latestPlan.mealNotes || {});
+          setNutritionistNotes(latestPlan.nutritionistNotes || {});
+        }
+      } else {
+        console.error("Error fetching meal plan history:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching meal plan history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const switchMealPlan = (index) => {
+    const selectedPlan = mealPlanHistory[index];
+    setSelectedPlanIndex(index);
+    
+    // Make sure to update ALL relevant states with the historical data
+    setMealPlan({
+      _id: selectedPlan._id,
+      prediction: selectedPlan.prediction || {},
+      progress: selectedPlan.progress || {},
+      skippedMeals: selectedPlan.skippedMeals || {},
+      mealNotes: selectedPlan.mealNotes || {},
+      nutritionistNotes: selectedPlan.nutritionistNotes || {},
+      mealAddons: selectedPlan.mealAddons || {},
+      createdAt: selectedPlan.createdAt || selectedPlan.date,
+      TDEE: selectedPlan.TDEE,
+      BMI: selectedPlan.BMI
+    });
+    
+    // Also update the separate state variables to ensure UI consistency
+    setProgress(selectedPlan.progress || {});
+    setSkippedMeals(selectedPlan.skippedMeals || {});
+    setMealNotes(selectedPlan.mealNotes || {});
+    setNutritionistNotes(selectedPlan.nutritionistNotes || {});
+  };
 
   const handleCheckMeal = async (day, meal) => {
     try {
@@ -332,6 +412,46 @@ const GuestMealTrackerDisplay = () => {
           ` for ${patientData.firstName} ${patientData.lastName}` : 
           ''}
       </h2>
+
+      {/* Meal Plan History Dropdown */}
+      {mealPlanHistory.length > 1 && (
+        <div className="meal-history-controls mb-6">
+          <div className="flex items-center">
+            <label htmlFor="history-select" className="mr-2 font-medium text-gray-700">
+              Meal Plan History:
+            </label>
+            <div className="relative inline-block w-64">
+              <select
+                id="history-select"
+                value={selectedPlanIndex}
+                onChange={(e) => switchMealPlan(parseInt(e.target.value))}
+                className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:border-green-500"
+              >
+                {mealPlanHistory.map((plan, index) => {
+                  // Format date with time
+                  const createdAt = new Date(plan.createdAt);
+                  const formattedDate = createdAt.toLocaleDateString();
+                  const formattedTime = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  
+                  return (
+                    <option key={plan._id} value={index}>
+                      {formattedDate} at {formattedTime}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Display current meal plan date */}
+      {mealPlan?.createdAt && (
+        <div className="text-sm text-gray-600 mb-3">
+          Created on: {formatDate(mealPlan.createdAt)}
+        </div>
+      )}
+
       {mealPlan && mealPlan.prediction ? (
         <div className="meal-grid">
           {days.map((day) => (

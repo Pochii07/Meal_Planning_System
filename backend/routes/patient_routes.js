@@ -16,7 +16,8 @@ const {
     updateMealNotes,
     updateMealStatusByAccessCode,
     updateMealNotesByAccessCode,
-    updateAddonStatusByAccessCode
+    updateAddonStatusByAccessCode,
+    getMealPlanHistoryByAccessCode
 } = require('../controllers/patient_controller')
 const { verifyToken } = require('../middleware/verifyToken');
 
@@ -64,6 +65,9 @@ router.patch('/update-addon-status/:accessCode', updateAddonStatusByAccessCode);
 
 // Add this new route for meal notes
 router.patch('/:id/meal-notes', verifyToken, updateMealNotes)
+
+// Add this with your other routes
+router.get('/access-code-history/:accessCode', getMealPlanHistoryByAccessCode);
 
 module.exports = router
 
