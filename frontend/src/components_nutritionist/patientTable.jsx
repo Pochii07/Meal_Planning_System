@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import RecipeCard from '../components/RecipeCard.jsx';
+import RecipeModal from './modals/recipeModal.jsx';
 import MealPlanHistoryModal from './modals/mealPlanHistoryModal.jsx';
 import { RECIPES_API } from '../config/api';
 import CopyButton from './clipboard.jsx';
@@ -585,21 +585,17 @@ const PatientTable = ({ patients: propsPatients,
             </table>
           )}
         </div>    
-        {recipeModalOpen && selectedRecipe && (
-          <RecipeCard 
-            name={selectedRecipe.title}
-            description={selectedRecipe.summary}
-            image={selectedRecipe.image}
-            recipe={selectedRecipe}
-            initialOpen={recipeModalOpen}
-          />
-        )}       
-        <MealPlanHistoryModal
-            isOpen={historyModalOpen}
-            onClose={() => setHistoryModalOpen(false)}
-            history={selectedPatientHistory}
-            patient={patients?.find(p => p._id === selectedPatientId)}
-        />
+    <RecipeModal 
+        recipe={selectedRecipe}
+        isOpen={recipeModalOpen}
+        onClose={() => setRecipeModalOpen(false)}
+    />         
+    <MealPlanHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        history={selectedPatientHistory}
+        patient={patients?.find(p => p._id === selectedPatientId)}
+    />
     </div>
   );
 };

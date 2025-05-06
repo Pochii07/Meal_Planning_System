@@ -1,4 +1,3 @@
-// backend/scripts/import-recipes.js
 const fs = require('fs');
 const csv = require('csv-parser');
 const mongoose = require('mongoose');
@@ -94,8 +93,8 @@ async function runImport() {
     await Recipe.deleteMany({});
     
     // Import all recipes without specifying meal type
-    await importRecipes('../ml/bf.csv');
-    await importRecipes('../ml/lunch.csv');
+    await importRecipes('../ml/bf_final_updated_recipes_1.csv');
+    await importRecipes('../ml/lunch_final_updated_recipes_1.csv');
     
     console.log('Import completed successfully');
     mongoose.disconnect();

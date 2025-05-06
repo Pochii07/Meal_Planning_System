@@ -20,6 +20,17 @@ const DIETARY_RESTRICTIONS = [
   "Halal"
 ];
 
+const days = [
+  'Monday', 
+  'Tuesday', 
+  'Wednesday', 
+  'Thursday', 
+  'Friday', 
+  'Saturday', 
+  'Sunday'
+];
+
+
 const PatientForm = () => {
   const { dispatch } = usePatientContext();
   const { user } = useAuthStore();
@@ -517,7 +528,7 @@ const PatientForm = () => {
             <div className="flex items-center">
               <div className="bg-green-100 p-3 rounded-full mr-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
               <div>
@@ -535,57 +546,63 @@ const PatientForm = () => {
           Click the recipe name for more information
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(mealPlan).map(([day, dayData]) => (
-            <div
-              key={day}
-              className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-            >
-              <h4 className="text-2xl font-semibold text-green-600 mb-6 border-b border-gray-200 pb-2 text-center">
-                {day}
-                {dayData.date && (
-                  <div className="text-sm text-gray-500 font-normal">
-                    {new Date(dayData.date).toLocaleDateString()}
-                  </div>
-                )}
-              </h4>
-              <div className="space-y-6">
-                {['breakfast', 'lunch', 'dinner'].map(meal => (
-                  <div key={meal} className="bg-white p-4 rounded-md shadow-sm">
-                    <h5 className="text-lg font-semibold text-green-600 mb-2 capitalize">
-                      {meal}
-                    </h5>
-                    <div className="text-gray-700">
-                      <p 
-                        className="font-medium hover:text-green-600 cursor-pointer"
-                        onClick={() => fetchRecipeDetails(dayData[meal])}
-                      >
-                        {dayData[meal] || 'No meal planned'}
-                      </p>
-                      
-                      {dayData[`${meal}_details`] && (
-                        <div className="mt-2 text-sm text-gray-600">
-                          <div className="grid grid-cols-3 gap-2 mt-2">
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Base Calories</span>
-                              <span className="font-medium">{dayData[`${meal}_details`].calories} kcal</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Servings</span>
-                              <span className="font-medium">{dayData[`${meal}_details`].servings}</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Total Calories</span>
-                              <span className="font-medium">{dayData[`${meal}_details`].total_calories} kcal</span>
+          {days.map((day) => {
+            // Only render if this day exists in the meal plan
+            if (!mealPlan[day]) return null;
+            const dayData = mealPlan[day];
+            
+            return (
+              <div
+                key={day}
+                className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              >
+                <h4 className="text-2xl font-semibold text-green-600 mb-6 border-b border-gray-200 pb-2 text-center">
+                  {day}
+                  {dayData.date && (
+                    <div className="text-sm text-gray-500 font-normal">
+                      {new Date(dayData.date).toLocaleDateString()}
+                    </div>
+                  )}
+                </h4>
+                <div className="space-y-6">
+                  {['breakfast', 'lunch', 'dinner'].map(meal => (
+                    <div key={meal} className="bg-white p-4 rounded-md shadow-sm">
+                      <h5 className="text-lg font-semibold text-green-600 mb-2 capitalize">
+                        {meal}
+                      </h5>
+                      <div className="text-gray-700">
+                        <p 
+                          className="font-medium hover:text-green-600 cursor-pointer"
+                          onClick={() => fetchRecipeDetails(dayData[meal])}
+                        >
+                          {dayData[meal] || 'No meal planned'}
+                        </p>
+                        
+                        {dayData[`${meal}_details`] && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div className="bg-gray-50 p-2 rounded">
+                                <span className="block text-xs text-gray-500">Base Calories</span>
+                                <span className="font-medium">{dayData[`${meal}_details`].calories} kcal</span>
+                              </div>
+                              <div className="bg-gray-50 p-2 rounded">
+                                <span className="block text-xs text-gray-500">Servings</span>
+                                <span className="font-medium">{dayData[`${meal}_details`].servings}</span>
+                              </div>
+                              <div className="bg-gray-50 p-2 rounded">
+                                <span className="block text-xs text-gray-500">Total Calories</span>
+                                <span className="font-medium">{dayData[`${meal}_details`].total_calories} kcal</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     )}
