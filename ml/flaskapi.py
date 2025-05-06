@@ -402,6 +402,14 @@ def predict_meal_plan():
                 
                 bmr = calculate_bmr(weight, height, age, gender)
                 tdee = int(calculate_tdee(bmr, activity_level))
+            
+            # Add validation for minimum TDEE
+            if tdee < 500:
+                return jsonify({
+                    'error': 'TDEE too low',
+                    'message': 'Cannot generate meal plan for TDEE below 500 calories. Please check your inputs.'
+                }), 400
+                
         except Exception as e:
             print(f"Error calculating TDEE: {e}, using default")
             tdee = 2000

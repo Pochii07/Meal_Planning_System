@@ -302,6 +302,13 @@ const regenerateMealPlan = async (req, res) => {
         // Recalculate BMR and TDEE to ensure they're up to date
         const BMR = calculateBMR(weight, height, age, gender);
         const TDEE = calculateTDEE(BMR, activity_level);
+
+        // Add TDEE validation
+        if (TDEE < 500) {
+            return res.status(400).json({ 
+                error: 'TDEE too low. Cannot generate meal plan for TDEE below 500 calories.' 
+            });
+        }
         
         // Update TDEE in patient data
         patient.TDEE = TDEE;

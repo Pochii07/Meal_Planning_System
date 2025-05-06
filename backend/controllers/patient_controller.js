@@ -113,6 +113,17 @@ const newPatient = async (req, res) => {
     const userId = req.userId;
 
     try {
+        const BMI = calculateBMI(weight, height);
+        const BMR = calculateBMR(weight, height, age);
+        const TDEE = calculateTDEE(BMR, activity_level);
+        
+        // Add TDEE validation
+        if (TDEE < 500) {
+            return res.status(400).json({ 
+                error: 'TDEE too low. Cannot generate meal plan for TDEE below 500 calories.' 
+            });
+        }
+        
         // Get prediction from Flask API
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
         console.log('Sending to ML API:', {
@@ -151,10 +162,6 @@ const newPatient = async (req, res) => {
             console.error("Error processing meal plan data:", error);
             return res.status(500).json({ error: "Error processing meal plan data" });
         }
-
-        const BMI = calculateBMI(weight, height);
-        const BMR = calculateBMR(weight, height, age);
-        const TDEE = calculateTDEE(BMR, activity_level);
 
         const new_patient = await Patient.create({
             age,
@@ -347,6 +354,17 @@ const generateGuestMealPlan = async (req, res) => {
     const {age, height, weight, gender, activity_level, preference, restrictions} = req.body;
 
     try {
+        const BMI = calculateBMI(weight, height);
+        const BMR = calculateBMR(weight, height, age);
+        const TDEE = calculateTDEE(BMR, activity_level);
+        
+        // Add TDEE validation
+        if (TDEE < 500) {
+            return res.status(400).json({ 
+                error: 'TDEE too low. Cannot generate meal plan for TDEE below 500 calories.' 
+            });
+        }
+        
         // Convert numeric activity level to string format
         let activityLevelString;
         if (activity_level <= 1.2) activityLevelString = 'sedentary';

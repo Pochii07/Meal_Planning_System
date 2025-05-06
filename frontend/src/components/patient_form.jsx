@@ -117,6 +117,16 @@ const PatientForm = () => {
     e.preventDefault();
     setError(null); 
 
+    // Calculate TDEE to validate
+    const calculatedBMR = calculateBMR(parseFloat(weight), parseFloat(height), parseFloat(age), gender);
+    const calculatedTDEE = calculateTDEE(calculatedBMR, parseFloat(activityLevel));
+    
+    // TDEE validation
+    if (calculatedTDEE < 500) {
+      setError('TDEE is too low (below 500 calories). Please check your inputs.');
+      return;
+    }
+
     if (!showConfirmation) {
 
       const newEmptyFields = [];
