@@ -144,12 +144,11 @@ class MealPlanner:
         filtered_data = self.data.copy()
         pref_array = preferences.to_array()[0]
         
-        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
         for i, column in enumerate(self.dietary_columns):
             if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
                 filtered_data = filtered_data[filtered_data[column] == True]
         
-        # Step 2: Use Random Forest to select meals within appropriate calorie ranges
+        # Step 1: Use Random Forest to select meals within appropriate calorie ranges
         target_prediction_counts = {}
         
         # Get calorie range distribution from RandomForest predictions
@@ -193,7 +192,6 @@ class MealPlanner:
         rice_calories = 600  # Rice calories
         adjusted_tdee = tdee - rice_calories  # Account for rice
         
-        # Adjust calorie distribution by meal (40-30-30 distribution)
         breakfast_target = int(adjusted_tdee * 0.4)
         lunch_target = int(adjusted_tdee * 0.3)
         dinner_target = int(adjusted_tdee * 0.3)
