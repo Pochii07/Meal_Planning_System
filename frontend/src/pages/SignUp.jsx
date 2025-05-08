@@ -266,10 +266,10 @@ const SignUp = () => {
       return;
     }
 
-    // if (!passwordRegex.test(password)) {
-    // showDialog('Password Requirements', 'Password does not meet the security requirements!');
-    // return;
-    // }
+    if (!passwordRegex.test(password)) {
+    showDialog('Password Requirements', 'Password does not meet the security requirements!');
+    return;
+    }
 
     if (password !== confirmPassword) {
       showDialog('Password Mismatch', 'Passwords do not match!');

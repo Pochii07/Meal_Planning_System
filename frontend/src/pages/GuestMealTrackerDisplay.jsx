@@ -107,6 +107,17 @@ const GuestMealTrackerDisplay = () => {
       setLoadingHistory(false);
     }
   };
+  const refreshMealPlanHistory = async () => {
+    await fetchMealPlanHistory();
+    
+    // If we were viewing a specific plan, make sure to select it again
+    if (selectedPlanIndex !== null && mealPlan && mealPlan._id) {
+      const newIndex = mealPlanHistory.findIndex(plan => plan._id === mealPlan._id);
+      if (newIndex >= 0) {
+        setSelectedPlanIndex(newIndex);
+      }
+    }
+  };
 
   const switchMealPlan = (index) => {
     const selectedPlan = mealPlanHistory[index];
@@ -187,6 +198,8 @@ const GuestMealTrackerDisplay = () => {
                 setMealPlanHistory(updatedMealPlanHistory);
                 setProgress(data.progress);
             }
+            
+            await refreshMealPlanHistory();
         } else {
             const errorData = await response.json();
             setError(errorData.error || 'Failed to update progress');
@@ -279,6 +292,7 @@ const GuestMealTrackerDisplay = () => {
                     note: mealNotes[day]?.[meal] || ''
                 })
             });
+            await refreshMealPlanHistory();
         }
         
         // Update UI based on response
@@ -403,6 +417,8 @@ const GuestMealTrackerDisplay = () => {
                     skipped: skippedMeals[day]?.[meal] || false
                 })
             });
+            await refreshMealPlanHistory();
+
         } else {
             // Historical meal plan
             response = await fetch(`${PATIENT_API}/update-historical-meal-plan/${accessCode}/${mealPlan._id}`, {
@@ -488,6 +504,7 @@ const GuestMealTrackerDisplay = () => {
                     skipped
                 })
             });
+          await refreshMealPlanHistory();
         }
 
         if (response.ok) {

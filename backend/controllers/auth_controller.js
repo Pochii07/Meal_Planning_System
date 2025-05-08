@@ -366,7 +366,7 @@ const adminSignup = async (req, res) => {
             userData.lastName = newId.slice(-3); 
             userData.sex = 'Admin';
         }
-        // add nutritionist-specific fields if needed
+        
         if (role === 'nutritionist') {
             const { firstName, lastName, sex } = req.body;
             if (!firstName || !lastName || !sex) {
@@ -405,5 +405,5 @@ const adminSignup = async (req, res) => {
     }
 };
 
-// ... existing exports ...
+
 module.exports = { signup, adminSignup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken };
