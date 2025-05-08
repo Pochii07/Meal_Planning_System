@@ -219,26 +219,26 @@ const ResetPassword = () => {
 
     event.preventDefault();
 
-    // if (!password || !confirmPassword) {
-    //   setDialogStatus("error");
-    //   setDialogMessage("Please fill in both password fields.");
-    //   setShowDialog(true);
-    //   return;
-    // }
+    if (!password || !confirmPassword) {
+      setDialogStatus("error");
+      setDialogMessage("Please fill in both password fields.");
+      setShowDialog(true);
+      return;
+    }
 
-    // if (!passwordRegex.test(password)) {
-    //   setDialogStatus("error");
-    //   setDialogMessage("Password does not meet security requirements. It needs at least 8 characters, one uppercase, one lowercase, one number, and one special character.");
-    //   setShowDialog(true);
-    //   return;
-    // }
+    if (!passwordRegex.test(password)) {
+      setDialogStatus("error");
+      setDialogMessage("Password does not meet security requirements. It needs at least 8 characters, one uppercase, one lowercase, one number, and one special character.");
+      setShowDialog(true);
+      return;
+    }
 
-    // if (password !== confirmPassword) {
-    //   setDialogStatus("error");
-    //   setDialogMessage("Passwords do not match.");
-    //   setShowDialog(true);
-    //   return;
-    // }
+    if (password !== confirmPassword) {
+      setDialogStatus("error");
+      setDialogMessage("Passwords do not match.");
+      setShowDialog(true);
+      return;
+    }
 
     try {
       const data = await resetpassword(token, password);
