@@ -152,6 +152,19 @@ const MealTracker = () => {
     }
   };
 
+  // Function to refresh meal plan history after updates
+  const refreshMealPlanHistory = async () => {
+    await fetchMealPlanHistory();
+    
+    // If we were viewing a specific plan, make sure to select it again
+    if (selectedPlanIndex !== null && mealPlan && mealPlan._id) {
+      const newIndex = mealPlanHistory.findIndex(plan => plan._id === mealPlan._id);
+      if (newIndex >= 0) {
+        setSelectedPlanIndex(newIndex);
+      }
+    }
+  };
+
   // Function to switch between meal plans in history
   const switchMealPlan = (index) => {
     if (index >= 0 && index < mealPlanHistory.length) {
@@ -220,6 +233,7 @@ const MealTracker = () => {
         if (response.ok) {
             const data = await response.json();
             setProgress(data.progress);
+            await refreshMealPlanHistory()
         } else {
             const errorData = await response.json();
             setError(errorData.error || 'Failed to update progress');
@@ -428,6 +442,7 @@ const MealTracker = () => {
         const data = await response.json();
         setSkippedMeals(data.skippedMeals);
         setMealNotes(data.mealNotes);
+        await refreshMealPlanHistory()
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to update meal status');
