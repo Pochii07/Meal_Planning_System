@@ -592,18 +592,20 @@ const PatientMealTrackerDisplay = () => {
         </div>
       )}
 
-      {mealPlan && mealPlan.prediction ? (
-        <div className="meal-grid">
-          {days.map((day) => (
-            <div key={day} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-              <h3 className="text-sm font-semibold mb-2">
-                {day}
-                {mealPlan.prediction[day]?.date && (
-                  <span className="ml-1 text-xs font-normal">
-                    {new Date(mealPlan.prediction[day].date).toLocaleDateString()}
-                  </span>
-                )}
-              </h3>
+        {mealPlan && mealPlan.prediction ? (
+          <div className="meal-grid">
+            {days.map((day) => (
+              <div key={day} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-4">
+                <h3 className="text-sm font-semibold mb-2">
+                  {day}
+                  {mealPlan.prediction[day]?.date && (
+                    <span className="ml-1 text-xs font-normal">
+                      {new Date(mealPlan.prediction[day].date).toLocaleDateString()}
+                    </span>
+                  )}
+                </h3>
+
+              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
               {meals.map((meal) => (
                 <div 
                   key={`${day}-${meal}`} 
@@ -672,6 +674,7 @@ const PatientMealTrackerDisplay = () => {
                         </div>
                     )}
                   </div>
+                
                   
                   {/* Nutritionist Notes Section */}
                   {nutritionistNotes[day]?.[meal] && (
@@ -756,6 +759,7 @@ const PatientMealTrackerDisplay = () => {
                   )}
                 </div>
               ))}
+            </div>
             </div>
           ))}
         </div>
