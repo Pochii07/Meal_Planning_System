@@ -1,55 +1,48 @@
 import { useLocation, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { NavbarCustom } from './components/navbar';
 import LandingPage from './pages/LandingPage';
-import SignUp from './pages/SignUp';
+import { NavbarCustom } from './components/navbar';
+import PatientAccessPage from './pages/PatientAccessPage'; // Renamed from GuestMealTracker
 import LogIn from './pages/LogIn';
-import GuestProfile from './pages/GuestProfile';
-import PatientForm from './pages/form';
-import Patients from './pages/patients';
 import VerifyLogin from './pages/Verification';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import GuestMealTracker from './pages/GuestMealTracker';
-import { PatientContextProvider } from './context/patient_context';
-import MealTracker from './components/MealTracker';
-import NutritionistProfile from './pages/NutritionistProfile';
-import ViewPatients from './pages/ViewPatients';
-import { useAuthStore } from './store/authStore';
-import { useEffect } from 'react';
-import { Button } from 'flowbite-react';
 import { NutritionistPatientContextProvider } from './context/nutritionist_patient_context';
 import NutritionistDashboard from './components/nutritionist_dashboard';
-import GuestMealTrackerDisplay from './pages/GuestMealTrackerDisplay';
-import AdminPage from './pages/Admin'
-import ContactUs from './pages/ContactUs';
-import AboutUs from './pages/AboutUs';
+import ViewPatients from './pages/ViewPatients';
+import PatientMealPlan from './pages/PatientMealPlan'; // Renamed from GuestMealTrackerDisplay
+import AdminPage from './pages/Admin';
 import LoadingScreen from './components/LoadingScreen';
+import { useAuthStore } from './store/authStore';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
 
+// Protects routes that require authentication (nutritionist)
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated && !user) {
-    return <Navigate to="/" replace />;
+  if (!isAuthenticated || !user || user.role !== 'nutritionist') {
+    return <Navigate to="/login" replace />;
   }
-
-  return children
+  return children;
 }
 
+// Protects routes that require admin authentication
 const ProtectedAdminRoute = ({children}) => {
   const { isAuthenticated, user, isAdmin } = useAuthStore();
   
   if (!isAuthenticated || !isAdmin()) {
     return <Navigate to="/" replace/>
   }
-
   return children;
 }
 
+// Routes that should only be accessible when not authenticated
 const AuthenticatedRoute = ({children}) => {
-  const { isAuthenticated, user } = useAuthStore();
-  if (isAuthenticated && user) {
-    return <Navigate to="/" replace />;
+  const { isAuthenticated } = useAuthStore();
+  if (isAuthenticated) {
+    return <Navigate to="/nutritionist/dashboard" replace />;
   }
   return children;
 };
@@ -59,13 +52,12 @@ function App() {
   const hideNavbarRoutes = ["/verify_login", "/ChefitAdmin"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
 
-  const { isCheckingAuth, checkAuth, logout, user } = useAuthStore();
+  const { isCheckingAuth, checkAuth, logout } = useAuthStore();
+  const navigate = useNavigate();
   
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
-  const navigate = useNavigate();
 
   const checkTokenExpiry = () => {
     const token = localStorage.getItem('token'); 
@@ -88,79 +80,43 @@ function App() {
     }
   }, []);
 
+  // Check token expiry on component mount and when location changes
+  useEffect(() => {
+    checkTokenExpiry();
+  }, [location]);
+
   if (isCheckingAuth) {
     return <LoadingScreen />;
   }
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   return (
     <div className="App">
       {!shouldHideNavbar && <NavbarCustom />}
       <div className="pages">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} /> {/* Default to patient access */}
+          <Route path="/AboutUs" element={<AboutUs />} />
+          <Route path="/ContactUs" element={<ContactUs />} />
+          
+          {/* Authentication routes */}
           <Route
-            path="/form"
-            element={
-              <PatientContextProvider>
-                <PatientForm />
-              </PatientContextProvider>
-            }
-          />
-          <Route
-            path="/meal-tracker"
-            element={
-              <ProtectedRoute>
-                <MealTracker />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/SignUp"
-            element={
-              <AuthenticatedRoute>
-                <SignUp />
-              </AuthenticatedRoute>
-            }
-          />
-          <Route
-            path="/LogIn"
+            path="/login"
             element={
               <AuthenticatedRoute>
                 <LogIn />
               </AuthenticatedRoute>
             }
           />
-          <Route
-            path="/GuestProfile"
-            element={
-              <ProtectedRoute>
-                <GuestProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/ContactUs" element={<ContactUs />} />
-          <Route path="/AboutUs" element={<AboutUs />} />         
-          <Route path="/NutritionistProfile" element={<NutritionistProfile />} />
-          <Route path="/ViewPatients" element={<ViewPatients />} />
-          <Route path="/GuestMealTracker" element={<GuestMealTracker />} />
-          <Route path="/guest-meal-tracker" element={<GuestMealTracker />} />
-          <Route path="/guest-meal-tracker/:accessCode" element={<GuestMealTrackerDisplay />} />
-          <Route path="/ForgotPassword" element={<ForgotPassword />} />
-          {/* Authenticated route */}
-          <Route path="/reset_password/:token" element={<ResetPassword />} />
-          <Route
-            path="/patients"
-            element={
-              <PatientContextProvider>
-                <Patients />
-              </PatientContextProvider>
-            }
-          />
           <Route path="/verify_login" element={<VerifyLogin />} />
+          <Route path="/ForgotPassword" element={<ForgotPassword />} />
+          <Route path="/reset_password/:token" element={<ResetPassword />} />
+          
+          {/* Patient access routes */}
+          <Route path="/patient-access" element={<PatientAccessPage />} /> {/* Renamed from guest-meal-tracker */}
+          <Route path="/patient-meal-plan/:accessCode" element={<PatientMealPlan />} /> {/* Renamed from guest-meal-tracker/:accessCode */}
+          
+          {/* Protected nutritionist routes */}
           <Route
             path="/nutritionist/dashboard"
             element={
@@ -181,6 +137,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Admin routes */}
           <Route 
             path="/ChefitAdmin" 
             element={
@@ -189,6 +147,9 @@ function App() {
               </ProtectedAdminRoute>
             }
           />
+          
+          {/* Catch-all redirect to patient access */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </div>

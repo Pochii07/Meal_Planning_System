@@ -27,16 +27,6 @@ export function NavbarCustom() {
             <img src={ChefItLogo} className="mr-3 h-6 sm:h-9" alt="ChefIt" />
             <span className="self-center whitespace-nowrap text-xl font-semibold">ChefIt</span>
           </NavbarBrand>
-          
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
-            <button
-              onClick={toggleMenu}
-              className="text-gray-700 hover:text-[#008000] focus:outline-none"
-            >
-              {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
-            </button>
-          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
@@ -48,14 +38,14 @@ export function NavbarCustom() {
                   <Link to="/nutritionist/dashboard" className="text-sm font-medium hover:text-[#008000]">Patients</Link>
                 ) : (
                   <>
-                    <Link to="/form" className="text-sm font-medium hover:text-[#008000]">Meal Plan</Link>
-                    <Link to={user.role === 'guest' ? "/GuestMealTracker" : "/meal-tracker"} className="text-sm font-medium hover:text-[#008000]">Meal Tracker</Link>
+                    <Link to={user.role === 'guest' ? "/patient-access" : "/patient-access"} className="text-sm font-medium hover:text-[#008000]">Meal Tracker</Link>
+                    <Link to="/AboutUs" className="text-sm font-medium hover:text-[#008000]">About Us</Link>
+                    <Link to="/ContactUs" className="text-sm font-medium hover:text-[#008000]">Contact Us</Link>
                   </>
                 )
               ) : (
                 <>
-                  <Link to="/form" className="text-sm font-medium hover:text-[#008000]">Meal Plan</Link>
-                  <Link to="/GuestMealTracker" className="text-sm font-medium hover:text-[#008000]">Meal Tracker</Link>
+                  <Link to="/patient-access" className="text-sm font-medium hover:text-[#008000]">Meal Tracker</Link>
                 </>
               )}
               

@@ -25,7 +25,7 @@ const signup = async (req, res) => {
 
     // creating document / user login entry
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const {firstName, lastName, birthDate, sex, email, password} = req.body;
+    const {firstName, lastName, birthDate, sex, email, password, role} = req.body;
     
     try {
         if (!firstName || !lastName || !birthDate || !sex || !email || !password) {
@@ -54,9 +54,15 @@ const signup = async (req, res) => {
         if (userAlreadyExists) {
            return res.status(400).json({ message: 'User already exists'})
         };
+
+        // Only allow nutritionist signup
+        if (role && role !== 'nutritionist') {
+            return res.status(400).json({ message: 'Invalid role specification' });
+        }
+
         const hashPassword = await bcrypt.hash(password, 10)
         const verificationToken = createVerificationToken();
-        const user = new User({
+        const userData = {
             _id: newId,
             firstName,
             lastName,
@@ -66,8 +72,11 @@ const signup = async (req, res) => {
             password: hashPassword,
             verificationToken,
             // Token expires in 24 hours
-            verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000 
-        });
+            verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+            role: 'nutritionist'
+        };
+        
+        const user = new User(userData);
         
         await user.save();
         await sendVerificationEmail(user.email, verificationToken);
@@ -121,6 +130,15 @@ const login = async (req, res) => {
                 message: 'Incorrect password', // Wrong password
             });
         }
+
+        // Update login to only accept nutritionists/admins
+        if (user.role !== 'nutritionist' && user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
+        }
+
         // user exists but isn't verified
         if (!user.isVerified) {
             return res.status(200).json({

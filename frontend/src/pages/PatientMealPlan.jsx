@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { PATIENT_API, RECIPES_API } from '../config/api';
+import { PATIENT_API, RECIPES_API } from '../config/api.js';
 
 import RecipeCard from '../components/RecipeCard.jsx';
 
-const GuestMealTrackerDisplay = () => {
+const PatientMealTrackerDisplay = () => {
   const { accessCode } = useParams();
   const [mealPlan, setMealPlan] = useState(null);
   const [progress, setProgress] = useState({});
@@ -547,7 +547,7 @@ const GuestMealTrackerDisplay = () => {
   return (
     <div className="meal-tracker">
       <h2>
-        Meal Tracker
+        Patient Meal Plan
         {patientData?.firstName && patientData?.lastName ? 
           ` for ${patientData.firstName} ${patientData.lastName}` : 
           ''}
@@ -774,4 +774,4 @@ const GuestMealTrackerDisplay = () => {
   );
 };
 
-export default GuestMealTrackerDisplay;
+export default PatientMealTrackerDisplay;
