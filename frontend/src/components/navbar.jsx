@@ -66,13 +66,8 @@ export function NavbarCustom() {
               ) : (
                 <>
                   <Link to="/LogIn">
-                    <button className="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-l-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]">
+                    <button className="px-4 py-2 text-sm font-medium text-[#008000] border border-[#008000] rounded-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]">
                       Log in
-                    </button>
-                  </Link>
-                  <Link to="/SignUp">
-                    <button className="px-4 py-2 ml-1 text-sm font-medium text-[#008000] border border-[#008000] rounded-r-md transition duration-300 ease-in-out hover:bg-[#008000] hover:text-[#FEFEFA]">
-                      Sign up
                     </button>
                   </Link>
                 </>
