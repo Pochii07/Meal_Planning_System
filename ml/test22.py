@@ -40,26 +40,47 @@ class MealPlanner:
         
         self.rf_model, self.kmeans_model, self.scaler = self._train_models()
 
-    def _train_models(self) -> Tuple[RandomForestClassifier, KMeans, StandardScaler]:
-        # Prepare data
+    def _train_models(self) -> Tuple[RandomForestClassifier, KMeans]:
         self.data['calorie_range'] = self._create_calorie_ranges(self.data['calories'])
         self.data = self.data.dropna(subset=['calories', 'calorie_range'])
 
-        # Train Random Forest
-        X = self.data[['calories']]
-        y = self.data['calorie_range']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        train_val_split = train_test_split
+        
+        indices = np.arange(len(self.data))
+        train_indices, val_indices = train_val_split(indices, test_size=0.2, random_state=42)
+        
+        # Train Random Forest using the split indices
+        X_rf = self.data[['calories']]
+        y_rf = self.data['calorie_range']
+        
+        X_train_rf = X_rf.iloc[train_indices]
+        y_train_rf = y_rf.iloc[train_indices]
+        X_val_rf = X_rf.iloc[val_indices]
+        y_val_rf = y_rf.iloc[val_indices]
         
         rf = RandomForestClassifier(n_estimators=50, random_state=42)
-        rf.fit(X_train, y_train)
+        rf.fit(X_train_rf, y_train_rf)
+        
+        val_accuracy = rf.score(X_val_rf, y_val_rf)
 
-        # Train K-means
         features = self.data[self.dietary_columns].values
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=22, n_init='auto')
-        kmeans.fit(features_scaled)
+        features_train = features_scaled[train_indices]
+        features_val = features_scaled[val_indices]
+        
+        kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
+        kmeans.fit(features_train)
+
+        kmeans_train_inertia = kmeans.inertia_
+        kmeans_val_inertia = np.sum(np.min(
+            np.sum(np.square(features_val[:, np.newaxis] - kmeans.cluster_centers_), axis=2), 
+            axis=1)
+        )
+
+        result = val_accuracy,kmeans_train_inertia,kmeans_val_inertia
+        print(f"Model Validation accuracy: {result}")
 
         return rf, kmeans, scaler
 

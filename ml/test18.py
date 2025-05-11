@@ -41,24 +41,32 @@ class MealPlanner:
         self.rf_model, self.kmeans_model, self.scaler = self._train_models()
 
     def _train_models(self) -> Tuple[RandomForestClassifier, KMeans, StandardScaler]:
-        # Prepare data
+    # Prepare data
         self.data['calorie_range'] = self._create_calorie_ranges(self.data['calories'])
         self.data = self.data.dropna(subset=['calories', 'calorie_range'])
 
         # Train Random Forest
         X = self.data[['calories']]
         y = self.data['calorie_range']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
         
         rf = RandomForestClassifier(n_estimators=50, random_state=42)
         rf.fit(X_train, y_train)
-
+        
+        # Validate the model
+        val_accuracy = rf.score(X_val, y_val)
+        test_accuracy = rf.score(X_test, y_test)
+        print(f"Validation accuracy: {val_accuracy:.4f}, Test accuracy: {test_accuracy:.4f}")
+        
         # Train K-means
         features = self.data[self.dietary_columns].values
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=5, n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -276,7 +284,7 @@ def main():
     )
     
     preferences = DietaryPreferences(
-        vegetarian=True,
+        # vegetarian=True,
         # low_purine =True,
         # low_fat = True,
         # low_sodium= True,
