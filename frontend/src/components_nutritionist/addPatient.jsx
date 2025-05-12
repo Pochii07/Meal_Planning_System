@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { patientService } from '../services/patientService';
+import { UnitConversionInputs } from './conversion';
 import { DIETARY_PREFERENCES, DIETARY_RESTRICTIONS } from './dietary.js';
 
 const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
@@ -21,6 +22,8 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  const unitConversionRef = React.useRef();
 
   useEffect(() => {
     let timer;
@@ -96,6 +99,10 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    const { weightInKg, heightInCm, displayWeight, displayHeight, weightUnit, heightUnit } = 
+      unitConversionRef.current ? unitConversionRef.current.getConvertedValues() : 
+      { weightInKg: weight, heightInCm: height, displayWeight: '', displayHeight: '', weightUnit: 'kg', heightUnit: 'cm' };
   
     if (!showConfirmation) {
       // Validate form fields
@@ -109,8 +116,8 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
         firstName,
         lastName,
         age,
-        weight,
-        height,
+        weight: weightInKg + (weightUnit === 'kg' ? ' kg' : ` kg (${displayWeight} lbs)`),
+        height: heightInCm + (heightUnit === 'cm' ? ' cm' : ` cm (${displayHeight})`),
         gender: gender === 'M' ? 'Male' : 'Female',
         activityLevel: getActivityLevelLabel(activityLevel),
         preferences: selectedPreferences.length > 0 ? selectedPreferences : ['None selected'],
@@ -125,8 +132,8 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
           firstName,
           lastName,
           age,
-          height,
-          weight,
+          height: heightInCm,
+          weight: weightInKg,
           gender,
           activity_level: activityLevel,
           preference: selectedPreferences.length > 0 ? selectedPreferences.join(', ') : "None",
@@ -190,10 +197,10 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
               <span className="font-medium">Age:</span> {formData?.age}
             </div>
             <div className="confirmation-item">
-              <span className="font-medium">Weight:</span> {formData?.weight} kg
+              <span className="font-medium">Weight:</span> {formData?.weight}
             </div>
             <div className="confirmation-item">
-              <span className="font-medium">Height:</span> {formData?.height} cm
+              <span className="font-medium">Height:</span> {formData?.height}
             </div>
             <div className="confirmation-item">
               <span className="font-medium">Gender:</span> {formData?.gender}
@@ -275,26 +282,14 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                <input
-                  type="number"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-3/5 p-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
-                <input
-                  type="number"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="w-3/5 p-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  required
-                />
-              </div>
+              <UnitConversionInputs
+                ref={unitConversionRef}
+                weight={weight}
+                setWeight={setWeight}
+                height={height}
+                setHeight={setHeight}
+                className="col-span-2"
+              />
             </div>
             {/* Gender Select */}
             <div>

@@ -7,6 +7,14 @@ import useCopyToClipboard from '../hooks/use_clipboard';
 import useForceUpdate from '../hooks/use_force_update';
 import { patientService } from '../services/patientService';
 
+export const BMI_CATEGORIES = [ 
+  { label: 'Underweight', range: [0, 18.4] }, 
+  { label: 'Normal', range: [18.5, 22.9] }, 
+  { label: 'Overweight', range: [23, 24.99] }, 
+  { label: 'Obese I', range: [25, 29.9] }, 
+  { label: 'Obese II', range: [30, Infinity] } 
+];
+
 const PatientTable = ({ patients: propsPatients, 
   onRemove, 
   onRegenerateMealPlan, 
@@ -54,24 +62,23 @@ const PatientTable = ({ patients: propsPatients,
   const calculateProgress = (progress, skippedMeals) => {
     if (!progress) return { percent: 0, completed: 0, total: 0 };
   
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const meals = ["breakfast", "lunch", "dinner"];
     let completed = 0;
-    let total = 0;
+    const total = 21; // 7 days × 3 meals
   
     days.forEach((day) => {
       meals.forEach((meal) => {
-        if (!skippedMeals?.[day]?.[meal]) {
-          if (progress[day]?.[meal]) {
-            completed++;
-          }
-          total++;
+        if (progress[day]?.[meal] && !skippedMeals?.[day]?.[meal]) {
+          completed++;
         }
       });
     });
   
     return {
-      percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+      percent: Math.round((completed / total) * 100),
       completed,
-      total: total || 21,
+      total,
     };
   };
   
@@ -233,6 +240,19 @@ const PatientTable = ({ patients: propsPatients,
     }
   };
 
+  const getBMICategory = (bmi) => {
+    if (!bmi) return 'Unknown';
+    
+    const numericBMI = parseFloat(bmi);
+    if (isNaN(numericBMI)) return 'Unknown';
+    
+    const category = BMI_CATEGORIES.find(
+      cat => numericBMI >= cat.range[0] && numericBMI <= cat.range[1]
+    );
+    
+    return category ? category.label : 'Unknown';
+  };
+
   return (
     <div className="patient-table-container bg-white">
         <div className="patient-table-header">
@@ -268,7 +288,18 @@ const PatientTable = ({ patients: propsPatients,
                       <div className="text-sm text-gray-900">{patient.age}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{patient.BMI}</div>
+                      <div className="flex items-center">
+                        <div className="text-sm text-gray-900 mr-2">{parseFloat(patient.BMI).toFixed(1)}</div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          patient.BMI < 18.5 ? 'bg-blue-200 text-blue-800' :
+                          patient.BMI < 23 ? 'bg-green-200 text-green-800' :
+                          patient.BMI < 25 ? 'bg-yellow-300 text-yellow-800' :
+                          patient.BMI < 30 ? 'bg-orange-200 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {getBMICategory(patient.BMI)}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
@@ -328,7 +359,7 @@ const PatientTable = ({ patients: propsPatients,
                           setOpenRemoveDialog(true);
                         }}
                       >
-                        Remove
+                        Dismiss
                       </button>
                     </td>
                   </tr>
@@ -352,7 +383,13 @@ const PatientTable = ({ patients: propsPatients,
                               </p>
                               <div className="border-b border-gray-200 my-2"></div>
                               <p className="text-sm text-gray-600">
-                                BMI: {patient.BMI}
+                                BMI: {parseFloat(patient.BMI).toFixed(1)} <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  patient.BMI < 18.5 ? 'bg-blue-200 text-blue-800' :
+                                  patient.BMI < 23 ? 'bg-green-200 text-green-800' :
+                                  patient.BMI < 25 ? 'bg-yellow-300 text-yellow-800' :
+                                  patient.BMI < 30 ? 'bg-orange-200 text-orange-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>{getBMICategory(patient.BMI)}</span>
                               </p>
                               <p className="text-sm text-gray-600">
                                 TDEE: {patient.TDEE} calories

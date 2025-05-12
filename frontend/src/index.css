@@ -503,17 +503,19 @@ input[type="number"]:focus.border-red-500 {
 
 
 .patient-table-header th:nth-child(2), /* Age */
+.patient-table-body td:nth-child(2) {
+  width: 100px; /* Fixed width for Age/BMI columns */
+}   /* Age */
+
 .patient-table-header th:nth-child(3), /* BMI */
-.patient-table-body td:nth-child(2),   /* Age */
 .patient-table-body td:nth-child(3) {  /* BMI */
-  width: 80px; /* Fixed width for Age/BMI columns */
-  min-width: 80px;
-  max-width: 80px;
+  width: 180px;
+  max-width: 180px;
 }
 
 .patient-table-header th:nth-child(1),
 .patient-table-body td:nth-child(1) {
-  width: 29%; /* Percentage-based width for Name column */
+  width: 24%; /* Percentage-based width for Name column */
   min-width: 200px; /* Minimum width to prevent squeezing */
 }
 
