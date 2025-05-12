@@ -1,4 +1,5 @@
 const DIETARY_PREFERENCES = [
+    "None",
     "Vegetarian",
     "Low-Purine",
     "Low-Fat/Heart-Healthy",
@@ -6,6 +7,7 @@ const DIETARY_PREFERENCES = [
 ];
   
 const DIETARY_RESTRICTIONS = [
+    "None",
     "Lactose Free",
     "Peanut Allergy",
     "Shellfish Allergy",

@@ -220,6 +220,19 @@ const PatientTable = ({ patients: propsPatients,
     }
   }, [expandedPatientId]);
 
+  const getActivityLevelLabel = (value) => {
+    const activityValue = String(value);
+    
+    switch(activityValue) {
+      case '1.2': return 'Sedentary';
+      case '1.4': return 'Lightly Active';
+      case '1.5': return 'Moderately Active';
+      case '1.7': return 'Very Active';
+      case '1.9': return 'Extra Active';
+      default: return value; 
+    }
+  };
+
   return (
     <div className="patient-table-container bg-white">
         <div className="patient-table-header">
@@ -360,15 +373,15 @@ const PatientTable = ({ patients: propsPatients,
                                 </div>
                               </p>
                             </div>
-                            <div>
-                              <p className="text-sm text-gray-600">
-                                Activity Level: {patient.activity_level}
-                              </p>
+                            <div>                             
                               <p className="text-sm text-gray-600">
                                 Dietary Preference: {patient.preference}  
                               </p>
                               <p className="text-sm text-gray-600">
                                 Restrictions: {patient.restrictions}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Activity Level: {getActivityLevelLabel(patient.activity_level)} ({patient.activity_level})
                               </p>
                             </div>
                           </div>

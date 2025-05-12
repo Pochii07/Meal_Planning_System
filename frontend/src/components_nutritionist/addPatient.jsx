@@ -11,8 +11,8 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
   const [gender, setGender] = useState('')
   const [activityLevel, setActivityLevel] = useState('')
   
-  const [selectedPreferences, setSelectedPreferences] = useState([]);
-  const [selectedRestrictions, setSelectedRestrictions] = useState([]);
+  const [selectedPreferences, setSelectedPreferences] = useState(["None"]);
+  const [selectedRestrictions, setSelectedRestrictions] = useState(["None"]);
   const [error, setError] = useState(null);
   
   // Add state for confirmation
@@ -33,20 +33,48 @@ const AddPatientForm = ({ onSubmit, dispatch, setIsFormOpen }) => {
   }, [showSuccessMessage]);
 
   const handlePreferenceChange = (value) => {
-    setSelectedPreferences(prev =>
-      prev.includes(value)
-        ? prev.filter(p => p !== value)
-        : [...prev, value]
-    );
+    if (value === "None") {
+      // If "None" is selected, clear all other preferences and only select "None"
+      setSelectedPreferences(["None"]);
+    } else {
+      setSelectedPreferences(prev => {
+        // If any other preference is selected, remove "None" from the list
+        const newPrefs = prev.filter(p => p !== "None");
+        
+        // Toggle the selected preference
+        if (newPrefs.includes(value)) {
+          // If no preferences would be left, select "None"
+          const filtered = newPrefs.filter(p => p !== value);
+          return filtered.length === 0 ? ["None"] : filtered;
+        } else {
+          return [...newPrefs, value];
+        }
+      });
+    }
   };
 
+  // ... existing code ...
   const handleRestrictionChange = (value) => {
-    setSelectedRestrictions(prev =>
-      prev.includes(value)
-        ? prev.filter(r => r !== value)
-        : [...prev, value]
-    );
+    if (value === "None") {
+      // If "None" is selected, clear all other restrictions and only select "None"
+      setSelectedRestrictions(["None"]);
+    } else {
+      setSelectedRestrictions(prev => {
+        // If any other restriction is selected, remove "None" from the list
+        const newRestrictions = prev.filter(r => r !== "None");
+        
+        // Toggle the selected restriction
+        if (newRestrictions.includes(value)) {
+          // If no restrictions would be left, select "None"
+          const filtered = newRestrictions.filter(r => r !== value);
+          return filtered.length === 0 ? ["None"] : filtered;
+        } else {
+          return [...newRestrictions, value];
+        }
+      });
+    }
   };
+// ... existing code ...
 
   const getActivityLevelLabel = (value) => {
     switch(value) {
