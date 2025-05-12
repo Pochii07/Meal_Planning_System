@@ -33,6 +33,8 @@ const NutritionistDashboard = () => {
 
   const [currSearchText, setCurrSearchText] = useState('');
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [filteredArchivedPatients, setFilteredArchivedPatients] = useState([]);
+  const [archivedPatients, setArchivedPatients] = useState([]);
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'archived'
 
   const {
@@ -123,6 +125,10 @@ const NutritionistDashboard = () => {
         setLoading(true);
         const fetchedPatients = await patientService.fetchPatients();
         dispatch({ type: 'SET_PATIENTS', payload: fetchedPatients });
+
+        const fetchedArchivedPatients = await patientService.fetchArchivedPatients();
+        setArchivedPatients(fetchedArchivedPatients || []);
+        setFilteredArchivedPatients(fetchedArchivedPatients || []);
       } catch (error) {
         console.error('Error fetching patients:', error);
         setError('Failed to fetch patients');
@@ -179,30 +185,58 @@ const NutritionistDashboard = () => {
 
   const handleSearch = (searchText, filterType) => {
     setCurrSearchText(searchText);
-    if (!patients) {
-      setFilteredPatients([]);
-      return;
-    }
-  
-    const filtered = patients.filter(patient => {
-      if (!searchText) return true;
-
-      switch (filterType) {
-        case 'name':
-          return `${patient.firstName} ${patient.lastName}`
-            .toLowerCase()
-            .includes(searchText.toLowerCase());
-        case 'age':
-          return patient.age.toString() === searchText;
-        case 'bmi':
-          const category = BMI_CATEGORIES.find(c => c.label === searchText);
-          if (!category) return false;
-          return patient.BMI >= category.range[0] && patient.BMI <= category.range[1];
-        default:
-          return true;
+    if (activeTab === 'active') {
+      if (!patients) {
+        setFilteredPatients([]);
+        return;
       }
-    });
-    setFilteredPatients(filtered);
+      
+      const filtered = patients.filter(patient => {
+        if (!searchText) return true;
+  
+        switch (filterType) {
+          case 'name':
+            return `${patient.firstName} ${patient.lastName}`
+              .toLowerCase()
+              .includes(searchText.toLowerCase());
+          case 'age':
+            return patient.age.toString() === searchText;
+          case 'bmi':
+            const category = BMI_CATEGORIES.find(c => c.label === searchText);
+            if (!category) return false;
+            return patient.BMI >= category.range[0] && patient.BMI <= category.range[1];
+          default:
+            return true;
+        }
+      });
+      setFilteredPatients(filtered);
+    } else {
+      // Filter archived patients
+      if (!archivedPatients) {
+        setFilteredArchivedPatients([]);
+        return;
+      }
+      
+      const filtered = archivedPatients.filter(patient => {
+        if (!searchText) return true;
+  
+        switch (filterType) {
+          case 'name':
+            return `${patient.firstName} ${patient.lastName}`
+              .toLowerCase()
+              .includes(searchText.toLowerCase());
+          case 'age':
+            return patient.age.toString() === searchText;
+          case 'bmi':
+            const category = BMI_CATEGORIES.find(c => c.label === searchText);
+            if (!category) return false;
+            return patient.BMI >= category.range[0] && patient.BMI <= category.range[1];
+          default:
+            return true;
+        }
+      });
+      setFilteredArchivedPatients(filtered);
+    }
   };
 
   return (
@@ -246,7 +280,8 @@ const NutritionistDashboard = () => {
         )}
       </div>
       <PatientSearchBar 
-        onSearchChange={handleSearch}
+         key={activeTab} 
+         onSearchChange={handleSearch}
       />
       {/* Patient Form */}
       {isFormOpen && (
@@ -280,7 +315,7 @@ const NutritionistDashboard = () => {
           regeneratePatientId={regeneratePatientId}
       />
       ) : (
-        <ArchivedPatientTable />
+        <ArchivedPatientTable filteredPatients={filteredArchivedPatients} />
       )}
       <Dialog
       open={openRemoveDialog}

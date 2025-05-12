@@ -239,7 +239,7 @@ const PatientTable = ({ patients: propsPatients,
         <div className="patient-table-body">
           {(!patients || patients.length === 0) ? (
             <div className='text-center text-gray-500 py-2'>
-              No Patients found.
+              No patients found.
             </div>
           ) : (
             <table>

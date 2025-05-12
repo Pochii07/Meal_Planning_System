@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { patientService } from '../services/patientService';
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context';
 
-const ArchivedPatientTable = () => {
+const ArchivedPatientTable = ({ filteredPatients }) => {
   const [archivedPatients, setArchivedPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { dispatch } = useNutritionistPatientContext();
+  
+  // Display either filtered patients (if provided) or all archived patients
+  const patientsToDisplay = filteredPatients || archivedPatients;
 
   useEffect(() => {
     const fetchArchivedPatients = async () => {
@@ -48,7 +51,7 @@ const ArchivedPatientTable = () => {
   if (archivedPatients.length === 0) return <div className="text-center text-gray-600 py-8">No archived patients found.</div>;
 
   return (
-    <div className="patient-table-container bg-white">
+    <div className="patient-table-container bg-white rounded-lg shadow-md overflow-hidden">
       <div className="patient-table-header">
         <table>
           <thead>
@@ -64,38 +67,44 @@ const ArchivedPatientTable = () => {
       </div>
       
       <div className="patient-table-body">
-        <table>
-          <tbody>
-            {archivedPatients.map(patient => (
-              <tr key={patient._id} className="hover:bg-gray-50 transition-colors">
-                <td className="td-name whitespace-normal break-words max-w-[200px]">
-                  <div className="text-sm font-medium text-gray-900 uppercase">
-                    {`${patient.lastName}, ${patient.firstName}`}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{patient.age}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{patient.BMI}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {patient.archivedAt ? new Date(patient.archivedAt).toLocaleDateString() : 'N/A'}
-                  </div>
-                </td>
-                <td className="px-6 whitespace-nowrap text-sm font-medium">
-                  <button
-                    className="text-green-600 hover:text-green-900 cursor-pointer"
-                    onClick={() => handleRestore(patient._id)}
-                  >
-                    Restore Patient
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {patientsToDisplay.length === 0 ? (
+          <div className='text-center text-gray-500 py-4'>
+            No patients found.
+          </div>
+        ) : (
+          <table>
+            <tbody>
+              {patientsToDisplay.map(patient => (
+                <tr key={patient._id} className="hover:bg-gray-50 transition-colors">
+                  <td className="td-name whitespace-normal break-words max-w-[200px]">
+                    <div className="text-sm font-medium text-gray-900 uppercase">
+                      {`${patient.lastName}, ${patient.firstName}`}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{patient.age}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{patient.BMI}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {patient.archivedAt ? new Date(patient.archivedAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-6 whitespace-nowrap text-sm font-medium">
+                    <button
+                      className="text-green-600 hover:text-green-900 cursor-pointer"
+                      onClick={() => handleRestore(patient._id)}
+                    >
+                      Restore Patient
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

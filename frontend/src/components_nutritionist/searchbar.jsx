@@ -16,7 +16,7 @@ const PatientSearchBar = ({ onSearchChange }) => {
     const initialSearch = '';
     const initialFilter = 'name';
     onSearchChange?.(initialSearch, initialFilter);
-  }, []);
+  }, []); 
 
   const handleSearchChange = (e) => {
     setSearchText(e.target.value);
