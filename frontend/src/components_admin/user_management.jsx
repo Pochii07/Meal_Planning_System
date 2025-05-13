@@ -5,12 +5,15 @@ const AddUsersSection = ({ selectedRole, setSelectedRole, username, setUsername,
   <div className="bg-white p-6 rounded-lg w-full">
     <div className="flex justify-between items-center mb-6">
       <h2 className="text-2xl font-semibold">Add New User</h2>
-      <button 
-        onClick={() => setActiveSection(null)}
-        className="px-3 py-1 text-gray-600 hover:text-gray-800"
-      >
-        ← Back
-      </button>
+        <button 
+          onClick={() => {
+            setActiveSection(null);
+            setError('');
+          }}
+          className="px-3 py-1 text-gray-600 hover:text-gray-800"
+        >
+          ← Back
+        </button>
     </div>
     <p className="text-gray-600 mb-6">Add new users to the system and set their roles.</p>
     {error && (
@@ -146,6 +149,173 @@ const AddUsersSection = ({ selectedRole, setSelectedRole, username, setUsername,
     </form>
   </div>
 );
+
+const ManageRoles = ({ setActiveSection, success, error, setError, setSuccess }) => {
+  const [userIdentifier, setUserIdentifier] = useState('');
+  const [userExists, setUserExists] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const checkUserExistsAPI = useAuthStore(state => state.checkUserExists);
+  const updateUserPassword = useAuthStore(state => state.updateUserPassword);
+  
+  const checkUserExists = async (e) => {
+    e.preventDefault();
+    
+    if (userIdentifier.trim() === '') {
+      setError('Please enter a username or email');
+      return;
+    }
+    
+    try {
+      // Call the API function from authStore
+      const response = await checkUserExistsAPI(userIdentifier);
+      
+      if (response.success) {
+        setUserExists(true);
+        setError('');
+      } else {
+        setUserExists(false);
+        setError(response.message || 'User does not exist');
+      }
+    } catch (error) {
+      setUserExists(false);
+      setError(error.message || 'Error checking user');
+    }
+  };
+
+  // Add handleUpdatePassword function to ManageRoles component
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    
+    if (newPassword.trim() === '' || confirmPassword.trim() === '') {
+      setError('Please enter both passwords');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    try {
+      // Call the updatePassword function from authStore
+      const response = await updateUserPassword(userIdentifier, newPassword);
+      
+      if (response.success) {
+        setSuccess('Password updated successfully');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setSuccess('');
+          setUserIdentifier('');
+          setUserExists(false);
+        }, 3000);
+      } else {
+        setError(response.message || 'Failed to update password');
+      }
+    } catch (error) {
+      setError(error.message || 'Error updating password');
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg w-full">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold">Modify User</h2>
+        <button 
+          onClick={() => {
+            setActiveSection(null);
+            setError('');
+          }}
+          className="px-3 py-1 text-gray-600 hover:text-gray-800"
+        >
+          ← Back
+        </button>
+      </div>
+      <p className="text-gray-600 mb-6">Change user password via admin power.</p>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          {success}
+        </div>
+      )}
+      
+      <form onSubmit={checkUserExists} className="flex flex-col gap-3 w-full">
+        <div className="flex flex-col w-full">
+          <label htmlFor="userIdentifier" className="text-sm text-gray-600 mb-1">
+            Username or Email
+          </label>
+          <div className="flex flex-row gap-3">
+            <input
+              type="text"
+              id="userIdentifier"
+              name="userIdentifier"
+              value={userIdentifier}
+              onChange={(e) => setUserIdentifier(e.target.value)}
+              placeholder="Enter username or email"
+              className="border rounded px-3 py-1.5 text-sm w-full md:w-1/2 placeholder-gray-400"
+              required
+            />
+            <div className="flex justify-end mt-2.5">
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded transition text-sm"
+              >
+                Verify User
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+      
+      {userExists && (
+        <form onSubmit={handleUpdatePassword} className="flex flex-col gap-3 w-full mt-4">
+          <div className="flex flex-col md:flex-row gap-3 w-full">
+            <div className="flex flex-col w-full md:w-1/2">
+              <label htmlFor="password" className="text-sm text-gray-600 mb-1">New Password</label>
+              <input
+                type="password"
+                id="newPassword"
+                name="newPassword"
+                placeholder="Enter new password"
+                className="border rounded px-3 py-1.5 text-sm w-full placeholder-gray-400"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col w-full md:w-1/2">
+              <label htmlFor="confirmPassword" className="text-sm text-gray-600 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                placeholder="Confirm new password"
+                className="border rounded px-3 py-1.5 text-sm w-full placeholder-gray-400"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-2">
+            <button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded transition text-sm"
+            >
+              Update Password
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
 const UserManagement = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -216,13 +386,20 @@ const UserManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div 
-          className="p-4 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
+          className="p-3 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
           onClick={() => setActiveSection('addUsers')}
         >
           <h3 className="font-medium text-lg">Add Users</h3>
           <p className="text-gray-500">Create new user accounts</p>
         </div>
-      </div>
+        <div 
+          className="p-3 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
+          onClick={() => setActiveSection('modifyUsers')}
+        >
+          <h3 className="font-medium text-lg">Modify Users</h3>
+          <p className="text-gray-500">Change passwords directly</p>
+        </div>
+      </div>     
     </>
   );
 
@@ -254,9 +431,13 @@ const UserManagement = () => {
           success={success}
           setSuccess={setSuccess}
         /> 
-      ) : activeSection === 'manageRoles' ? (
+      ) : activeSection === 'modifyUsers' ? (
         <ManageRoles 
           setActiveSection={setActiveSection} 
+          error={error}
+          setError={setError} 
+          success={success}
+          setSuccess={setSuccess}
         />
       ) : (
         <MainPanel />

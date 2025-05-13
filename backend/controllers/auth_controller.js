@@ -423,5 +423,92 @@ const adminSignup = async (req, res) => {
     }
 };
 
+const checkUserExists = async (req, res) => {
+    const { email } = req.body;
+    
+    try {
+        // Validate input
+        if (!email || email.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide existing user'
+            });
+        }
 
-module.exports = { signup, adminSignup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken };
+        const user = await User.findOne({ email: email });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User does not exist'
+            });
+        }
+        
+        // Return success without exposing sensitive user data
+        return res.status(200).json({
+            success: true,
+            message: 'User exists',
+            email: user.email
+        });
+        
+    } catch (error) {
+        console.error('Error checking user existence:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error while checking user'
+        });
+    }
+};
+
+const updateUserPassword = async (req, res) => {
+  const { email, newpassword } = req.body;
+  
+  try {
+    // Validate input
+    if (!email || !newpassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+    
+    // Find the user by email or username
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    const hashPassword = await bcrypt.hash(newpassword, 10)
+    
+    user.password = hashPassword;
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { password: hashPassword } }
+    );
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while updating password'
+    });
+  }
+};
+
+// Don't forget to export the function
+module.exports = {
+  // ... other exports
+  updateUserPassword
+};
+
+
+module.exports = { signup, adminSignup, createVerificationToken, login, logout, verifyEmail, forgotPassword, resetPassword, checkAuth, checkPasswordResetToken, checkUserExists, updateUserPassword };

@@ -309,4 +309,50 @@ export const useAuthStore = create((set, get) => ({
             throw error
         }
     },
+    checkUserExists: async (email) => {
+        set({ isLoading: true, error: null });
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/check_user_exists`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ email })
+            });
+            
+            const data = await response.json();
+            
+            set({ isLoading: false });
+            return data;
+        } catch (error) {
+            set({ isLoading: false, error: error.message });
+            throw error;
+        }
+    },
+    updateUserPassword: async (email, newpassword) => {
+        set({ isLoading: true, error: null });
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/admin_change_password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ email, newpassword })
+            });
+            
+            const data = await response.json();
+            
+            set({ isLoading: false });
+            return data;
+        } catch (error) {
+            set({ isLoading: false, error: error.message });
+            throw error;
+        }
+    },
+
+    
 }));
