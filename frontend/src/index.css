@@ -33,7 +33,7 @@ header a {
   text-decoration: none;
 }
 .pages{
-  max-width: 1400px;
+  max-width: 1600px; /* Increased from 1400px */
   padding: 20px;
   margin: 0 auto;
 }
@@ -202,10 +202,9 @@ input.error {
 }
 
 .day-card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .day-card h3 {
@@ -391,6 +390,66 @@ button:disabled {
   background-color: #2d3748;
 }
 
+/* Nutritionist Notes styling for the dashboard */
+.nutritionist-note {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background-color: rgba(16, 185, 129, 0.05);
+  border-radius: 0.375rem;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  font-style: italic;
+  position: relative;
+}
+
+.nutritionist-note-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+.nutritionist-note-header svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-right: 0.375rem;
+}
+
+.nutritionist-note-content {
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+/* Note editing styles */
+.note-edit-form {
+  margin-top: 0.5rem;
+}
+
+.note-edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  resize: vertical;
+}
+
+.note-edit-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .meal-grid {
@@ -564,4 +623,163 @@ input[type="number"]:focus.border-red-500 {
   border-radius: 0.25rem;
   border: 1px solid rgba(0, 128, 0, 0.1);
   font-style: italic;
+}
+
+.nutritionist-dashboard {
+  max-width: 2500px !important;
+}
+
+/* Keep the meal styling */
+.meal-details {
+  position: relative;
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.meal-details:hover {
+  transform: translateY(-2px);
+}
+
+/* Days row layout - horizontal cards */
+.days-row {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  gap: 8px;
+}
+
+/* Individual day card */
+.day-card-container {
+  flex: 1;
+  min-width: 0; /* Allow shrinking below content size */
+  max-width: calc(100% / 7); /* Equal width for 7 days */
+}
+
+.day-card {
+  height: 100%;
+  min-height: 600px; /* Set a reasonable height */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: 700px; /* Limit maximum height */
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  scrollbar-width: thin;
+}
+
+/* Vertical day card styling */
+.day-card-vertical {
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #34d399;
+  border-radius: 0.5rem;
+}
+
+/* Alternate day colors for better visual separation */
+.day-card-vertical:nth-child(odd) {
+  border-left-color: #60a5fa;
+}
+
+.day-card-vertical:nth-child(even) {
+  border-left-color: #34d399;
+}
+
+/* Additional styles for meal details */
+.meal-details {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Daily total callout */
+.daily-total {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Vertical meals layout */
+.day-card .meal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Horizontal meal components */
+.meal-components {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 8px;
+  overflow-x: auto; /* Allow horizontal scroll if needed */
+  padding-bottom: 8px;
+}
+
+.meal-components.grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  flex-direction: column !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* Component container styles */
+.component-container {
+  width: 100%;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+/* Make text wrap properly inside components */
+.component-container p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.meal-component {
+  flex: 1 1 0;
+  min-width: 120px;
+}
+
+/* Two-column grid for days */
+.days-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Adjust vertical day card for grid layout */
+.day-card-vertical {
+  margin-bottom: 1rem;
+  border-left: 4px solid #34d399;
+  border-radius: 0.5rem;
+  width: 100%;
+}
+
+/* Make Sunday span the full width if needed */
+.days-grid > div:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  max-width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Keep the alternating colors */
+.day-card-vertical:nth-child(4n+1),
+.day-card-vertical:nth-child(4n+4) {
+  border-left-color: #60a5fa;
+}
+
+.day-card-vertical:nth-child(4n+2),
+.day-card-vertical:nth-child(4n+3) {
+  border-left-color: #34d399;
+}
+
+/* Make sure the day cards have enough height */
+.day-card-vertical .bg-white {
+  min-height: 400px;
 }

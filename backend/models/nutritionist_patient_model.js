@@ -2,11 +2,13 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const MealSchema = new Schema({
+    // Main meal names
     breakfast: { type: String, default: '' },
     lunch: { type: String, default: '' },
     dinner: { type: String, default: '' },
     date: { type: Date },
-    // Add meal details for calorie information
+    
+    // Meal details - calories information
     breakfast_details: {
         calories: { type: Number, default: 0 },
         servings: { type: Number, default: 1 },
@@ -21,7 +23,75 @@ const MealSchema = new Schema({
         calories: { type: Number, default: 0 },
         servings: { type: Number, default: 1 },
         total_calories: { type: Number, default: 0 }
-    }
+    },
+    
+    // Rice components
+    breakfast_rice: {
+        title: { type: String, default: 'Rice' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    lunch_rice: {
+        title: { type: String, default: 'Rice' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    dinner_rice: {
+        title: { type: String, default: 'Rice' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    
+    // Side dish components
+    breakfast_side_dish: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    lunch_side_dish: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    dinner_side_dish: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    
+    // Drink components
+    breakfast_drink: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    lunch_drink: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    dinner_drink: {
+        title: { type: String, default: '' },
+        servings: { type: Number, default: 1 },
+        calories: { type: Number, default: 0 },
+        total_calories: { type: Number, default: 0 }
+    },
+    
+    // Total meal calories
+    breakfast_meal_total: { type: Number, default: 0 },
+    lunch_meal_total: { type: Number, default: 0 },
+    dinner_meal_total: { type: Number, default: 0 },
+    
+    // Daily total calories
+    total_calories: { type: Number, default: 0 }
 });
 
 const ProgressSchema = new Schema({
