@@ -476,7 +476,7 @@ const PatientTable = ({ patients: propsPatients,
                                               <div className="flex justify-between items-center">
                                                 <span className="text-sm font-medium text-yellow-800">Rice</span>
                                                 <span className="text-xs bg-yellow-100 px-2 py-1 rounded">
-                                                  {dayData[`${meal}_rice`].servings} serving(s)
+                                                  {dayData[`${meal}_rice`].servings} cup(s)
                                                 </span>
                                               </div>
                                               <p className="text-sm">{dayData[`${meal}_rice`].title}</p>
