@@ -525,12 +525,12 @@ const PatientTable = ({ patients: propsPatients,
                                           )}
                                           
                                           {/* Total meal calories */}
-                                          {dayData[`${meal}_meal_total`] && (
+                                          {/* {dayData[`${meal}_meal_total`] && (
                                             <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between">
                                               <span className="text-sm font-medium">Meal Total:</span>
                                               <span className="text-sm font-bold">{dayData[`${meal}_meal_total`]} kcal</span>
                                             </div>
-                                          )}
+                                          )} */}
                                           
                                           {/* Nutritionist Note Section */}
                                           <div className="mt-2">
@@ -607,12 +607,12 @@ const PatientTable = ({ patients: propsPatients,
                                   </div>
                                   
                                   {/* Daily total calories */}
-                                  {patient.prediction?.[day]?.total_calories && (
+                                  {/* {patient.prediction?.[day]?.total_calories && (
                                     <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex justify-between items-center">
                                       <span className="font-medium text-gray-700">Daily Total:</span>
                                       <span className="font-bold text-green-600">{patient.prediction[day].total_calories} kcal</span>
                                     </div>
-                                  )}
+                                  )} */}
                                 </div>
                               </div>
                             ))}                    
