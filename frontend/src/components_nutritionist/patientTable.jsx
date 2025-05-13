@@ -367,8 +367,30 @@ const PatientTable = ({ patients: propsPatients,
                     <tr>
                       <td ref={expandRef} colSpan="6" className="px-5 py-0 bg-gray-50">
                         <div className="mt-4 p-4 bg-white rounded-lg shadow">
-                          <h4 className="font-semibold text-gray-700 mb-2">
-                            Patient Details of <span className="text-green-600">{`${patient.firstName.toUpperCase()} ${patient.lastName.toUpperCase()}`}</span>
+                          <h4 className="font-semibold text-gray-700 mb-2 flex justify-between items-center">
+                            <span>Patient Details of <span className="text-green-600">{`${patient.firstName.toUpperCase()} ${patient.lastName.toUpperCase()}`}</span></span>
+                            <div className="flex gap-2">
+                              <button
+                                className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300 flex items-center"
+                                onClick={() => handleViewHistory(patient._id)}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                History
+                              </button>
+                              {patient.progress && (
+                                <button
+                                  className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition duration-300 flex items-center"
+                                  onClick={() => handleConfirmRegenerate(patient._id)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  Regenerate
+                                </button>
+                              )}
+                            </div>
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -667,22 +689,6 @@ const PatientTable = ({ patients: propsPatients,
                               </div>
                             ))}                    
                           </div>
-                        </div>
-                        <div className='flex justify-end mt-0 gap-2'>
-                          <button
-                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300"
-                              onClick={() => handleViewHistory(patient._id)}
-                          >
-                              View History
-                          </button>
-                          {patient.progress && (
-                            <button
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
-                              onClick={() => handleConfirmRegenerate(patient._id)}
-                            >
-                              Regenerate Meal Plan
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>

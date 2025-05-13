@@ -101,10 +101,10 @@ const NutritionistDashboard = () => {
         type: 'ARCHIVE_PATIENT', 
         payload: archivedPatient
       });
+
+      setArchivedPatients([archivedPatient, ...archivedPatients]);
+      setFilteredArchivedPatients([archivedPatient, ...filteredArchivedPatients]);
       
-      console.log("Creating toast");
-      // Toast creation code
-      console.log("Toast created and appended");
       const successToast = document.createElement('div');
       successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
       successToast.innerHTML = '<span class="mr-2">✅</span> Patient archived successfully!';
@@ -315,7 +315,14 @@ const NutritionistDashboard = () => {
           regeneratePatientId={regeneratePatientId}
       />
       ) : (
-        <ArchivedPatientTable filteredPatients={filteredArchivedPatients} />
+        <ArchivedPatientTable 
+          filteredPatients={filteredArchivedPatients} 
+          onPatientRestore={(patientId) => {
+            // Update the archived patients list in parent component
+            setArchivedPatients(archivedPatients.filter(p => p._id !== patientId));
+            setFilteredArchivedPatients(filteredArchivedPatients.filter(p => p._id !== patientId));
+          }}
+        />
       )}
       <Dialog
       open={openRemoveDialog}

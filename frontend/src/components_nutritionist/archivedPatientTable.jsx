@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { patientService } from '../services/patientService';
 import { useNutritionistPatientContext } from '../hooks/use_nutritionist_patient_context';
 
-const ArchivedPatientTable = ({ filteredPatients }) => {
+const ArchivedPatientTable = ({ filteredPatients, onPatientRestore }) => {
   const [archivedPatients, setArchivedPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,6 +35,10 @@ const ArchivedPatientTable = ({ filteredPatients }) => {
 
       setArchivedPatients(archivedPatients.filter(patient => patient._id !== patientId));
       dispatch({ type: 'RESTORE_PATIENT', payload: restoredPatient });
+
+      if (onPatientRestore) {
+        onPatientRestore(patientId);
+      }
 
       const successToast = document.createElement('div');
       successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50 animate-fade-in-up';
