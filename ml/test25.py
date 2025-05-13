@@ -520,19 +520,19 @@ def main():
         lunch_path='lunch_final_updated_recipes_1.csv'
     )
 
-    # Comprehensive evaluation
-    print("\nRunning Comprehensive Evaluation...")
-    results, overall_metrics = comprehensive_evaluation(planner)
+    # # Comprehensive evaluation
+    # print("\nRunning Comprehensive Evaluation...")
+    # results, overall_metrics = comprehensive_evaluation(planner)
     
-    print("\nComprehensive Evaluation Results:")
-    print("-" * 40)
-    print(f"Overall Accuracy:  {overall_metrics['accuracy']:.4f}")
-    print(f"Overall Precision: {overall_metrics['precision']:.4f}")
-    print(f"Overall Recall:    {overall_metrics['recall']:.4f}")
-    print(f"Overall F1 Score:  {overall_metrics['f1_score']:.4f}")
+    # print("\nComprehensive Evaluation Results:")
+    # print("-" * 40)
+    # print(f"Overall Accuracy:  {overall_metrics['accuracy']:.4f}")
+    # print(f"Overall Precision: {overall_metrics['precision']:.4f}")
+    # print(f"Overall Recall:    {overall_metrics['recall']:.4f}")
+    # print(f"Overall F1 Score:  {overall_metrics['f1_score']:.4f}")
     
-    # Visualize results
-    visualize_results(results)
+    # # Visualize results
+    # visualize_results(results)
 
 if __name__ == "__main__":
     main()

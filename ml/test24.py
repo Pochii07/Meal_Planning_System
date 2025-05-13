@@ -341,10 +341,10 @@ def main():
         # low_fat = True,
         # low_sodium= True,
         # lactose_free= True,
-        peanut_allergy= True,
-        shellfish_allergy= True,
-        fish_allergy= True,
-        halal_or_kosher= True
+        # peanut_allergy= True,
+        # shellfish_allergy= True,
+        # fish_allergy= True,
+        # halal_or_kosher= True
 
     )
     

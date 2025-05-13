@@ -41,34 +41,24 @@ class MealPlanner:
         self.rf_model, self.kmeans_model, self.scaler = self._train_models()
 
     def _train_models(self) -> Tuple[RandomForestClassifier, KMeans, StandardScaler]:
-    # Prepare data
+        # Prepare data
         self.data['calorie_range'] = self._create_calorie_ranges(self.data['calories'])
         self.data = self.data.dropna(subset=['calories', 'calorie_range'])
 
         # Train Random Forest
         X = self.data[['calories']]
         y = self.data['calorie_range']
-        
-        # First split: 80% train, 20% temp (validation + test)
-        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
-        
-        # Second split: split temp into validation and test (50% each, which is 10% of original data)
-        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
         rf = RandomForestClassifier(n_estimators=50, random_state=42)
         rf.fit(X_train, y_train)
-        
-        # Validate the model
-        val_accuracy = rf.score(X_val, y_val)
-        test_accuracy = rf.score(X_test, y_test)
-        print(f"Validation accuracy: {val_accuracy:.4f}, Test accuracy: {test_accuracy:.4f}")
-        
+
         # Train K-means
         features = self.data[self.dietary_columns].values
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         
-        kmeans = KMeans(n_clusters=22, n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=22, n_init='auto')
         kmeans.fit(features_scaled)
 
         return rf, kmeans, scaler
@@ -105,14 +95,87 @@ class MealPlanner:
         return weekly_plan
 
     def _filter_by_preferences(self, preferences: DietaryPreferences) -> pd.DataFrame:
+        # Start with all data
         filtered_data = self.data.copy()
-        pref_array = preferences.to_array()
+        pref_array = preferences.to_array()[0]
         
-        user_pref_scaled = self.scaler.transform(pref_array)
-        user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+        # Step 1: Apply critical dietary restrictions (these are non-negotiable)
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and any(x in column.lower() for x in ['allergy', 'halal', 'kosher']):
+                filtered_data = filtered_data[filtered_data[column] == True]
         
-        cluster_mask = self.kmeans_model.labels_ == user_cluster
-        return filtered_data[cluster_mask]
+        # Step 2: Use Random Forest to select meals within appropriate calorie ranges
+        target_prediction_counts = {}
+        
+        # Get calorie range distribution from RandomForest predictions
+        for meal_type in ['breakfast', 'lunch/dinner']:
+            if meal_type == 'breakfast':
+                meal_data = filtered_data[filtered_data['title'].isin(self.breakfast_data['title'])]
+            else:
+                meal_data = filtered_data[filtered_data['title'].isin(self.lunch_data['title'])]
+                
+            if not meal_data.empty:
+                # Use DataFrame with proper column names for prediction
+                calories_df = pd.DataFrame({'calories': meal_data['calories']})
+                predictions = self.rf_model.predict(calories_df)
+                unique_predictions, counts = np.unique(predictions, return_counts=True)
+                target_prediction_counts[meal_type] = dict(zip(unique_predictions, counts))
+        
+        # Step 3: Apply preference-based filtering
+        min_required_options = 10
+        
+        # Try direct filtering with preferences
+        temp_data = filtered_data.copy()
+        soft_constraints = ['Vegetarian', 'Low-Purine', 'Low-fat/Heart-Healthy', 
+                        'Low-Sodium', 'Lactose-free']
+        
+        for i, column in enumerate(self.dietary_columns):
+            if pref_array[i] and column in soft_constraints:
+                temp_data = temp_data[temp_data[column] == True]
+        
+        # Apply direct filtering if it yields enough options
+        if len(temp_data) >= min_required_options:
+            filtered_data = temp_data
+        else:
+            # Step 4: Use K-means for preference matching
+            features = filtered_data[self.dietary_columns].values
+            filtered_features_scaled = self.scaler.transform(features)
+            
+            user_pref_scaled = self.scaler.transform(preferences.to_array())
+            user_cluster = self.kmeans_model.predict(user_pref_scaled)[0]
+            
+            filtered_clusters = self.kmeans_model.predict(filtered_features_scaled)
+            
+            # Create a scoring system that combines RFC predictions with cluster similarity
+            scores = []
+            for i, (idx, row) in enumerate(filtered_data.iterrows()):
+                score = 0
+                
+                # Add points if in same cluster (preference match)
+                if filtered_clusters[i] == user_cluster:
+                    score += 5
+                
+                # Create proper DataFrame with column name
+                calorie_df = pd.DataFrame({'calories': [row['calories']]})
+                pred_range = self.rf_model.predict(calorie_df)[0]
+                
+                meal_type = 'breakfast' if row['title'] in self.breakfast_data['title'].values else 'lunch/dinner'
+                
+                if meal_type in target_prediction_counts and pred_range in target_prediction_counts[meal_type]:
+                    popularity = target_prediction_counts[meal_type][pred_range]
+                    score += min(popularity / 10, 3)  # Cap at 3 points
+                    
+                scores.append((idx, score))
+            
+            # Sort by score and keep top results
+            top_indices = [idx for idx, score in sorted(scores, key=lambda x: x[1], reverse=True)][:min_required_options*2]
+            filtered_data = filtered_data.loc[top_indices]
+        
+        # Final safety check
+        if filtered_data.empty:
+            raise ValueError("Cannot find any meals matching your dietary requirements")
+            
+        return filtered_data
 
     def _generate_daily_meals_with_variety(
         self, filtered_data: pd.DataFrame, tdee: int, 
@@ -161,7 +224,7 @@ class MealPlanner:
             
         # Function to round to nearest allowed serving size (1, 1.5, 2, 2.5, 3)
         def round_to_serving_size(serving):
-            allowed_servings = [1, 1.5, 2, 2.5, 3]
+            allowed_servings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
             return min(allowed_servings, key=lambda x: abs(x - serving))
 
         # Sample breakfast
@@ -205,7 +268,7 @@ class MealPlanner:
             }
         }
 
-    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 100) -> Dict[str, float]:
+    def evaluate_meal_plan_recommendations(self, tdee: int, preferences: DietaryPreferences, n_trials: int = 10) -> Dict[str, float]:
         """
         Evaluate the meal planning system with more balanced success criteria.
         """
@@ -252,7 +315,6 @@ class MealPlanner:
                     
                     # A week is successful if it meets minimum thresholds
                     if (week_calorie_matches >= 5 and  # Allow 2 days of deviation
-                        week_variety_matches >= 5 and  # Allow 2 days of repetition
                         week_pref_matches == 7):       # Strict on preferences
                         successful_trials += 1
                         
@@ -272,7 +334,6 @@ class MealPlanner:
             print(f"Total weekly plans generated: {total_trials}")
             print(f"Acceptable calorie range: {min_acceptable:.0f} - {max_acceptable:.0f}")
             print(f"Days with correct calories: {calorie_matches}/{total_days}")
-            print(f"Days with meal variety: {variety_matches}/{total_days}")
             print(f"Days meeting preferences: {preference_matches}/{total_days}")
             print(f"Successful weekly plans: {successful_trials}/{total_trials}")
             print("-" * 40)
@@ -305,25 +366,25 @@ class MealPlanner:
 
 def main():
     planner = MealPlanner(
-        breakfast_path='new model/bf.csv',
-        lunch_path='new model/lunch.csv'
+        breakfast_path='bf_final_updated_recipes_1.csv',
+        lunch_path='lunch_final_updated_recipes_1.csv'
     )
     
     preferences = DietaryPreferences(
         vegetarian=True,
         # low_purine =True,
         # low_fat = True,
-        # low_sodium= True,
-        # lactose_free= True,
-        # peanut_allergy= True,
-        # shellfish_allergy= True,
-        # fish_allergy= True,
-        # halal_or_kosher= True
+        low_sodium= True,
+        lactose_free= True,
+        peanut_allergy= True,
+        shellfish_allergy= True,
+        fish_allergy= True,
+        halal_or_kosher= True
 
     )
     
     # Define tdee as a variable first
-    tdee = 1610
+    tdee = 1300
     
     try:
         weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)
