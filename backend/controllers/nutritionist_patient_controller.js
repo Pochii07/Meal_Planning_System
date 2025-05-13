@@ -14,54 +14,62 @@ const calculateTDEE = (BMR, activity_level) => {
     return (BMR * activity_level);
 };
 
-const processMealPlanData = (rawPrediction) => {
-    let processedPrediction = {};
+function processMealPlanData(rawPrediction) {
+    const processedPlan = {};
     
-    try {
-        // Parse prediction if it's a string
-        let prediction = rawPrediction;
-        if (typeof rawPrediction === 'string') {
-            prediction = JSON.parse(rawPrediction.replace(/'/g, '"'));
-        }
-
-        // Loop through each day in the prediction
-        for (const day in prediction) {
-            if (prediction.hasOwnProperty(day)) {
-                const dayData = prediction[day];
-                
-                // Create basic meal plan structure for compatibility
-                processedPrediction[day] = {
-                    date: dayData.date,
-                    breakfast: dayData.breakfast || dayData.meals?.breakfast?.title,
-                    lunch: dayData.lunch || dayData.meals?.lunch?.title,
-                    dinner: dayData.dinner || dayData.meals?.dinner?.title,
-                    
-                    // Store detailed meal information
-                    breakfast_details: {
-                        calories: dayData.meals?.breakfast?.calories || 0,
-                        servings: dayData.meals?.breakfast?.servings || 1,
-                        total_calories: dayData.meals?.breakfast?.total_calories || 0
-                    },
-                    lunch_details: {
-                        calories: dayData.meals?.lunch?.calories || 0,
-                        servings: dayData.meals?.lunch?.servings || 1,
-                        total_calories: dayData.meals?.lunch?.total_calories || 0
-                    },
-                    dinner_details: {
-                        calories: dayData.meals?.dinner?.calories || 0,
-                        servings: dayData.meals?.dinner?.servings || 1,
-                        total_calories: dayData.meals?.dinner?.total_calories || 0
-                    }
-                };
-            }
-        }
+    Object.keys(rawPrediction).forEach(date => {
+      const dayData = rawPrediction[date];
+      const day = dayData.day;
+      
+      if (!processedPlan[day]) {
+        processedPlan[day] = {
+          date: dayData.date,
+          total_calories: dayData.total_calories
+        };
+      }
+      
+      // Add each meal with full details
+      Object.keys(dayData.meals).forEach(mealType => {
+        const meal = dayData.meals[mealType];
         
-        return processedPrediction;
-    } catch (error) {
-        console.error("Error processing meal plan data:", error);
-        throw new Error("Error processing meal plan data");
-    }
-};
+        // Add main meal
+        processedPlan[day][mealType] = meal.title;
+        
+        // Add meal details
+        processedPlan[day][`${mealType}_details`] = {
+          calories: meal.calories,
+          servings: meal.servings,
+          total_calories: meal.total_calories
+        };
+        
+        // Add components
+        processedPlan[day][`${mealType}_rice`] = {
+          title: meal.rice.title,
+          servings: meal.rice.servings,
+          calories: meal.rice.calories,
+          total_calories: meal.rice.total_calories
+        };
+        
+        processedPlan[day][`${mealType}_side_dish`] = {
+          title: meal.side_dish.title,
+          servings: meal.side_dish.servings, 
+          calories: meal.side_dish.calories,
+          total_calories: meal.side_dish.total_calories
+        };
+        
+        processedPlan[day][`${mealType}_drink`] = {
+          title: meal.drink.title,
+          servings: meal.drink.servings,
+          calories: meal.drink.calories,
+          total_calories: meal.drink.total_calories
+        };
+        
+        processedPlan[day][`${mealType}_meal_total`] = meal.meal_total_calories;
+      });
+    });
+    
+    return processedPlan;
+}
 
 // Get all patients for a nutritionist
 const getNutritionistPatients = async (req, res) => {
@@ -99,7 +107,6 @@ const getNutritionistPatient = async (req, res) => {
     }
 }
 
-// Create new patient
 const createNutritionistPatient = async (req, res) => {
     const { 
         firstName, 
@@ -121,17 +128,28 @@ const createNutritionistPatient = async (req, res) => {
                 error: 'Age must be at least 18 years to generate a meal plan.' 
             });
         }
+        
+        // Calculate BMR and TDEE
+        const BMR = calculateBMR(weight, height, age, gender);
+        const TDEE = calculateTDEE(BMR, activity_level);
+        
+        // Parse preference string to boolean values
+        const dietaryPreferences = {
+            TDEE: TDEE,
+            vegetarian: preference.includes('vegetarian'),
+            low_purine: preference.includes('low_purine'),
+            low_fat: preference.includes('low_fat') || preference.includes('low-fat'),
+            low_sodium: preference.includes('low_sodium') || preference.includes('low-sodium'),
+            lactose_free: preference.includes('lactose_free') || preference.includes('lactose-free'),
+            peanut_allergy: restrictions.includes('peanut'),
+            shellfish_allergy: restrictions.includes('shellfish'),
+            fish_allergy: restrictions.includes('fish'),
+            halal_or_kosher: preference.includes('halal') || preference.includes('kosher')
+        };
+        
         // Get prediction from Flask API
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
-        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
-            age,
-            height,
-            weight,
-            gender,
-            dietary_restrictions: preference,
-            allergies: restrictions,
-            activity_level
-        });
+        const response = await axios.post(`${ML_API_URL}/predict`, dietaryPreferences);
 
         const rawPrediction = response.data.predicted_meal_plan;
 
@@ -144,10 +162,6 @@ const createNutritionistPatient = async (req, res) => {
         }
 
         const BMI = (weight / ((height / 100) ** 2)).toFixed(2);
-        
-        // Calculate BMR and TDEE
-        const BMR = calculateBMR(weight, height, age, gender);
-        const TDEE = calculateTDEE(BMR, activity_level);
 
         // Initialize progress structure
         const progress = {
@@ -318,24 +332,22 @@ const regenerateMealPlan = async (req, res) => {
         // Update TDEE in patient data
         patient.TDEE = TDEE;
 
-        // Convert numeric activity level to string format
-        let activityLevelString;
-        if (activity_level <= 1.2) activityLevelString = 'sedentary';
-        else if (activity_level <= 1.375) activityLevelString = 'light';
-        else if (activity_level <= 1.55) activityLevelString = 'moderate';
-        else if (activity_level <= 1.725) activityLevelString = 'active';
-        else activityLevelString = 'very active';
+        // Format dietary preferences for the new API structure
+        const dietaryPreferences = {
+            TDEE: TDEE,
+            vegetarian: preference.includes('vegetarian'),
+            low_purine: preference.includes('low_purine'),
+            low_fat: preference.includes('low_fat') || preference.includes('low-fat'),
+            low_sodium: preference.includes('low_sodium') || preference.includes('low-sodium'),
+            lactose_free: preference.includes('lactose_free') || preference.includes('lactose-free'),
+            peanut_allergy: restrictions.includes('peanut'),
+            shellfish_allergy: restrictions.includes('shellfish'),
+            fish_allergy: restrictions.includes('fish'),
+            halal_or_kosher: preference.includes('halal') || preference.includes('kosher')
+        };
 
         const ML_API_URL = process.env.ML_API_URL || 'http://127.0.0.1:5000';
-        const response = await axios.post(`${ML_API_URL}/predict_meal_plan`, {
-            age,
-            height,
-            weight,
-            gender,
-            dietary_restrictions: preference,
-            allergies: restrictions,
-            activity_level: activityLevelString // Send string instead of number
-        });
+        const response = await axios.post(`${ML_API_URL}/predict`, dietaryPreferences);
         
         // Parse the prediction
         const rawPrediction = response.data.predicted_meal_plan;

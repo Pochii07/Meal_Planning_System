@@ -425,191 +425,248 @@ const PatientTable = ({ patients: propsPatients,
                         </div>
                         {calculateProgress(patient.progress, patient.skippedMeals) >= 0}
                         
-                        <div className="grid grid-cols-7 gap-1 py-4">
-                          <div ref={expandRef} className="col-span-7 mb-2 text-sm italic text-gray-600">
+                        <div className="w-full px-2">
+                          <div ref={expandRef} className="mb-2 text-sm italic text-gray-600">
                             Click the recipe name for more information
                           </div>
-                          {[
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                            "Sunday",
-                          ].map((day) => (
-                            <div key={day} className="bg-white p-4 rounded-lg shadow">
-                              <h4 className="font-semibold text-gray-700 mb-2">
-                                {day}
-                                {patient.prediction?.[day]?.date && (
-                                  <div className="mt-1">
-                                    <span className="text-xs text-gray-500">
-                                      {new Date(patient.prediction[day].date).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                )}
-                              </h4>
-                              <div className="space-y-2">
-                                {meals.map((meal) => {
-                                  return (
-                                  <div key={meal} className="flex items-start">
-                                    <span
-                                      className={`inline-block w-4 h-4 min-w-4 rounded-full mr-2 transition-colors ${
-                                        patient.skippedMeals?.[day]?.[meal]
-                                          ? 'bg-red-500' 
-                                          : patient.progress?.[day]?.[meal] 
-                                            ? 'bg-green-500' 
-                                            : 'bg-gray-300'
-                                      }`}
-                                      aria-label={`${meal} status indicator`}
-                                    ></span>
-                                    <div className="flex flex-col flex-1 w-full">
-                                      <div className="flex flex-col">
-                                        <span className="font-semibold text-sm text-gray-700 capitalize">
-                                          {meal}:
-                                        </span>
-                                        <div className="flex flex-col">
-                                        <span 
-                                          className="font-medium cursor-pointer hover:text-green-600 hover:underline"
-                                          onClick={() => fetchRecipeDetails(patient.prediction?.[day]?.[meal])}
-                                        >
-                                          {patient.prediction?.[day]?.[meal]}
-                                        </span>
-                                          {patient.prediction?.[day]?.[`${meal}_details`]?.calories > 0 && (
-                                            <div className="text-xs text-gray-500">
-                                              <div>Base Calories: {patient.prediction[day][`${meal}_details`].calories} kcal</div>
-                                              <div>Prescribed Serving: {patient.prediction[day][`${meal}_details`].servings}</div>
-                                              <div>Total Calories: {patient.prediction[day][`${meal}_details`].total_calories} kcal</div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>                                    
-                                      {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
-                                        <div className="mt-1 text-xs italic text-gray-600 bg-red-50 p-1.5 rounded border border-red-100">
-                                          Note: {patient.mealNotes[day][meal]}
-                                        </div>
-                                      )}
-                                      {patient.prediction?.[day]?.[meal] && (
-                                        <div className="mt-1">
-                                          {editingNote === `${patient._id}-${day}-${meal}` ? (
-                                            <div className="flex flex-col space-y-2">
-                                              <textarea
-                                                className="w-full p-2 text-sm border border-gray-300 rounded"
-                                                value={noteText}
-                                                onChange={(e) => setNoteText(e.target.value)}
-                                                placeholder="Add note..."
-                                                rows={2}
-                                              />
-                                              <div className="flex justify-end space-x-2">
-                                                <button 
-                                                  className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                                                  onClick={() => {
-                                                    setEditingNote(null);
-                                                    setNoteText("");
-                                                  }}
-                                                >
-                                                  Cancel
-                                                </button>
-                                                <button 
-                                                  className="px-2 py-1 text-xs text-white bg-green-600 rounded hover:bg-green-700"
-                                                  onClick={() => handleNoteSubmit(patient._id, day, meal, noteText)}
-                                                >
-                                                  Save
-                                                </button>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div>
-                                              {patient.nutritionistNotes?.[day]?.[meal] && (
-                                                <div className="p-1.5 mt-1 text-xs italic bg-green-50 border border-green-100 rounded">
-                                                  <span className="font-medium">Your note:</span> {patient.nutritionistNotes[day][meal]}
-                                                </div>
-                                              )}
-                                              <button 
-                                                className="text-xs text-blue-600 hover:underline mt-1"
-                                                onClick={() => {
-                                                  setEditingNote(`${patient._id}-${day}-${meal}`);
-                                                  setNoteText(patient.nutritionistNotes?.[day]?.[meal] || "");
-                                                }}
-                                              >
-                                                {patient.nutritionistNotes?.[day]?.[meal] ? "Edit note" : "Add note"}
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                      {/* Meal addons section */}
-                                      <div className="mt-2">
-                                        {patient.prediction?.[day]?.[meal] && (
-                                          <div>
-                                            {/* Display existing addons */}
-                                            {patient.mealAddons?.[day]?.[meal]?.map((addon, idx) => (
-                                              <div key={idx} className="flex items-center gap-1 text-xs my-1 bg-blue-50 p-1.5 rounded">
-                                                {addon.skipped}
-                                                {addon.completed && !addon.skipped && (
-                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          
+                          <div className="days-grid">
+                            {[
+                              "Monday",
+                              "Tuesday",
+                              "Wednesday",
+                              "Thursday", 
+                              "Friday",
+                              "Saturday",
+                              "Sunday",
+                            ].map((day) => (
+                              <div key={day} className="mb-4 rounded-lg">
+                                <div className="bg-white p-4 rounded-lg shadow">
+                                  {/* Day header with a more prominent styling */}
+                                  <h4 className="text-xl font-semibold text-green-700 mb-4 border-b pb-2 flex justify-between items-center">
+                                    <span>{day}</span>
+                                    {patient.prediction?.[day]?.date && (
+                                      <span className="text-sm text-gray-500">
+                                        {new Date(patient.prediction[day].date).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </h4>
+                                  
+                                  {/* Meals displayed horizontally in a row */}
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {meals.map((meal) => {
+                                      const dayData = patient.prediction?.[day] || {};
+                                      return (
+                                        <div key={meal} className="meal-details p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
+                                          <h4 className="text-lg font-semibold text-green-600 mb-3 capitalize border-b pb-2">
+                                            {meal}
+                                            
+                                            {/* Add meal progress indicator */}
+                                            <span className="ml-2">
+                                              {patient.progress?.[day]?.[meal] ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                  <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                   </svg>
-                                                )}
-                                                <span className={`flex-grow truncate ${addon.skipped ? 'line-through text-red-600' : addon.completed ? 'text-green-600' : ''}`}>
-                                                  {addon.text}
+                                                  Completed
                                                 </span>
-                                                <button className="text-red-600 hover:text-red-800 ml-1 flex-shrink-0"
-                                                  onClick={() => handleRemoveAddon(patient._id, day, meal, idx)}>
-                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414-1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                              ) : patient.skippedMeals?.[day]?.[meal] ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                  <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                                  </svg>
+                                                  Skipped
+                                                </span>
+                                              ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                  Pending
+                                                </span>
+                                              )}
+                                            </span>
+                                          </h4>
+
+                                          {/* Add Skip Message if meal was skipped */}
+                                          {patient.skippedMeals?.[day]?.[meal] && patient.mealNotes?.[day]?.[meal] && (
+                                            <div className="mt-2 mb-3 p-2 bg-red-50 border border-red-100 rounded-md">
+                                              <p className="text-xs font-medium text-gray-700 mb-1">Patient skip reason:</p>
+                                              <p className="text-sm italic text-gray-600">{patient.mealNotes[day][meal]}</p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Main dish */}
+                                          <div className="mb-3">
+                                            <p className="font-medium hover:text-green-600 cursor-pointer" 
+                                              onClick={() => fetchRecipeDetails(dayData[meal])}>
+                                              {dayData[meal] || 'No meal planned'}
+                                            </p>
+                                            
+                                            {/* Meal details section */}
+                                            {dayData[`${meal}_details`] && (
+                                              <div className="grid grid-cols-3 gap-2 mt-2">
+                                                <div className="bg-gray-50 p-2 rounded">
+                                                  <span className="block text-xs text-gray-500">Base Calories</span>
+                                                  <span className="font-medium">{dayData[`${meal}_details`].calories} kcal</span>
+                                                </div>
+                                                <div className="bg-gray-50 p-2 rounded">
+                                                  <span className="block text-xs text-gray-500">Servings</span>
+                                                  <span className="font-medium">{dayData[`${meal}_details`].servings}</span>
+                                                </div>
+                                                <div className="bg-gray-50 p-2 rounded">
+                                                  <span className="block text-xs text-gray-500">Total</span>
+                                                  <span className="font-medium">{dayData[`${meal}_details`].total_calories} kcal</span>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Rice, side dish, and drink components - keeping them as they are */}
+                                          {dayData[`${meal}_rice`] && (
+                                            <div className="mb-2 p-2 bg-yellow-50 rounded-md border border-yellow-100">
+                                              {/* Rice component content */}
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-yellow-800">Rice</span>
+                                                <span className="text-xs bg-yellow-100 px-2 py-1 rounded">
+                                                  {dayData[`${meal}_rice`].servings} cup(s)
+                                                </span>
+                                              </div>
+                                              <p className="text-sm">{dayData[`${meal}_rice`].title}</p>
+                                              <p className="text-xs text-gray-600 mt-1">{dayData[`${meal}_rice`].total_calories} kcal</p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Side dish component */}
+                                          {dayData[`${meal}_side_dish`] && dayData[`${meal}_side_dish`].title && (
+                                            <div className="mb-2 p-2 bg-green-50 rounded-md border border-green-100">
+                                              {/* Side dish component content */}
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-green-800">Side Dish</span>
+                                                <span className="text-xs bg-green-100 px-2 py-1 rounded">
+                                                  {dayData[`${meal}_side_dish`].servings} serving(s)
+                                                </span>
+                                              </div>
+                                              <p 
+                                                className="text-sm cursor-pointer hover:text-green-700" 
+                                                onClick={() => fetchRecipeDetails(dayData[`${meal}_side_dish`].title)}
+                                              >
+                                                {dayData[`${meal}_side_dish`].title}
+                                              </p>
+                                              <p className="text-xs text-gray-600 mt-1">{dayData[`${meal}_side_dish`].total_calories} kcal</p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Drink component */}
+                                          {dayData[`${meal}_drink`] && dayData[`${meal}_drink`].title && (
+                                            <div className="mb-2 p-2 bg-blue-50 rounded-md border border-blue-100">
+                                              {/* Drink component content */}
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-blue-800">Drink</span>
+                                                <span className="text-xs bg-blue-100 px-2 py-1 rounded">
+                                                  {dayData[`${meal}_drink`].servings} serving(s)
+                                                </span>
+                                              </div>
+                                              <p 
+                                                className="text-sm cursor-pointer hover:text-blue-700" 
+                                                onClick={() => fetchRecipeDetails(dayData[`${meal}_drink`].title)}
+                                              >
+                                                {dayData[`${meal}_drink`].title}
+                                              </p>
+                                              <p className="text-xs text-gray-600 mt-1">{dayData[`${meal}_drink`].total_calories} kcal</p>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Total meal calories */}
+                                          {/* {dayData[`${meal}_meal_total`] && (
+                                            <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between">
+                                              <span className="text-sm font-medium">Meal Total:</span>
+                                              <span className="text-sm font-bold">{dayData[`${meal}_meal_total`]} kcal</span>
+                                            </div>
+                                          )} */}
+                                          
+                                          {/* Nutritionist Note Section */}
+                                          <div className="mt-2">
+                                            {patient.nutritionistNotes?.[day]?.[meal] ? (
+                                              <div className="nutritionist-note">
+                                                <div className="nutritionist-note-header">
+                                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                                                  </svg>
+                                                  <span>Nutritionist Note</span>
+                                                </div>
+                                                <div className="nutritionist-note-content">
+                                                  {patient.nutritionistNotes[day][meal]}
+                                                </div>
+                                                <button 
+                                                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                                                  onClick={() => {
+                                                    setEditingNote(`${patient._id}-${day}-${meal}`);
+                                                    setNoteText(patient.nutritionistNotes[day][meal] || "");
+                                                  }}
+                                                >
+                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                   </svg>
                                                 </button>
                                               </div>
-                                            ))}                                            
-                                            {/* Add new addon */}
-                                            {editingAddon === `${patient._id}-${day}-${meal}` ? (
-                                              <div className="flex flex-col mt-2 gap-2">
+                                            ) : (
+                                              <button
+                                                className="text-xs text-green-600 hover:text-green-800 flex items-center mt-2"
+                                                onClick={() => {
+                                                  setEditingNote(`${patient._id}-${day}-${meal}`);
+                                                  setNoteText("");
+                                                }}
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Add Nutritionist Note
+                                              </button>
+                                            )}
+                                            
+                                            {/* Note Edit Form */}
+                                            {editingNote === `${patient._id}-${day}-${meal}` && (
+                                              <div className="note-edit-form">
                                                 <textarea
-                                                  className="w-full text-xs p-1.5 border rounded"
-                                                  value={addonText}
-                                                  onChange={(e) => setAddonText(e.target.value)}
-                                                  placeholder="Enter addon instructions..."
-                                                />
-                                                <div className="flex justify-end gap-2">
-                                                  <button 
-                                                    className="px-2 py-1 text-xs bg-gray-300 rounded hover:bg-gray-400"
-                                                    onClick={() => setEditingAddon(null)}
+                                                  className="note-edit-textarea"
+                                                  value={noteText}
+                                                  onChange={(e) => setNoteText(e.target.value)}
+                                                  placeholder="Enter your notes for this meal..."
+                                                ></textarea>
+                                                <div className="note-actions">
+                                                  <button
+                                                    className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                                                    onClick={() => {
+                                                      setEditingNote(null);
+                                                      setNoteText("");
+                                                    }}
                                                   >
                                                     Cancel
                                                   </button>
-                                                  <button 
-                                                    className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-                                                    onClick={() => handleAddAddon(patient._id, day, meal)}
+                                                  <button
+                                                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                                                    onClick={() => handleNoteSubmit(patient._id, day, meal, noteText)}
                                                   >
-                                                    Add
+                                                    Save
                                                   </button>
                                                 </div>
                                               </div>
-                                            ) : (
-                                              <button 
-                                                className="text-xs text-blue-600 hover:text-blue-800 mt-1 flex items-center"
-                                                onClick={() => {
-                                                  setEditingAddon(`${patient._id}-${day}-${meal}`);
-                                                  setAddonText('');
-                                                }}
-                                              >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                </svg>
-                                                Add meal addon
-                                              </button>
                                             )}
                                           </div>
-                                        )}
-                                      </div>
-                                    </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                  );
-                                })}
-                              </div>  
-                            </div>
-                          ))}                    
+                                  
+                                  {/* Daily total calories */}
+                                  {/* {patient.prediction?.[day]?.total_calories && (
+                                    <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex justify-between items-center">
+                                      <span className="font-medium text-gray-700">Daily Total:</span>
+                                      <span className="font-bold text-green-600">{patient.prediction[day].total_calories} kcal</span>
+                                    </div>
+                                  )} */}
+                                </div>
+                              </div>
+                            ))}                    
+                          </div>
                         </div>
                         <div className='flex justify-end mt-0 gap-2'>
                           <button

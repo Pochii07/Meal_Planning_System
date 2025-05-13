@@ -545,7 +545,7 @@ const PatientMealTrackerDisplay = () => {
   const meals = ['breakfast', 'lunch', 'dinner'];
 
   return (
-    <div className="meal-tracker">
+    <div className="meal-tracker w-full max-w-7xl mx-auto"> {/* Widened container */}
       <h2>
         Patient Meal Plan
         {patientData?.firstName && patientData?.lastName ? 
@@ -593,7 +593,7 @@ const PatientMealTrackerDisplay = () => {
       )}
 
         {mealPlan && mealPlan.prediction ? (
-          <div className="meal-grid">
+          <div className="meal-grid w-full"> {/* Ensure full width */}
             {days.map((day) => (
               <div key={day} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-4">
                 <h3 className="text-sm font-semibold mb-2">
@@ -605,7 +605,7 @@ const PatientMealTrackerDisplay = () => {
                   )}
                 </h3>
 
-              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed from flex to grid */}
               {meals.map((meal) => (
                 <div 
                   key={`${day}-${meal}`} 
@@ -625,53 +625,101 @@ const PatientMealTrackerDisplay = () => {
                     <span className="meal-type">{meal}</span>
                   </div>
                   
-                  <div 
-                    className={`meal-desc flex flex-col bg-white p-3 rounded-lg shadow-sm border border-gray-100 ${
-                      mealPlan.prediction[day]?.[meal] && !pendingSkip 
-                        ? "group-hover:bg-green-50 group-hover:border-green-200" 
-                        : ""
-                    }`}
-                    onClick={() => {
-                      // Remove the skippedMeals condition to allow viewing recipe even if skipped
-                      if (mealPlan.prediction[day]?.[meal] && !pendingSkip) {
-                        fetchRecipeDetails(mealPlan.prediction[day][meal]);
-                      }
-                    }}
-                    style={{
-                      cursor: mealPlan.prediction[day]?.[meal] && !pendingSkip
-                        ? 'pointer'
-                        : 'default',
-                    }}
-                  > 
+                  <div className="meal-desc flex flex-col bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                    {/* Main meal - Make title clickable */}
                     <span 
-                      className={mealPlan.prediction[day]?.[meal] && !pendingSkip ? 
-                        "text-green-600 w-full group-hover:text-green-700 transition-colors" : 
-                        "text-gray-600 w-full"
-                      }
+                      className="text-green-600 w-full cursor-pointer hover:text-green-700"
+                      onClick={() => fetchRecipeDetails(mealPlan.prediction[day]?.[meal])}
                     >
-                      {/* For skipped meals, you could add an indicator but still show the meal name */}
                       {mealPlan.prediction[day]?.[meal] || 'No meal planned'}
                       {skippedMeals[day]?.[meal] && <span className="ml-2 text-red-500">(Skipped)</span>}
                     </span>
                     
-                    {/* Meal details moved below title */}
+                    {/* Meal details section */}
                     {mealPlan.prediction[day]?.[`${meal}_details`] && (
-                      <div className="text-sm text-gray-600">
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Base Calories</span>
-                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].calories} kcal</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Prescribed serving</span>
-                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].servings}</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded">
-                              <span className="block text-xs text-gray-500">Total Calories</span>
-                              <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].total_calories} kcal</span>
-                            </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Base Calories</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].calories} kcal</span>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Serving</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].servings}</span>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <span className="block text-xs text-gray-500">Total Calories</span>
+                            <span className="font-medium">{mealPlan.prediction[day][`${meal}_details`].total_calories} kcal</span>
                           </div>
                         </div>
+                      </div>
+                    )}
+                    
+                    {/* Components section with fixed width */}
+                    <div className="meal-components mt-3 grid grid-cols-1 gap-2 w-full">
+                      {/* Rice component */}
+                      {mealPlan.prediction[day]?.[`${meal}_rice`] && (
+                        <div className="component-container p-2 bg-amber-50 rounded-md border border-amber-100 hover:shadow-sm transition-shadow w-full overflow-hidden">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-amber-800">Rice</span>
+                            <span className="text-xs bg-amber-100 px-2 py-1 rounded">
+                              {mealPlan.prediction[day][`${meal}_rice`].servings} serving(s)
+                            </span>
+                          </div>
+                          <p 
+                            className="text-sm font-medium mt-1 break-words cursor-pointer hover:text-amber-700"
+                            onClick={() => fetchRecipeDetails(mealPlan.prediction[day][`${meal}_rice`].title)}
+                          >
+                            {mealPlan.prediction[day][`${meal}_rice`].title}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{mealPlan.prediction[day][`${meal}_rice`].total_calories} kcal</p>
+                        </div>
+                      )}
+                      
+                      {/* Side dish component */}
+                      {mealPlan.prediction[day]?.[`${meal}_side_dish`] && (
+                        <div className="component-container p-2 bg-green-50 rounded-md border border-green-100 hover:shadow-sm transition-shadow w-full overflow-hidden">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-green-800">Side Dish</span>
+                            <span className="text-xs bg-green-100 px-2 py-1 rounded">
+                              {mealPlan.prediction[day][`${meal}_side_dish`].servings} serving(s)
+                            </span>
+                          </div>
+                          <p 
+                            className="text-sm font-medium mt-1 break-words cursor-pointer hover:text-green-700"
+                            onClick={() => fetchRecipeDetails(mealPlan.prediction[day][`${meal}_side_dish`].title)}
+                          >
+                            {mealPlan.prediction[day][`${meal}_side_dish`].title}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{mealPlan.prediction[day][`${meal}_side_dish`].total_calories} kcal</p>
+                        </div>
+                      )}
+                      
+                      {/* Drink component */}
+                      {mealPlan.prediction[day]?.[`${meal}_drink`] && (
+                        <div className="component-container p-2 bg-blue-50 rounded-md border border-blue-100 hover:shadow-sm transition-shadow w-full overflow-hidden">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-blue-800">Drink</span>
+                            <span className="text-xs bg-blue-100 px-2 py-1 rounded">
+                              {mealPlan.prediction[day][`${meal}_drink`].servings} serving(s)
+                            </span>
+                          </div>
+                          <p 
+                            className="text-sm font-medium mt-1 break-words cursor-pointer hover:text-blue-700"
+                            onClick={() => fetchRecipeDetails(mealPlan.prediction[day][`${meal}_drink`].title)}
+                          >
+                            {mealPlan.prediction[day][`${meal}_drink`].title}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{mealPlan.prediction[day][`${meal}_drink`].total_calories} kcal</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {mealPlan.prediction[day]?.[`${meal}_meal_total`] && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <span className="text-xs font-semibold">Meal Total:</span>
+                        <span className="text-sm font-medium ml-1">{mealPlan.prediction[day][`${meal}_meal_total`]} kcal</span>
+                      </div>
                     )}
                   </div>
                 

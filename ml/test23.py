@@ -374,17 +374,17 @@ def main():
         vegetarian=True,
         # low_purine =True,
         # low_fat = True,
-        # low_sodium= True,
-        # lactose_free= True,
+        low_sodium= True,
+        lactose_free= True,
         peanut_allergy= True,
-        # shellfish_allergy= True,
-        # fish_allergy= True,
-        # halal_or_kosher= True
+        shellfish_allergy= True,
+        fish_allergy= True,
+        halal_or_kosher= True
 
     )
     
     # Define tdee as a variable first
-    tdee = 1200
+    tdee = 1300
     
     try:
         weekly_plan = planner.generate_weekly_plan(tdee=tdee, preferences=preferences)

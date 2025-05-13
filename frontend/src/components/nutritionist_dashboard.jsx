@@ -240,7 +240,7 @@ const NutritionistDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 nutritionist-dashboard">
       {/* Header with tabs */}
       <div className="flex justify-between items-center mb-8">
         <div>
