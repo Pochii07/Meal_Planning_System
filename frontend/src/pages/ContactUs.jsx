@@ -178,6 +178,24 @@ const ContactUs = () => {
                 Have questions about ChefIt? We're here to help! Send us a message and we'll get back to you within 48 hours.
               </Typography>
 
+              {/* Added nutritionist-dietitian section */}
+              <Typography 
+                variant="body1" 
+                paragraph 
+                sx={{ 
+                  fontWeight: 'bold',
+                  color: '#008000',
+                  mb: 4,
+                  borderLeft: '4px solid #008000',
+                  pl: 2,
+                  fontStyle: 'italic'
+                }}
+              >
+                Are you a nutritionist-dietitian? You're in the right place. 
+                <br/>Send us a message to start your patient management journey and transform 
+                your practice with our specialized tools.
+              </Typography>
+
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                   <IconButton sx={{ 
@@ -206,31 +224,13 @@ const ContactUs = () => {
                     color: '#008000',
                     mr: 2
                   }}>
-                    <Phone />
-                  </IconButton>
-                  <Box>
-                    <p className="font-semibold text-[18px]">
-                        +63 912 345 6789
-                    </p>
-                    <h2 >
-                      Mon-Fri, 9am-5pm
-                    </h2>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                  <IconButton sx={{ 
-                    bgcolor: '#e8f5e9', 
-                    color: '#008000',
-                    mr: 2
-                  }}>
                     <Email />
                   </IconButton>
                   <Box>
                     <p className="font-semibold text-[18px]">
-                      chefit@gmail.com
+                      qykabamadar@tip.edu.ph
+                      qpagranada@tip.edu.ph
+                      qtdgregorio@tip.edu.ph
                     </p>
                     <h2 >
                       Typically replies within 24 hours
@@ -271,7 +271,7 @@ const ContactUs = () => {
                   mb: 3
                 }}
               >
-                Send Us a Message
+                Send us a message
               </Typography>
 
               {submitted ? (
