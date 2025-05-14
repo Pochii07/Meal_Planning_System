@@ -714,13 +714,6 @@ const PatientMealTrackerDisplay = () => {
                         </div>
                       )}
                     </div>
-                    
-                    {mealPlan.prediction[day]?.[`${meal}_meal_total`] && (
-                      <div className="mt-2 pt-2 border-t border-gray-100">
-                        <span className="text-xs font-semibold">Meal Total:</span>
-                        <span className="text-sm font-medium ml-1">{mealPlan.prediction[day][`${meal}_meal_total`]} kcal</span>
-                      </div>
-                    )}
                   </div>
                 
                   

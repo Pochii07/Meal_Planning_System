@@ -29,8 +29,8 @@ def convert_numpy_types(obj):
 
 # Initialize the meal planner with data files
 planner = MealPlanner(
-    breakfast_path='bf_final_updated_recipes_1.csv',
-    lunch_path='lunch_final_updated_recipes_1.csv',
+    breakfast_path='bf_revised.csv',
+    lunch_path='lunch_revised.csv',
     sidedish_path='sidedish_recipes.csv',
     drink_path='drinks_recipes.csv'
 )

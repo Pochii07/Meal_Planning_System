@@ -187,14 +187,6 @@ const MealPlanHistoryModal = ({ isOpen, onClose, history, patient }) => {
                                                 </div>
                                             )}
                                             
-                                            {/* Meal total */}
-                                            {!isSkipped && dayData[`${meal}_meal_total`] && (
-                                                <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between">
-                                                    <span className="text-sm font-medium">Meal Total:</span>
-                                                    <span className="text-sm font-bold">{dayData[`${meal}_meal_total`]} kcal</span>
-                                                </div>
-                                            )}
-                                            
                                             {/* Addons */}
                                             {mealAddons && mealAddons.length > 0 && (
                                                 <div className="mt-3 border-t pt-2">
